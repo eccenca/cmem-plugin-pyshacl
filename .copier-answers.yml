@@ -1,0 +1,7 @@
+# Changes here will be overwritten by Copier
+_commit: v1.0.2
+_src_path: gh:eccenca/cmem-plugin-template
+author_mail: thomas.wilmering@eccena.com
+author_name: Thomas Wilmering
+project_description: This eccenca Corporate Memory plugin totally rocks :-)
+project_slug: pyshacl2
