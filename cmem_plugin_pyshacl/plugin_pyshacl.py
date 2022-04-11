@@ -147,8 +147,6 @@ class ShaclValidation(WorkflowPlugin):
             "resultMessage",
             "resultSeverity"
         ]
-        entities = []
-
         validation_results = list(g.subjects(RDF.type, SH.ValidationResult))
         values = [[self.check_object(g, validation_results[0], SH[p])] for p in shp] \
             + [[list(g.objects(predicate=SH.conforms))[0]], [self.data_graph_uri], [self.shacl_graph_uri]]
@@ -156,7 +154,6 @@ class ShaclValidation(WorkflowPlugin):
             uri=validation_results[0],
             values = values
         )]
-
         for validation_result in validation_results[1:]: #g.subjects(RDF.type, SH.ValidationResult):
             values = [[self.check_object(g, validation_result, SH[p])] for p in shp] + [[""],[""],[""]]
             entities.append(
