@@ -1,5 +1,5 @@
 import validators
-from rdflib import Graph, RDF, SH, URIRef, PROV, XSD, Literal, PROV, BNode
+from rdflib import Graph, RDF, SH, URIRef, PROV, XSD, Literal, BNode
 from pyshacl import validate
 from os import remove
 from time import time
