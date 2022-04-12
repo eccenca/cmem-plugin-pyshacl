@@ -1,5 +1,5 @@
-import validators
-from rdflib import Graph, RDF, SH, URIRef, PROV, XSD, Literal, PROV
+import validators, re
+from rdflib import Graph, RDF, SH, URIRef, PROV, XSD, Literal, PROV, BNode
 from pyshacl import validate
 from os import remove
 from time import time
@@ -127,11 +127,15 @@ class ShaclValidation(WorkflowPlugin):
         l = list(g.objects(s, p))
         if l:
             o = l[0]
-            #if p == SH.value:
-            #    if type(o) == Literal:
-            #        o += f" | {o.datatype}"
-            #    else:
-            #        o += " | URI"
+            if p == SH.value:
+                if type(o) == Literal:
+                    o += f" | Literal"
+                    if o.datatype:
+                        o += f" ({o.datatype})"
+                elif type(o) == Literal:
+                    o += f" | IRI"
+                elif type(o) == BNode:
+                    o += f" | Blank node"
             return o
         else:
             return ""
@@ -180,6 +184,12 @@ class ShaclValidation(WorkflowPlugin):
         shacl_graph.parse(data=r.text, format="nt")
         self.log.info("Starting SHACL validation.")
         conforms, validation_graph, results_text = self.shacl_validate(data_graph, shacl_graph)
+
+        r = get("http://ld.company.org/test/validation2/")
+        validation_graph = Graph()
+        validation_graph.parse(data=r.text, format="nt")
+
+
         validation_graph = self.post_process(validation_graph)
         self.log.info(f"Config length: {len(self.config.get())}")
         if self.generate_graph:
