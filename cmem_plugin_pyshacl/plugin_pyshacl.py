@@ -1,5 +1,5 @@
 import validators
-from rdflib import Graph, RDF, SH, URIRef, PROV, XSD, Literal, BNode
+from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD
 from pyshacl import validate
 from os import remove
 from time import time
@@ -87,9 +87,9 @@ class ShaclValidation(WorkflowPlugin):
 
     def post_process(self, validation_graph):
         # replace blank nodes and add prov information
+        utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         validation_graph_uri = self.validation_graph_uri if self.generate_graph \
             else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
-        utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         validation_graph = validation_graph.skolemize(basepath=validation_graph_uri)
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         validation_graph.add((validation_report_uri, PROV.wasDerivedFrom, URIRef(self.data_graph_uri)))
@@ -115,7 +115,7 @@ class ShaclValidation(WorkflowPlugin):
                 elif type(o) == URIRef:
                     t = "IRI"
                 elif type(o) == BNode:
-                    t = "Blank Node"
+                    t = "Blank node"
                 return [[o], [t]]
             else:
                 return [[o]]
@@ -142,7 +142,7 @@ class ShaclValidation(WorkflowPlugin):
             uri=validation_results[0],
             values = values
         )]
-        for validation_result in validation_results[1:]: #g.subjects(RDF.type, SH.ValidationResult):
+        for validation_result in validation_results[1:]:
             values = []
             for p in shp:
                 values += self.check_object(g, validation_result, SH[p])
@@ -185,5 +185,3 @@ class ShaclValidation(WorkflowPlugin):
         if self.output_values:
             self.log.info("Creating entities.")
             return self.make_entities(validation_graph)
-        # else:
-        #    return Entities(entities=[], schema=EntitySchema(type_uri="", paths=[]))#EntityPath(path="")))
