@@ -93,25 +93,10 @@ class ShaclValidation(WorkflowPlugin):
         if self.generate_graph:
             validation_graph_uri = self.validation_graph_uri
         else:
-            validation_graph_uri = f"urn:uuid:{uuid4()}/"
+            validation_graph_uri = f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
-        validation_report_uri = URIRef(f"{validation_graph_uri}validation_report")
-        validation_report_b = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
-        validation_graph.remove((validation_report_b, RDF.type, SH.ValidationReport))
-        validation_graph.add((validation_report_uri, RDF.type, SH.ValidationReport))
-        conforms = list(validation_graph.objects(validation_report_b, SH.conforms))[0]
-        validation_graph.remove((validation_report_b, SH.conforms, conforms))
-        validation_graph.add((validation_report_uri, SH.conforms, conforms))
-        results = validation_graph.triples((validation_report_b, SH.result, None))
-        [validation_graph.remove(r) for r in results]
-        validation_results_b = validation_graph.subjects(RDF.type, SH.ValidationResult)
-        for c, b in enumerate(validation_results_b):
-            result_triples = validation_graph.triples((b, None, None))
-            validation_result_uri = URIRef(f"{validation_graph_uri}validation_result_{c}")
-            validation_graph.add((validation_report_uri, SH.result, validation_result_uri))
-            for res in result_triples:
-                validation_graph.remove(res)
-                validation_graph.add((validation_result_uri, res[1], res[2]))
+        validation_graph = validation_graph.skolemize(basepath=validation_graph_uri)
+        validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         validation_graph.add((validation_report_uri, PROV.wasDerivedFrom, URIRef(self.data_graph_uri)))
         validation_graph.add((validation_report_uri, PROV.wasInformedBy, URIRef(self.shacl_graph_uri)))
         validation_graph.add((validation_report_uri, PROV.generatedAtTime, Literal(utctime, datatype=XSD.dateTime)))
@@ -182,7 +167,7 @@ class ShaclValidation(WorkflowPlugin):
                         EntityPath(path=PROV.wasDerivedFrom),
                         EntityPath(path=PROV.wasInformedBy)
                     ]
-        paths.insert(3, EntityPath(path="https://eccenca.com/cmem-plugin-pyshacl/value_type"))
+        paths.insert(3, EntityPath(path="https://eccenca.com/cmem-plugin-pyshacl/vocab/value_type"))
         schema = EntitySchema(
             type_uri=SH.ValidationResult,
             paths=paths
