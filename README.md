@@ -8,3 +8,5 @@ eccenca Corporate Memory plugin performing SHACL validation with pySHACL
 - Use [pre-commit](https://pre-commit.com/) to avoid errors before commit
 - This repository was created with [this]() [copier](https://copier.readthedocs.io/) template.
 
+## TODO:
+- fix blank node skolemisation
