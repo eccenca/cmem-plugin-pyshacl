@@ -85,15 +85,10 @@ class ShaclValidation(WorkflowPlugin):
         self.generate_graph = generate_graph
         self.output_values = output_values
 
-    def shacl_validate(self, data_graph, shacl_graph):
-        return validate(data_graph, shacl_graph=shacl_graph)
-
     def post_process(self, validation_graph):
         # replace blank nodes and add prov information
-        if self.generate_graph:
-            validation_graph_uri = self.validation_graph_uri
-        else:
-            validation_graph_uri = f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
+        validation_graph_uri = self.validation_graph_uri if self.generate_graph \
+            else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         validation_graph = validation_graph.skolemize(basepath=validation_graph_uri)
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
@@ -125,10 +120,7 @@ class ShaclValidation(WorkflowPlugin):
             else:
                 return [[o]]
         else:
-            if p == SH.value:
-                return [[""], [""]]
-            else:
-                return [[""]]
+            return [[""], [""]] if p == SH.value else [[""]]
 
     def make_entities(self, g):
         shp = [
@@ -184,7 +176,7 @@ class ShaclValidation(WorkflowPlugin):
         shacl_graph = Graph()
         shacl_graph.parse(data=r.text, format="nt")
         self.log.info("Starting SHACL validation.")
-        conforms, validation_graph, results_text = self.shacl_validate(data_graph, shacl_graph)
+        conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph)
         validation_graph = self.post_process(validation_graph)
         self.log.info(f"Config length: {len(self.config.get())}")
         if self.generate_graph:
