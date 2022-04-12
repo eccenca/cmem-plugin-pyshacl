@@ -1,4 +1,4 @@
-import validators, re
+import validators
 from rdflib import Graph, RDF, SH, URIRef, PROV, XSD, Literal, PROV, BNode
 from pyshacl import validate
 from os import remove
@@ -120,7 +120,7 @@ class ShaclValidation(WorkflowPlugin):
             else:
                 return [[o]]
         else:
-            return [[""], [""]] if p == SH.value else [[""]]
+            return 2 * [[""]] if p == SH.value else [[""]]
 
     def make_entities(self, g):
         shp = [
@@ -146,7 +146,7 @@ class ShaclValidation(WorkflowPlugin):
             values = []
             for p in shp:
                 values += self.check_object(g, validation_result, SH[p])
-            values += [[""],[""],[""]]
+            values += 3 * [[""]]
             entities.append(
                 Entity(
                     uri=validation_result,
