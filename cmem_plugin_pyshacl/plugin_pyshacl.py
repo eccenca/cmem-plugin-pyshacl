@@ -94,7 +94,7 @@ class ShaclValidation(WorkflowPlugin):
             validation_graph_uri = self.validation_graph_uri
         else:
             validation_graph_uri = f"urn:uuid:{uuid4()}/"
-        utctime = str(datetime.fromtimestamp(int(time()))).replace(' ', 'T') + 'Z'
+        utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         validation_report_uri = URIRef(f"{validation_graph_uri}validation_report")
         validation_report_b = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         validation_graph.remove((validation_report_b, RDF.type, SH.ValidationReport))
@@ -118,8 +118,8 @@ class ShaclValidation(WorkflowPlugin):
         return validation_graph
 
     def post_graph(self, validation_graph):
-        temp_file = '{}.nt'.format(uuid4())
-        validation_graph.serialize(temp_file, format='nt', encoding='utf-8')
+        temp_file = "{}.nt".format(uuid4())
+        validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
         post(self.validation_graph_uri, temp_file, replace=True)
         remove(temp_file)
 
