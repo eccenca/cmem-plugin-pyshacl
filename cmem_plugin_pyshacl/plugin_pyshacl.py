@@ -110,6 +110,8 @@ class ShaclValidation(WorkflowPlugin):
         l = list(g.objects(s, p))
         if l:
             o = l[0]
+            if type(o) == BNode:
+                o = g.cbd(o).serialize(format="turtle")
             if p == SH.value:
                 if type(o) == Literal:
                     t = "Literal"
@@ -132,7 +134,7 @@ class ShaclValidation(WorkflowPlugin):
             "value",
             "sourceShape",
             "sourceConstraintComponent",
-            "detail",
+            #"detail",
             "resultMessage",
             "resultSeverity"
         ]
@@ -162,7 +164,7 @@ class ShaclValidation(WorkflowPlugin):
                         EntityPath(path=PROV.wasDerivedFrom),
                         EntityPath(path=PROV.wasInformedBy)
                     ]
-        paths.insert(3, EntityPath(path="https://eccenca.com/cmem-plugin-pyshacl/vocab/value_type"))
+        paths.insert(3, EntityPath(path="urn:value_type"))
         schema = EntitySchema(
             type_uri=SH.ValidationResult,
             paths=paths
