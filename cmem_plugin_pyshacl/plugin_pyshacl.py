@@ -149,7 +149,6 @@ class ShaclValidation(WorkflowPlugin):
                         EntityPath(path=PROV.wasDerivedFrom),
                         EntityPath(path=PROV.wasInformedBy)
                     ]
-        #paths.insert(3, EntityPath(path="urn:value_type"))
         schema = EntitySchema(
             type_uri=SH.ValidationResult,
             paths=paths
