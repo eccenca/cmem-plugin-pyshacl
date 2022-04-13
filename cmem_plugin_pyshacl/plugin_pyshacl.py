@@ -108,7 +108,7 @@ class ShaclValidation(WorkflowPlugin):
 
     def check_object(self, g, s, p):
         l = list(g.objects(s, p))
-        o = l[0] if l else ""
+        o = l[0] if l else None
         v = ""
         if o:
             if type(o) == URIRef:
