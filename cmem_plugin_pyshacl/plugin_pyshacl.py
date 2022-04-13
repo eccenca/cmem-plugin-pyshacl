@@ -108,24 +108,16 @@ class ShaclValidation(WorkflowPlugin):
 
     def check_object(self, g, s, p):
         l = list(g.objects(s, p))
-        if l:
-            o = l[0]
-            if type(o) == BNode:
-                o = g.cbd(o).serialize(format="turtle")
-            if p == SH.value:
-                if type(o) == Literal:
-                    t = "Literal"
-                    if o.datatype:
-                        t += f" ({o.datatype})"
-                elif type(o) == URIRef:
-                    t = "IRI"
-                elif type(o) == BNode:
-                    t = "Blank node"
-                return [[o], [t]]
-            else:
-                return [[o]]
-        else:
-            return 2 * [[""]] if p == SH.value else [[""]]
+        o = l[0] if l else ""
+        v = ""
+        if o:
+            if type(o) == URIRef:
+                v = f"<{o}>"
+            elif type(o) == BNode:
+                v = g.cbd(o).serialize(format="turtle")
+            elif type(o) == Literal and p == SH.value:
+                v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
+        return v
 
     def make_entities(self, g):
         shp = [
@@ -138,20 +130,13 @@ class ShaclValidation(WorkflowPlugin):
             "resultMessage",
             "resultSeverity"
         ]
-        validation_results = list(g.subjects(RDF.type, SH.ValidationResult))
-        values = []
-        for p in shp:
-            values += self.check_object(g, validation_results[0], SH[p])
-        values += [[list(g.objects(predicate=SH.conforms))[0]], [self.data_graph_uri], [self.shacl_graph_uri]]
-        entities = [Entity(
-            uri=validation_results[0],
-            values = values
-        )]
-        for validation_result in validation_results[1:]:
-            values = []
-            for p in shp:
-                values += self.check_object(g, validation_result, SH[p])
-            values += 3 * [[""]]
+        entities =[]
+        for i, validation_result in enumerate(list(g.subjects(RDF.type, SH.ValidationResult))):
+            values = [[self.check_object(g, validation_result, SH[p])] for p in shp]
+            if i == 0:
+                values += [[list(g.objects(predicate=SH.conforms))[0]], [f"<{self.data_graph_uri}>"], [f"<{self.shacl_graph_uri}>"]]
+            else:
+                values += 3 * [[""]]
             entities.append(
                 Entity(
                     uri=validation_result,
@@ -164,7 +149,7 @@ class ShaclValidation(WorkflowPlugin):
                         EntityPath(path=PROV.wasDerivedFrom),
                         EntityPath(path=PROV.wasInformedBy)
                     ]
-        paths.insert(3, EntityPath(path="urn:value_type"))
+        #paths.insert(3, EntityPath(path="urn:value_type"))
         schema = EntitySchema(
             type_uri=SH.ValidationResult,
             paths=paths
@@ -182,8 +167,8 @@ class ShaclValidation(WorkflowPlugin):
         shacl_graph.parse(data=r.text, format="nt")
         self.log.info("Starting SHACL validation.")
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph)
-        validation_graph = self.post_process(validation_graph)
         self.log.info(f"Config length: {len(self.config.get())}")
+        validation_graph = self.post_process(validation_graph)
         if self.generate_graph:
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
