@@ -85,9 +85,8 @@ class ShaclValidation(WorkflowPlugin):
         self.generate_graph = generate_graph
         self.output_values = output_values
 
-    def post_process(self, validation_graph):
+    def post_process(self, validation_graph, utctime):
         # replace blank nodes and add prov information
-        utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         validation_graph_uri = self.validation_graph_uri if self.generate_graph \
             else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
@@ -112,14 +111,14 @@ class ShaclValidation(WorkflowPlugin):
         v = ""
         if o:
             if type(o) == URIRef:
-                v = f"<{o}>"
+                v = o
             elif type(o) == BNode:
                 v = g.cbd(o).serialize(format="turtle")
             elif type(o) == Literal and p == SH.value:
                 v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
         return v
 
-    def make_entities(self, g):
+    def make_entities(self, g, utctime):
         shp = [
             "focusNode",
             "resultPath",
@@ -134,9 +133,14 @@ class ShaclValidation(WorkflowPlugin):
         for i, validation_result in enumerate(list(g.subjects(RDF.type, SH.ValidationResult))):
             values = [[self.check_object(g, validation_result, SH[p])] for p in shp]
             if i == 0:
-                values += [[list(g.objects(predicate=SH.conforms))[0]], [f"<{self.data_graph_uri}>"], [f"<{self.shacl_graph_uri}>"]]
+                values += [
+                    [list(g.objects(predicate=SH.conforms))[0]],
+                    [self.data_graph_uri],
+                    [self.shacl_graph_uri],
+                    [utctime]
+                ]
             else:
-                values += 3 * [[""]]
+                values += 4 * [[""]]
             entities.append(
                 Entity(
                     uri=validation_result,
@@ -147,7 +151,8 @@ class ShaclValidation(WorkflowPlugin):
                     [
                         EntityPath(path=SH.conforms),
                         EntityPath(path=PROV.wasDerivedFrom),
-                        EntityPath(path=PROV.wasInformedBy)
+                        EntityPath(path=PROV.wasInformedBy),
+                        EntityPath(path=PROV.generatedAtTime)
                     ]
         schema = EntitySchema(
             type_uri=SH.ValidationResult,
@@ -166,11 +171,12 @@ class ShaclValidation(WorkflowPlugin):
         shacl_graph.parse(data=r.text, format="nt")
         self.log.info("Starting SHACL validation.")
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph)
+        utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         self.log.info(f"Config length: {len(self.config.get())}")
-        validation_graph = self.post_process(validation_graph)
+        validation_graph = self.post_process(validation_graph, utctime)
         if self.generate_graph:
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
         if self.output_values:
             self.log.info("Creating entities.")
-            return self.make_entities(validation_graph)
+            return self.make_entities(validation_graph, utctime)
