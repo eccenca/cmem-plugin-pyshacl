@@ -82,17 +82,17 @@ class ShaclValidation(WorkflowPlugin):
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
         self.validation_graph_uri = validation_graph_uri
+        self.validation_graph_uri = validation_graph_uri if generate_graph \
+            else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         self.generate_graph = generate_graph
         self.output_values = output_values
 
     def post_process(self, validation_graph, utctime):
         # replace blank nodes and add prov information
-        validation_graph_uri = self.validation_graph_uri if self.generate_graph \
-            else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
-        validation_graph_skolemized = validation_graph.skolemize(bnode=validation_report_uri, basepath=validation_graph_uri)
+        validation_graph_skolemized = validation_graph.skolemize(bnode=validation_report_uri, basepath=self.validation_graph_uri)
         for v in validation_graph_skolemized.subjects(RDF.type, SH.ValidationResult):
-            validation_graph_skolemized = validation_graph_skolemized.skolemize(bnode=v, basepath=validation_graph_uri)
+            validation_graph_skolemized = validation_graph_skolemized.skolemize(bnode=v, basepath=self.validation_graph_uri)
         validation_report_uri = list(validation_graph_skolemized.subjects(RDF.type, SH.ValidationReport))[0]
         validation_graph_skolemized.add((validation_report_uri, PROV.wasDerivedFrom, URIRef(self.data_graph_uri)))
         validation_graph_skolemized.add((validation_report_uri, PROV.wasInformedBy, URIRef(self.shacl_graph_uri)))
