@@ -90,13 +90,31 @@ class ShaclValidation(WorkflowPlugin):
     def post_process(self, validation_graph, utctime):
         # replace blank nodes and add prov information
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
-        validation_graph_skolemized = validation_graph.skolemize(bnode=validation_report_uri, basepath=self.validation_graph_uri)
+        validation_graph_skolemized = validation_graph.skolemize(
+            bnode=validation_report_uri,
+            basepath=self.validation_graph_uri
+        )
         for v in validation_graph_skolemized.subjects(RDF.type, SH.ValidationResult):
-            validation_graph_skolemized = validation_graph_skolemized.skolemize(bnode=v, basepath=self.validation_graph_uri)
+            validation_graph_skolemized = validation_graph_skolemized.skolemize(
+                bnode=v,
+                basepath=self.validation_graph_uri
+            )
         validation_report_uri = list(validation_graph_skolemized.subjects(RDF.type, SH.ValidationReport))[0]
-        validation_graph_skolemized.add((validation_report_uri, PROV.wasDerivedFrom, URIRef(self.data_graph_uri)))
-        validation_graph_skolemized.add((validation_report_uri, PROV.wasInformedBy, URIRef(self.shacl_graph_uri)))
-        validation_graph_skolemized.add((validation_report_uri, PROV.generatedAtTime, Literal(utctime, datatype=XSD.dateTime)))
+        validation_graph_skolemized.add((
+            validation_report_uri,
+            PROV.wasDerivedFrom,
+            URIRef(self.data_graph_uri)
+        ))
+        validation_graph_skolemized.add((
+            validation_report_uri,
+            PROV.wasInformedBy,
+            URIRef(self.shacl_graph_uri)
+        ))
+        validation_graph_skolemized.add((
+            validation_report_uri,
+            PROV.generatedAtTime,
+            Literal(utctime, datatype=XSD.dateTime)
+        ))
         return validation_graph_skolemized
 
     def post_graph(self, validation_graph):
