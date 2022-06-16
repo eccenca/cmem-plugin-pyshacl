@@ -6,6 +6,8 @@ from time import time
 from datetime import datetime
 from uuid import uuid4
 from cmem.cmempy.dp.proxy.graph import get, post
+#from cmem.cmempy.rdflib.cmem_store import CMEMStore
+from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
@@ -43,14 +45,21 @@ from cmem_plugin_base.dataintegration.entity import (
             param_type = BoolParameterType(),
             name="generate_graph",
             label="Generate validation graph",
-            description="Generate validation graph (bool)",
+            description="Generate validation graph",
             default_value=False
         ),
         PluginParameter(
             param_type = BoolParameterType(),
             name="output_values",
             label="Output values",
-            description="Output values (bool)",
+            description="Output values",
+            default_value=False
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="use_cmem_store",
+            label="Use CMEM store",
+            description="Use CMEM store",
             default_value=False
         )
     ]
@@ -66,7 +75,9 @@ class ShaclValidation(WorkflowPlugin):
         shacl_graph_uri,
         generate_graph,
         validation_graph_uri,
-        output_values
+        output_values,
+        use_cmem_store
+
     ) -> None:
         if not validators.url(data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid.")
@@ -86,6 +97,8 @@ class ShaclValidation(WorkflowPlugin):
             else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         self.generate_graph = generate_graph
         self.output_values = output_values
+        self.use_cmem_store = False  # use_cmem_store
+        setup_cmempy_super_user_access()
 
     def post_process(self, validation_graph, utctime):
         # replace blank nodes and add prov information
@@ -178,15 +191,19 @@ class ShaclValidation(WorkflowPlugin):
         )
         return Entities(entities=entities, schema=schema)
 
+    def get_graph(self, i):
+        if False:  # self.use_cmem_store:
+            g = Graph(store=CMEMStore(), identifier=i)
+        else:
+            g = Graph()
+            g.parse(data=get(i).text, format="nt")
+        return g
+
     def execute(self, inputs=()):  # -> Entities:
         self.log.info(f"Loading data graph <{self.data_graph_uri}>.")
-        r = get(self.data_graph_uri)
-        data_graph = Graph()
-        data_graph.parse(data=r.text, format="nt")
+        data_graph = self.get_graph(self.data_graph_uri)
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}>.")
-        r = get(self.shacl_graph_uri)
-        shacl_graph = Graph()
-        shacl_graph.parse(data=r.text, format="nt")
+        shacl_graph = self.get_graph(self.shacl_graph_uri)
         self.log.info("Starting SHACL validation.")
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph)
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
