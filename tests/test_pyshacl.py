@@ -8,15 +8,9 @@ def test_execution():
     shacl_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
     data_graph_uri = shacl_graph_uri
     validation_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
-    generate_graph = True
-    output_values = True
-    clear_validation_graph = True
-    owl_imports_resolution = True
-    skolemize_validation_graph = True
-    add_labels_to_validation_graph = True
-    include_graphs_labels = True
-    add_shui_conforms_to_validation_graph = True
-    use_cmem_store = False
+    generate_graph = "1"
+    output_values = "1"
+    owl_imports_resolution = "1"
     post(shacl_graph_uri, "tests/shacl-shacl.nt", replace=True)
     response = get(shacl_graph_uri)
     if response.status_code != 200:
@@ -27,14 +21,7 @@ def test_execution():
         validation_graph_uri=validation_graph_uri,
         generate_graph=generate_graph,
         output_values=output_values,
-        clear_validation_graph=clear_validation_graph,
-        owl_imports_resolution=owl_imports_resolution,
-        skolemize_validation_graph=skolemize_validation_graph,
-        add_labels_to_validation_graph=add_labels_to_validation_graph,
-        include_graphs_labels=include_graphs_labels,
-        add_shui_conforms_to_validation_graph=add_shui_conforms_to_validation_graph,
-        use_cmem_store=use_cmem_store
-    )
+        owl_imports_resolution=owl_imports_resolution)
     result = plugin.execute()
     response = get(validation_graph_uri)
     if response.status_code != 200:
