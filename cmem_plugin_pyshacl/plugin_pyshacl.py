@@ -38,8 +38,7 @@ from cmem_plugin_base.dataintegration.entity import (
         PluginParameter(
             param_type = GraphParameterType(classes = [
                 "https://vocab.eccenca.com/shui/ShapeCatalog"
-            ]
-            ),
+            ]),
             name="shacl_graph_uri",
             label="SHACL graph URI",
             description="SHACL graph URI"
