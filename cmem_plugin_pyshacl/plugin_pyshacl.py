@@ -61,10 +61,17 @@ from cmem_plugin_base.dataintegration.entity import (
             label="Use CMEM store",
             description="Use CMEM store",
             default_value=False
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="owl_imports_resolution",
+            label="Resolve owl:imports",
+            description="Resolve graph tree defined via owl:imports.",
+            default_value=True,
+            advanced=True
         )
     ]
 )
-
 
 class ShaclValidation(WorkflowPlugin):
     """Example Workflow Plugin: Random Values"""
@@ -76,8 +83,8 @@ class ShaclValidation(WorkflowPlugin):
         generate_graph,
         validation_graph_uri,
         output_values,
-        use_cmem_store
-
+        use_cmem_store,
+        owl_imports_resolution
     ) -> None:
         if not validators.url(data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid.")
@@ -97,6 +104,7 @@ class ShaclValidation(WorkflowPlugin):
             else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         self.generate_graph = generate_graph
         self.output_values = output_values
+        self.owl_imports_resolution = owl_imports_resolution
         self.use_cmem_store = False  # use_cmem_store
         setup_cmempy_super_user_access()
 
@@ -196,7 +204,7 @@ class ShaclValidation(WorkflowPlugin):
             g = Graph(store=CMEMStore(), identifier=i)
         else:
             g = Graph()
-            g.parse(data=get(i).text, format="nt")
+            g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="nt")
         return g
 
     def execute(self, inputs=()):  # -> Entities:
