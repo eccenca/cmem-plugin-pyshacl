@@ -67,8 +67,7 @@ from cmem_plugin_base.dataintegration.entity import (
             name="owl_imports_resolution",
             label="Resolve owl:imports",
             description="Resolve graph tree defined via owl:imports.",
-            default_value=True,
-            advanced=True
+            default_value=True
         )
     ]
 )
@@ -110,16 +109,17 @@ class ShaclValidation(WorkflowPlugin):
 
     def post_process(self, validation_graph, utctime):
         # replace blank nodes and add prov information
-        validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
-        validation_graph_skolemized = validation_graph.skolemize(
-            bnode=validation_report_uri,
-            basepath=self.validation_graph_uri
-        )
-        for v in validation_graph_skolemized.subjects(RDF.type, SH.ValidationResult):
-            validation_graph_skolemized = validation_graph_skolemized.skolemize(
-                bnode=v,
-                basepath=self.validation_graph_uri
-            )
+        # validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
+        # validation_graph_skolemized = validation_graph.skolemize(
+        #     bnode=validation_report_uri,
+        #     basepath=self.validation_graph_uri
+        # )
+        # for v in validation_graph_skolemized.subjects(RDF.type, SH.ValidationResult):
+        #     validation_graph_skolemized = validation_graph_skolemized.skolemize(
+        #         bnode=v,
+        #         basepath=self.validation_graph_uri
+        #     )
+        validation_graph_skolemized = validation_graph.skolemize(basepath=self.validation_graph_uri)
         validation_report_uri = list(validation_graph_skolemized.subjects(RDF.type, SH.ValidationReport))[0]
         validation_graph_skolemized.add((
             validation_report_uri,
