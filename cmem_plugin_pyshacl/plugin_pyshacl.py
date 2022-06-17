@@ -29,6 +29,7 @@ from cmem_plugin_base.dataintegration.entity import (
                 "http://rdfs.org/ns/void#Dataset",
                 "https://vocab.eccenca.com/shui/ShapeCatalog",
                 "http://www.w3.org/2002/07/owl#Ontology",
+                "https://vocab.eccenca.com/dsm/ThesaurusProject"
             ]),
             name="data_graph_uri",
             label="Data graph URI",
