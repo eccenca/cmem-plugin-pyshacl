@@ -10,6 +10,7 @@ from cmem.cmempy.dp.proxy.graph import get, post
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
+from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import (
     Entities, Entity, EntitySchema, EntityPath,
@@ -23,13 +24,21 @@ from cmem_plugin_base.dataintegration.entity import (
     documentation="""TBD""",
     parameters=[
         PluginParameter(
-            param_type = StringParameterType(),
+            param_type = GraphParameterType(classes = [
+                "https://vocab.eccenca.com/di/Dataset",
+                "http://rdfs.org/ns/void#Dataset",
+                "https://vocab.eccenca.com/shui/ShapeCatalog",
+                "http://www.w3.org/2002/07/owl#Ontology",
+            ]),
             name="data_graph_uri",
             label="Data graph URI",
             description="Data graph URI"
         ),
         PluginParameter(
-            param_type = StringParameterType(),
+            param_type = GraphParameterType(classes = [
+                "https://vocab.eccenca.com/shui/ShapeCatalog"
+            ]
+            ),
             name="shacl_graph_uri",
             label="SHACL graph URI",
             description="SHACL graph URI"
@@ -85,10 +94,10 @@ class ShaclValidation(WorkflowPlugin):
         use_cmem_store,
         owl_imports_resolution
     ) -> None:
-        if not validators.url(data_graph_uri):
-            raise ValueError("Data graph URI parameter is invalid.")
-        if not validators.url(shacl_graph_uri):
-            raise ValueError("SHACL graph URI parameter is invalid.")
+        #if not validators.url(data_graph_uri):
+        #    raise ValueError("Data graph URI parameter is invalid.")
+        #if not validators.url(shacl_graph_uri):
+        #    raise ValueError("SHACL graph URI parameter is invalid.")
         if not output_values and not generate_graph:
             raise ValueError("Generate validation graph or Output values parameter needs to be set to true.")
         if generate_graph:
