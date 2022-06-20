@@ -21,7 +21,7 @@ from cmem_plugin_base.dataintegration.entity import (
     label="SHACL validation with pySHACL",
     plugin_id="shacl-pyshacl",
     description="Performs SHACL validation with pySHACL.",
-    documentation="""TBD""",
+    documentation="""This plugin performs SHACL validation with pySHACL.""",
     parameters=[
         PluginParameter(
             param_type = GraphParameterType(classes = [
