@@ -16,7 +16,6 @@ from cmem_plugin_base.dataintegration.entity import (
     Entities, Entity, EntitySchema, EntityPath,
 )
 
-
 @Plugin(
     label="SHACL validation with pySHACL",
     plugin_id="shacl-pyshacl",
@@ -33,7 +32,7 @@ from cmem_plugin_base.dataintegration.entity import (
             ]),
             name="data_graph_uri",
             label="Data graph URI",
-            description="Data graph URI"
+            description="Data graph URI, will only list graphs of type di:Dataset, void:Dataset, shui:ShapeCatalog, owl:Ontology."
         ),
         PluginParameter(
             param_type = GraphParameterType(classes = [
@@ -213,7 +212,7 @@ class ShaclValidation(WorkflowPlugin):
             g = Graph(store=CMEMStore(), identifier=i)
         else:
             g = Graph()
-            g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="nt")
+            g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="text/turtle")
         return g
 
     def execute(self, inputs=()):  # -> Entities:
