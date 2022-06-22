@@ -124,7 +124,6 @@ class ShaclValidation(WorkflowPlugin):
                 validation_graph_uri += "/"
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
-        self.validation_graph_uri = validation_graph_uri
         self.validation_graph_uri = validation_graph_uri if generate_graph \
             else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         self.generate_graph = generate_graph
@@ -232,7 +231,7 @@ class ShaclValidation(WorkflowPlugin):
         #    g = Graph(store=CMEMStore(), identifier=i)
         #else:
         g = Graph()
-        g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="text/turtle")
+        g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
         return g
 
     def execute(self, inputs=()):  # -> Entities:
