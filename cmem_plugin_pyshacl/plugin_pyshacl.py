@@ -245,12 +245,15 @@ class ShaclValidation(WorkflowPlugin):
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         self.log.info(f"Config length: {len(self.config.get())}")
         validation_graph = self.post_process(validation_graph, utctime)
+        if self.output_values:
+            self.log.info("Creating entities.")
+            entities = self.make_entities(validation_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
+                # Blank nodes that are values in validation results are also replaced
                 self.log.info("Skolemizing validation graph.")
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
         if self.output_values:
-            self.log.info("Creating entities.")
-            return self.make_entities(validation_graph, utctime)
+            return entities
