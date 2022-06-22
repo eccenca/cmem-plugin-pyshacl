@@ -10,8 +10,9 @@ def test_execution():
     validation_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
     generate_graph = True
     output_values = True
-    owl_imports_resolution = True
     clear_validation_graph = True
+    owl_imports_resolution = True
+    skolemize_validation_graph = True
     post(shacl_graph_uri, "tests/shacl-shacl.nt", replace=True)
     response = get(shacl_graph_uri)
     if response.status_code != 200:
@@ -22,8 +23,9 @@ def test_execution():
         validation_graph_uri=validation_graph_uri,
         generate_graph=generate_graph,
         output_values=output_values,
+        clear_validation_graph=clear_validation_graph,
         owl_imports_resolution=owl_imports_resolution,
-        clear_validation_graph=clear_validation_graph
+        skolemize_validation_graph=skolemize_validation_graph
     )
     result = plugin.execute()
     response = get(validation_graph_uri)

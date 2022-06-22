@@ -63,26 +63,35 @@ from cmem_plugin_base.dataintegration.entity import (
             description="Output values",
             default_value=False
         ),
-        PluginParameter(
-            param_type = BoolParameterType(),
-            name="use_cmem_store",
-            label="Use CMEM store",
-            description="Use CMEM store",
-            default_value=False
-        ),
-        PluginParameter(
-            param_type = BoolParameterType(),
-            name="owl_imports_resolution",
-            label="Resolve owl:imports",
-            description="Resolve graph tree defined via owl:imports.",
-            default_value=True
-        ),
+        # PluginParameter(
+        #     param_type = BoolParameterType(),
+        #     name="use_cmem_store",
+        #     label="Use CMEM store",
+        #     description="Use CMEM store",
+        #     default_value=False
+        # ),
         PluginParameter(
             param_type = BoolParameterType(),
             name="clear_validation_graph",
             label="Clear validation graph",
             description="Clear the validation graph before workflow execution.",
             default_value=True
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="owl_imports_resolution",
+            label="Resolve owl:imports",
+            description="Resolve graph tree defined via owl:imports.",
+            default_value=True,
+            advanced=True
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="skolemize_validation_graph",
+            label="Skolemize validation graph",
+            description="Skolemize the validation graph.",
+            default_value=True,
+            advanced=True
         )
     ]
 )
@@ -97,9 +106,10 @@ class ShaclValidation(WorkflowPlugin):
         generate_graph,
         validation_graph_uri,
         output_values,
-        use_cmem_store,
+        # use_cmem_store,
+        clear_validation_graph,
         owl_imports_resolution,
-        clear_validation_graph
+        skolemize_validation_graph
     ) -> None:
         #if not validators.url(data_graph_uri):
         #    raise ValueError("Data graph URI parameter is invalid.")
@@ -121,7 +131,8 @@ class ShaclValidation(WorkflowPlugin):
         self.output_values = output_values
         self.owl_imports_resolution = owl_imports_resolution
         self.clear_validation_graph = clear_validation_graph
-        self.use_cmem_store = False  # use_cmem_store
+        self.skolemize_validation_graph = skolemize_validation_graph
+        # self.use_cmem_store = False  # use_cmem_store
         setup_cmempy_super_user_access()
 
     def post_process(self, validation_graph, utctime):
@@ -136,24 +147,24 @@ class ShaclValidation(WorkflowPlugin):
         #         bnode=v,
         #         basepath=self.validation_graph_uri
         #     )
-        validation_graph_skolemized = validation_graph.skolemize(basepath=self.validation_graph_uri)
-        validation_report_uri = list(validation_graph_skolemized.subjects(RDF.type, SH.ValidationReport))[0]
-        validation_graph_skolemized.add((
+        #validation_graph_skolemized = validation_graph.skolemize(basepath=self.validation_graph_uri)
+        validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
+        validation_graph.add((
             validation_report_uri,
             PROV.wasDerivedFrom,
             URIRef(self.data_graph_uri)
         ))
-        validation_graph_skolemized.add((
+        validation_graph.add((
             validation_report_uri,
             PROV.wasInformedBy,
             URIRef(self.shacl_graph_uri)
         ))
-        validation_graph_skolemized.add((
+        validation_graph.add((
             validation_report_uri,
             PROV.generatedAtTime,
             Literal(utctime, datatype=XSD.dateTime)
         ))
-        return validation_graph_skolemized
+        return validation_graph
 
     def post_graph(self, validation_graph):
         temp_file = f"{uuid4()}.nt"
@@ -217,11 +228,11 @@ class ShaclValidation(WorkflowPlugin):
         return Entities(entities=entities, schema=schema)
 
     def get_graph(self, i):
-        if False:  # self.use_cmem_store:
-            g = Graph(store=CMEMStore(), identifier=i)
-        else:
-            g = Graph()
-            g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="text/turtle")
+        #if self.use_cmem_store:
+        #    g = Graph(store=CMEMStore(), identifier=i)
+        #else:
+        g = Graph()
+        g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="text/turtle")
         return g
 
     def execute(self, inputs=()):  # -> Entities:
@@ -235,6 +246,9 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Config length: {len(self.config.get())}")
         validation_graph = self.post_process(validation_graph, utctime)
         if self.generate_graph:
+            if self.skolemize_validation_graph:
+                self.log.info("Skolemizing validation graph.")
+                validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
         if self.output_values:
