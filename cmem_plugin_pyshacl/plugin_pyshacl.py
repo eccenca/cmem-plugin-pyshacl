@@ -32,7 +32,7 @@ from cmem_plugin_base.dataintegration.entity import (
             ]),
             name="data_graph_uri",
             label="Data graph URI",
-            description="Data graph URI, will only list graphs of type di:Dataset, void:Dataset, shui:ShapeCatalog, owl:Ontology."
+            description="Data graph URI, will only list graphs of type di:Dataset, void:Dataset, shui:ShapeCatalog, owl:Ontology, dsm:ThesaurusProject"
         ),
         PluginParameter(
             param_type = GraphParameterType(classes = [
@@ -40,7 +40,7 @@ from cmem_plugin_base.dataintegration.entity import (
             ]),
             name="shacl_graph_uri",
             label="SHACL graph URI",
-            description="SHACL graph URI"
+            description="SHACL graph URI, will only list graphs of type shui:ShapeCatalog"
         ),
         PluginParameter(
             param_type = StringParameterType(),
