@@ -76,6 +76,13 @@ from cmem_plugin_base.dataintegration.entity import (
             label="Resolve owl:imports",
             description="Resolve graph tree defined via owl:imports.",
             default_value=True
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="clear_validation_graph",
+            label="Clear validation graph",
+            description="Clear the validation graph before workflow execution.",
+            default_value=True
         )
     ]
 )
@@ -91,7 +98,8 @@ class ShaclValidation(WorkflowPlugin):
         validation_graph_uri,
         output_values,
         use_cmem_store,
-        owl_imports_resolution
+        owl_imports_resolution,
+        clear_validation_graph
     ) -> None:
         #if not validators.url(data_graph_uri):
         #    raise ValueError("Data graph URI parameter is invalid.")
@@ -112,6 +120,7 @@ class ShaclValidation(WorkflowPlugin):
         self.generate_graph = generate_graph
         self.output_values = output_values
         self.owl_imports_resolution = owl_imports_resolution
+        self.clear_validation_graph = clear_validation_graph
         self.use_cmem_store = False  # use_cmem_store
         setup_cmempy_super_user_access()
 
@@ -149,7 +158,7 @@ class ShaclValidation(WorkflowPlugin):
     def post_graph(self, validation_graph):
         temp_file = f"{uuid4()}.nt"
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
-        post(self.validation_graph_uri, temp_file, replace=True)
+        post(self.validation_graph_uri, temp_file, replace=self.clear_validation_graph)
         remove(temp_file)
 
     def check_object(self, g, s, p):
