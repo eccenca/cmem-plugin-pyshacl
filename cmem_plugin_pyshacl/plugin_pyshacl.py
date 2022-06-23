@@ -6,6 +6,7 @@ from time import time
 from datetime import datetime
 from uuid import uuid4
 from cmem.cmempy.dp.proxy.graph import get, post
+from cmem.cmempy.queries import SparqlQuery
 #from cmem.cmempy.rdflib.cmem_store import CMEMStore
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
@@ -18,6 +19,87 @@ from cmem_plugin_base.dataintegration.entity import (
 # from cmem.cmempy.api import get_token
 # from rdflib.plugins.stores.sparqlstore import SPARQLStore
 
+
+add_label_query = """# add labels for RDFunit and shaclvalidate test results
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
+
+# RDFunit: TestCaseResult
+INSERT { GRAPH <{{GRAPH}}> { 
+  ?tr rdfs:label ?descr_ .
+}}
+WHERE { GRAPH <{{GRAPH}}> { 
+  ?tr a <http://rdfunit.aksw.org/ns/core#TestCaseResult> .
+  { ?tr <http://purl.org/dc/terms/description> ?descr . }
+  UNION 
+  { ?tr <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#message> ?descr . }
+  FILTER NOT EXISTS { ?tr rdfs:label ?label .}
+  BIND(CONCAT("RU: ", ?descr) AS ?descr_ )
+}};
+
+# RDFunit: PatternBasedTestCase / ManualTestCase
+INSERT { GRAPH <{{GRAPH}}> { 
+  ?tc rdfs:label ?descr_ .
+}}
+WHERE { GRAPH <{{GRAPH}}> { 
+  { 
+    ?tc a <http://rdfunit.aksw.org/ns/core#PatternBasedTestCase> . 
+  } UNION {
+    ?tc a <http://rdfunit.aksw.org/ns/core#ManualTestCase> . 
+  }
+
+  ?tc <http://purl.org/dc/terms/description> ?descr . 
+  FILTER NOT EXISTS { ?tc rdfs:label ?label .}
+  BIND(CONCAT("RU: ", ?descr) AS ?descr_ )
+}};
+
+# shaclvalidate
+INSERT { GRAPH <{{GRAPH}}> {
+    ?vr rdfs:label ?descr .
+}}
+WHERE { GRAPH <{{GRAPH}}> { 
+  ?vr a <http://www.w3.org/ns/shacl#ValidationResult> .
+  ?vr <http://www.w3.org/ns/shacl#resultPath> ?path .
+  BIND(REPLACE(STR(?path), ".*[/#]([^/#])", "$1") AS ?pathLocal) .
+  ?vr <http://www.w3.org/ns/shacl#resultMessage> ?msg .
+  BIND(CONCAT("SH: ", ?pathLocal, ": ", ?msg) AS ?descr) .
+  FILTER NOT EXISTS { ?vr rdfs:label ?label . }
+}};
+
+# shaclvalidate
+INSERT { GRAPH <{{GRAPH}}> {
+    ?vr rdfs:label ?descr .
+}}
+WHERE { GRAPH <{{GRAPH}}> { 
+  ?vr a <http://www.w3.org/ns/shacl#ValidationReport> .
+  ?vr <http://www.w3.org/ns/shacl#conforms> ?conf .
+  BIND(CONCAT("SH: Validation Report, ", STR(?conf)) AS ?descr) .
+  FILTER NOT EXISTS { ?vr rdfs:label ?label . }
+}}"""
+
+update_failure_flag_query = """# update failure flag
+PREFIX owl:     <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX org:     <http://www.w3.org/ns/org#>
+PREFIX vcard:   <http://www.w3.org/2006/vcard/ns#>
+PREFIX rlog:    <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
+PREFIX sh:      <http://www.w3.org/ns/shacl#>
+PREFIX shui:    <https://vocab.eccenca.com/shui/>
+
+# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
+
+DELETE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+WHERE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } };
+
+INSERT { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+WHERE { 
+  {
+    ?tc_ rlog:resource ?res .
+  } UNION {
+    ?tc_ sh:focusNode ?res .
+  } 
+}"""
 
 @Plugin(
     label="SHACL validation with pySHACL",
@@ -106,7 +188,6 @@ from cmem_plugin_base.dataintegration.entity import (
         # )
     ]
 )
-
 class ShaclValidation(WorkflowPlugin):
     """Example Workflow Plugin: Random Values"""
 
@@ -275,5 +356,9 @@ class ShaclValidation(WorkflowPlugin):
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
+            alq = SparqlQuery(add_label_query, query_type="UPDATE")
+            alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
+            uffq = SparqlQuery(update_failure_flag_query, query_type="UPDATE")
+            uffq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
         if self.output_values:
             return entities
