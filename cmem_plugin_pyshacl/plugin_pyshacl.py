@@ -1,7 +1,7 @@
 import validators
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD
 from pyshacl import validate
-from os import remove
+from os import remove, environ
 from time import time
 from datetime import datetime
 from uuid import uuid4
@@ -15,6 +15,9 @@ from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import (
     Entities, Entity, EntitySchema, EntityPath,
 )
+# from cmem.cmempy.api import get_token
+# from rdflib.plugins.stores.sparqlstore import SPARQLStore
+
 
 @Plugin(
     label="SHACL validation with pySHACL",
@@ -92,7 +95,15 @@ from cmem_plugin_base.dataintegration.entity import (
             description="Skolemize the validation graph.",
             default_value=True,
             advanced=True
-        )
+        ),
+        # PluginParameter(
+        #     param_type = BoolParameterType(),
+        #     name="use_sparql_endpoint",
+        #     label="Use SPARQL endpoint for data graph",
+        #     description="Use SPARQL endpoint for the data graph (slow).",
+        #     default_value=False,
+        #     advanced=True
+        # )
     ]
 )
 
@@ -109,12 +120,9 @@ class ShaclValidation(WorkflowPlugin):
         # use_cmem_store,
         clear_validation_graph,
         owl_imports_resolution,
-        skolemize_validation_graph
+        skolemize_validation_graph,
+        # use_sparql_endpoint
     ) -> None:
-        #if not validators.url(data_graph_uri):
-        #    raise ValueError("Data graph URI parameter is invalid.")
-        #if not validators.url(shacl_graph_uri):
-        #    raise ValueError("SHACL graph URI parameter is invalid.")
         if not output_values and not generate_graph:
             raise ValueError("Generate validation graph or Output values parameter needs to be set to true.")
         if generate_graph:
@@ -131,22 +139,15 @@ class ShaclValidation(WorkflowPlugin):
         self.owl_imports_resolution = owl_imports_resolution
         self.clear_validation_graph = clear_validation_graph
         self.skolemize_validation_graph = skolemize_validation_graph
+        # self.use_sparql_endpoint = use_sparql_endpoint
         # self.use_cmem_store = False  # use_cmem_store
         setup_cmempy_super_user_access()
+        # if use_sparql_endpoint:
+        #     self.cmem_base_uri = environ.get("CMEM_BASE_URI")
+        #     self.oauth_client_secret = environ.get("OAUTH_CLIENT_SECRET")
+        #     self.oauth_token_uri = f"{self.cmem_base_uri}/auth/realms/cmem/protocol/openid-connect/token"
 
     def post_process(self, validation_graph, utctime):
-        # replace blank nodes and add prov information
-        # validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
-        # validation_graph_skolemized = validation_graph.skolemize(
-        #     bnode=validation_report_uri,
-        #     basepath=self.validation_graph_uri
-        # )
-        # for v in validation_graph_skolemized.subjects(RDF.type, SH.ValidationResult):
-        #     validation_graph_skolemized = validation_graph_skolemized.skolemize(
-        #         bnode=v,
-        #         basepath=self.validation_graph_uri
-        #     )
-        #validation_graph_skolemized = validation_graph.skolemize(basepath=self.validation_graph_uri)
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         validation_graph.add((
             validation_report_uri,
@@ -230,9 +231,28 @@ class ShaclValidation(WorkflowPlugin):
         #if self.use_cmem_store:
         #    g = Graph(store=CMEMStore(), identifier=i)
         #else:
+        # if not self.use_sparql_endpoint:
+        #     g = Graph()
+        #     g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
+        #     return g
+        # else:
+        #     endpoint = f"{self.cmem_base_uri}/dataplatform/proxy/default/sparql"
+        #     store = SPARQLStore(endpoint, headers=self.get_headers())
+        #     g = Graph(store=store, identifier=URIRef(self.data_graph_uri))
         g = Graph()
         g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
         return g
+
+    # def get_headers(self):
+    #     # oauth_token_uri = f"{CMEM_BASE_URI}/auth/realms/cmem/protocol/openid-connect/token"
+    #     oauth_credentials = {
+    #         "grant_type": "client_credentials",
+    #         "client_id": "cmem-service-account",
+    #         "client_secret": self.oauth_client_secret
+    #     }
+    #     r = get_token(self.oauth_token_uri, oauth_credentials)
+    #     return {"Authorization": f"Bearer {r['access_token']}"}
+
 
     def execute(self, inputs=()):  # -> Entities:
         self.log.info(f"Loading data graph <{self.data_graph_uri}>.")
@@ -240,7 +260,8 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}>.")
         shacl_graph = self.get_graph(self.shacl_graph_uri)
         self.log.info("Starting SHACL validation.")
-        conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph)
+        # using undocumented inplace option to skip working-copy step, see https://github.com/RDFLib/pySHACL/issues/60#issuecomment-888663172
+        conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         self.log.info(f"Config length: {len(self.config.get())}")
         validation_graph = self.post_process(validation_graph, utctime)
@@ -249,7 +270,7 @@ class ShaclValidation(WorkflowPlugin):
             entities = self.make_entities(validation_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
-                # Blank nodes that are values in validation results are also replaced
+                # replaces blank nodes including thoses that are values in validation results
                 self.log.info("Skolemizing validation graph.")
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             self.log.info("Posting SHACL validation graph.")
