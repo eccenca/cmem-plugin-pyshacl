@@ -1,7 +1,7 @@
 import validators
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD
 from pyshacl import validate
-from os import remove, environ
+from os import remove # , environ
 from time import time
 from datetime import datetime
 from uuid import uuid4
@@ -177,11 +177,11 @@ class ShaclValidation(WorkflowPlugin):
         o = l[0] if l else None
         v = ""
         if o:
-            if type(o) == URIRef:
+            if isinstance(o, URIRef):
                 v = o
-            elif type(o) == BNode:
+            elif isinstance(o, BNode):
                 v = g.cbd(o).serialize(format="turtle")
-            elif type(o) == Literal and p == SH.value:
+            elif isinstance(o, Literal) and p == SH.value:
                 v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
         return v
 
