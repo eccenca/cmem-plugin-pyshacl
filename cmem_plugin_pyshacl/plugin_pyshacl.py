@@ -235,8 +235,7 @@ class ShaclValidation(WorkflowPlugin):
         return validation_graph
 
     def add_labels(self, validation_graph, data_graph, shacl_graph, validation_result_uris):
-        self.log.info("Skolemizing validation graph.")
-        validation_graph  = validation_graph.skolemize(basepath=self.validation_graph_uri)
+        focus_nodes = []
         self.log.info("Adding labels to validation graph.")
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         conforms = str(list(validation_graph.objects(validation_report_uri, SH.conforms))[0])
@@ -257,6 +256,7 @@ class ShaclValidation(WorkflowPlugin):
             ))
             if self.include_graphs_labels:
                 focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
+                focus_nodes.append(focus_node)
                 label = list(data_graph.objects(focus_node, RDFS.label))
                 if label:
                     validation_graph.add((
@@ -282,13 +282,14 @@ class ShaclValidation(WorkflowPlugin):
                         RDFS.label,
                         Literal(str(label[0]), datatype=XSD.string)
                     ))
-        return validation_graph
+        return validation_graph, focus_nodes
 
-    def add_shui_conforms(self, validation_graph, validation_result_uris):
-        for validation_result_uri in validation_result_uris:
-            focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
+    def add_shui_conforms(self, validation_graph, validation_result_uris, focus_nodes):
+        itr = focus_nodes if focus_nodes else validation_result_uris
+        for i in itr:
+            s = i if focus_nodes else list(validation_graph.objects(i, SH.focusNode))[0]
             validation_graph.add((
-                focus_node,
+                s,
                 URIRef("https://vocab.eccenca.com/shui/conforms"),
                 Literal(False, datatype=XSD.boolean)
             ))
@@ -378,13 +379,15 @@ class ShaclValidation(WorkflowPlugin):
             entities = self.make_entities(validation_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
+                self.log.info("Skolemizing validation graph.")
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             if self.add_labels_to_validation_graph or self.add_shui_conforms_to_validation_graph:
                 validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
+                focus_nodes = None
                 if self.add_labels_to_validation_graph:
-                    validation_graph = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
+                    validation_graph, focus_nodes = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
                 if self.add_shui_conforms_to_validation_graph:
-                    validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris)
+                    validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris, focus_nodes)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
             #alq = SparqlQuery(add_label_query, query_type="UPDATE")
