@@ -6,7 +6,7 @@ from time import time
 from datetime import datetime
 from uuid import uuid4
 from cmem.cmempy.dp.proxy.graph import get, post
-from cmem.cmempy.queries import SparqlQuery
+#from cmem.cmempy.queries import SparqlQuery
 #from cmem.cmempy.rdflib.cmem_store import CMEMStore
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
@@ -16,8 +16,6 @@ from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import (
     Entities, Entity, EntitySchema, EntityPath,
 )
-# from cmem.cmempy.api import get_token
-# from rdflib.plugins.stores.sparqlstore import SPARQLStore
 
 
 add_label_query = """# add labels for SHACL test results
@@ -345,7 +343,6 @@ class ShaclValidation(WorkflowPlugin):
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             if self.add_labels_to_validation_graph:
                 validation_graph = self.add_labels(validation_graph, data_graph, shacl_graph)
-                #validation_graph = self.skolemize_add_labels(validation_graph, data_graph, shacl_graph)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
             #alq = SparqlQuery(add_label_query, query_type="UPDATE")
