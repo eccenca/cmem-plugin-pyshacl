@@ -229,10 +229,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info("Adding labels to validation graph.")
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         conforms = str(list(validation_graph.objects(validation_report_uri, SH.conforms))[0])
-        if conforms == "true":
-            label = "SHACL validation report, conforms)"
-        elif conforms == "false":
-            label = "SHACL validation report, nonconforms)"
+        label = "SHACL validation report, conforms" if conforms == "true" else "SHACL validation report, nonconforms"
         validation_graph.add((
             validation_report_uri,
             RDFS.label,
