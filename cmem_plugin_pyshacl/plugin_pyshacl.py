@@ -373,7 +373,6 @@ class ShaclValidation(WorkflowPlugin):
         # using undocumented inplace option to skip working-copy step, see https://github.com/RDFLib/pySHACL/issues/60#issuecomment-888663172
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
-        validation_graph = self.add_prov (validation_graph, utctime)
         if self.output_values:
             self.log.info("Creating entities.")
             entities = self.make_entities(validation_graph, utctime)
@@ -388,6 +387,7 @@ class ShaclValidation(WorkflowPlugin):
                     validation_graph, focus_nodes = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
                 if self.add_shui_conforms_to_validation_graph:
                     validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris, focus_nodes)
+            validation_graph = self.add_prov(validation_graph, utctime)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
             #alq = SparqlQuery(add_label_query, query_type="UPDATE")
