@@ -47,6 +47,28 @@ WHERE { GRAPH <{{GRAPH}}> {
   FILTER NOT EXISTS { ?vr rdfs:label ?label . }
 }}"""
 
+update_failure_flag_query = """# update failure flag
+PREFIX owl:     <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX org:     <http://www.w3.org/ns/org#>
+PREFIX vcard:   <http://www.w3.org/2006/vcard/ns#>
+PREFIX rlog:    <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
+PREFIX sh:      <http://www.w3.org/ns/shacl#>
+PREFIX shui:    <https://vocab.eccenca.com/shui/>
+
+# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
+
+DELETE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+WHERE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } };
+
+INSERT { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+WHERE { 
+  {
+    ?tc_ rlog:resource ?res .
+  } UNION {
+    ?tc_ sh:focusNode ?res .
+  } 
+}"""
 
 @Plugin(
     label="SHACL validation with pySHACL",
@@ -129,7 +151,7 @@ WHERE { GRAPH <{{GRAPH}}> {
             param_type = BoolParameterType(),
             name="add_labels_to_validation_graph",
             label="Add labels",
-            description="Add RDFS labels to validation graph.",
+            description="Add RDFS labels and shui:conforms to validation graph.",
             default_value=True,
             advanced=True
         ),
@@ -137,7 +159,7 @@ WHERE { GRAPH <{{GRAPH}}> {
             param_type = BoolParameterType(),
             name="include_graphs_labels",
             label="Add labels from data and SHACL graphs",
-            description="Add RDFS labels from data and SHACL graphs to validation graph",
+            description="Include RDFS labels from data and SHACL graph when adding labels to validation graph",
             default_value=False,
             advanced=True
         )
@@ -225,8 +247,13 @@ class ShaclValidation(WorkflowPlugin):
                 RDFS.label,
                 Literal(label, datatype=XSD.string)
             ))
+            focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
+            validation_graph.add((
+                focus_node,
+                URIRef("https://vocab.eccenca.com/shui/conforms"),
+                Literal(False, datatype=XSD.boolean)
+            ))
             if self.include_graphs_labels:
-                focus_node = list(validation_graph.objects(validation_result_uri, SH.resultMessage))[0]
                 label = list(data_graph.objects(focus_node, RDFS.label))
                 if label:
                     validation_graph.add((
@@ -347,5 +374,7 @@ class ShaclValidation(WorkflowPlugin):
             self.post_graph(validation_graph)
             #alq = SparqlQuery(add_label_query, query_type="UPDATE")
             #alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
+            #uffq = SparqlQuery(update_failure_flag_query, query_type="UPDATE")
+            #uffq.get_results(placeholder={"GRAPH": self.validation_graph_uri})
         if self.output_values:
             return entities
