@@ -70,6 +70,7 @@ WHERE {
   } 
 }"""
 
+
 @Plugin(
     label="SHACL validation with pySHACL",
     plugin_id="shacl-pyshacl",
@@ -151,7 +152,7 @@ WHERE {
             param_type = BoolParameterType(),
             name="add_labels_to_validation_graph",
             label="Add labels",
-            description="Add RDFS labels and shui:conforms to validation graph.",
+            description="Add RDFS labels to validation graph.",
             default_value=True,
             advanced=True
         ),
@@ -159,7 +160,15 @@ WHERE {
             param_type = BoolParameterType(),
             name="include_graphs_labels",
             label="Add labels from data and SHACL graphs",
-            description="Include RDFS labels from data and SHACL graph when adding labels to validation graph",
+            description="Include RDFS labels from data and SHACL graph when adding labels to validation graph.",
+            default_value=False,
+            advanced=True
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="add_shui_conforms_to_validation_graph",
+            label="Add shui:conforms flag to focus node resources.",
+            description="Add shui:conforms flag to focus node resources.",
             default_value=False,
             advanced=True
         )
@@ -180,19 +189,20 @@ class ShaclValidation(WorkflowPlugin):
         owl_imports_resolution,
         skolemize_validation_graph,
         add_labels_to_validation_graph,
-        include_graphs_labels
+        include_graphs_labels,
+        add_shui_conforms_to_validation_graph
     ) -> None:
         if not output_values and not generate_graph:
             raise ValueError("Generate validation graph or Output values parameter needs to be set to true.")
         if generate_graph:
             if not validators.url(validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid.")
-            if not validation_graph_uri.endswith(("/", "#")):
-                validation_graph_uri += "/"
+            #if not validation_graph_uri.endswith(("/", "#")):
+            #    validation_graph_uri += "/"
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
-        self.validation_graph_uri = validation_graph_uri if generate_graph \
-            else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
+        self.validation_graph_uri = validation_graph_uri # if generate_graph \
+        #    else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
         self.generate_graph = generate_graph
         self.output_values = output_values
         self.owl_imports_resolution = owl_imports_resolution
@@ -200,6 +210,7 @@ class ShaclValidation(WorkflowPlugin):
         self.skolemize_validation_graph = skolemize_validation_graph
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
         self.include_graphs_labels = include_graphs_labels
+        self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
         # self.use_cmem_store = False  # use_cmem_store
         setup_cmempy_super_user_access()
 
@@ -223,7 +234,7 @@ class ShaclValidation(WorkflowPlugin):
         ))
         return validation_graph
 
-    def add_labels(self, validation_graph, data_graph, shacl_graph):
+    def add_labels(self, validation_graph, data_graph, shacl_graph, validation_result_uris):
         self.log.info("Skolemizing validation graph.")
         validation_graph  = validation_graph.skolemize(basepath=self.validation_graph_uri)
         self.log.info("Adding labels to validation graph.")
@@ -235,7 +246,7 @@ class ShaclValidation(WorkflowPlugin):
             RDFS.label,
             Literal(label, datatype=XSD.string)
         ))
-        for validation_result_uri in validation_graph.subjects(RDF.type, SH.ValidationResult):
+        for validation_result_uri in validation_result_uris:
             message = str(list(validation_graph.objects(validation_result_uri, SH.resultMessage))[0])
             result_path = str(list(validation_graph.objects(validation_result_uri, SH.resultPath))[0]).split("/")[-1]
             label = f"SHACL: {result_path}: {message}"
@@ -244,13 +255,8 @@ class ShaclValidation(WorkflowPlugin):
                 RDFS.label,
                 Literal(label, datatype=XSD.string)
             ))
-            focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
-            validation_graph.add((
-                focus_node,
-                URIRef("https://vocab.eccenca.com/shui/conforms"),
-                Literal(False, datatype=XSD.boolean)
-            ))
             if self.include_graphs_labels:
+                focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
                 label = list(data_graph.objects(focus_node, RDFS.label))
                 if label:
                     validation_graph.add((
@@ -258,7 +264,6 @@ class ShaclValidation(WorkflowPlugin):
                         RDFS.label,
                         Literal(str(label[0]), datatype=XSD.string)
                     ))
-
                 value = list(validation_graph.objects(validation_result_uri, SH.value))
                 if value:
                     if isinstance(value[0], URIRef):
@@ -277,6 +282,16 @@ class ShaclValidation(WorkflowPlugin):
                         RDFS.label,
                         Literal(str(label[0]), datatype=XSD.string)
                     ))
+        return validation_graph
+
+    def add_shui_conforms(self, validation_graph, validation_result_uris):
+        for validation_result_uri in validation_result_uris:
+            focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
+            validation_graph.add((
+                focus_node,
+                URIRef("https://vocab.eccenca.com/shui/conforms"),
+                Literal(False, datatype=XSD.boolean)
+            ))
         return validation_graph
 
     def post_graph(self, validation_graph):
@@ -357,7 +372,6 @@ class ShaclValidation(WorkflowPlugin):
         # using undocumented inplace option to skip working-copy step, see https://github.com/RDFLib/pySHACL/issues/60#issuecomment-888663172
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
-        self.log.info(f"Config length: {len(self.config.get())}")
         validation_graph = self.add_prov (validation_graph, utctime)
         if self.output_values:
             self.log.info("Creating entities.")
@@ -365,8 +379,12 @@ class ShaclValidation(WorkflowPlugin):
         if self.generate_graph:
             if self.skolemize_validation_graph:
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
-            if self.add_labels_to_validation_graph:
-                validation_graph = self.add_labels(validation_graph, data_graph, shacl_graph)
+            if self.add_labels_to_validation_graph or self.add_shui_conforms_to_validation_graph:
+                validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
+                if self.add_labels_to_validation_graph:
+                    validation_graph = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
+                if self.add_shui_conforms_to_validation_graph:
+                    validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
             #alq = SparqlQuery(add_label_query, query_type="UPDATE")
