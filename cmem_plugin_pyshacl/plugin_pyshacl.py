@@ -1,7 +1,7 @@
 import validators
-from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD
+from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS
 from pyshacl import validate
-from os import remove # , environ
+from os import remove
 from time import time
 from datetime import datetime
 from uuid import uuid4
@@ -20,39 +20,10 @@ from cmem_plugin_base.dataintegration.entity import (
 # from rdflib.plugins.stores.sparqlstore import SPARQLStore
 
 
-add_label_query = """# add labels for RDFunit and shaclvalidate test results
+add_label_query = """# add labels for SHACL test results
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 # {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
-
-# RDFunit: TestCaseResult
-INSERT { GRAPH <{{GRAPH}}> { 
-  ?tr rdfs:label ?descr_ .
-}}
-WHERE { GRAPH <{{GRAPH}}> { 
-  ?tr a <http://rdfunit.aksw.org/ns/core#TestCaseResult> .
-  { ?tr <http://purl.org/dc/terms/description> ?descr . }
-  UNION 
-  { ?tr <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#message> ?descr . }
-  FILTER NOT EXISTS { ?tr rdfs:label ?label .}
-  BIND(CONCAT("RU: ", ?descr) AS ?descr_ )
-}};
-
-# RDFunit: PatternBasedTestCase / ManualTestCase
-INSERT { GRAPH <{{GRAPH}}> { 
-  ?tc rdfs:label ?descr_ .
-}}
-WHERE { GRAPH <{{GRAPH}}> { 
-  { 
-    ?tc a <http://rdfunit.aksw.org/ns/core#PatternBasedTestCase> . 
-  } UNION {
-    ?tc a <http://rdfunit.aksw.org/ns/core#ManualTestCase> . 
-  }
-
-  ?tc <http://purl.org/dc/terms/description> ?descr . 
-  FILTER NOT EXISTS { ?tc rdfs:label ?label .}
-  BIND(CONCAT("RU: ", ?descr) AS ?descr_ )
-}};
 
 # shaclvalidate
 INSERT { GRAPH <{{GRAPH}}> {
@@ -78,28 +49,6 @@ WHERE { GRAPH <{{GRAPH}}> {
   FILTER NOT EXISTS { ?vr rdfs:label ?label . }
 }}"""
 
-update_failure_flag_query = """# update failure flag
-PREFIX owl:     <http://www.w3.org/2002/07/owl#>
-PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX org:     <http://www.w3.org/ns/org#>
-PREFIX vcard:   <http://www.w3.org/2006/vcard/ns#>
-PREFIX rlog:    <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
-PREFIX sh:      <http://www.w3.org/ns/shacl#>
-PREFIX shui:    <https://vocab.eccenca.com/shui/>
-
-# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
-
-DELETE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
-WHERE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } };
-
-INSERT { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
-WHERE { 
-  {
-    ?tc_ rlog:resource ?res .
-  } UNION {
-    ?tc_ sh:focusNode ?res .
-  } 
-}"""
 
 @Plugin(
     label="SHACL validation with pySHACL",
@@ -173,19 +122,27 @@ WHERE {
         PluginParameter(
             param_type = BoolParameterType(),
             name="skolemize_validation_graph",
-            label="Skolemize validation graph",
+            label="Skolemize",
             description="Skolemize the validation graph.",
             default_value=True,
             advanced=True
         ),
-        # PluginParameter(
-        #     param_type = BoolParameterType(),
-        #     name="use_sparql_endpoint",
-        #     label="Use SPARQL endpoint for data graph",
-        #     description="Use SPARQL endpoint for the data graph (slow).",
-        #     default_value=False,
-        #     advanced=True
-        # )
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="add_labels_to_validation_graph",
+            label="Add labels",
+            description="Add RDFS labels to validation graph.",
+            default_value=True,
+            advanced=True
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="include_graphs_labels",
+            label="Add labels from data and SHACL graphs",
+            description="Add RDFS labels from data and SHACL graphs to validation graph",
+            default_value=False,
+            advanced=True
+        )
     ]
 )
 class ShaclValidation(WorkflowPlugin):
@@ -202,7 +159,8 @@ class ShaclValidation(WorkflowPlugin):
         clear_validation_graph,
         owl_imports_resolution,
         skolemize_validation_graph,
-        # use_sparql_endpoint
+        add_labels_to_validation_graph,
+        include_graphs_labels
     ) -> None:
         if not output_values and not generate_graph:
             raise ValueError("Generate validation graph or Output values parameter needs to be set to true.")
@@ -220,15 +178,13 @@ class ShaclValidation(WorkflowPlugin):
         self.owl_imports_resolution = owl_imports_resolution
         self.clear_validation_graph = clear_validation_graph
         self.skolemize_validation_graph = skolemize_validation_graph
-        # self.use_sparql_endpoint = use_sparql_endpoint
+        self.add_labels_to_validation_graph = add_labels_to_validation_graph
+        self.include_graphs_labels = include_graphs_labels
         # self.use_cmem_store = False  # use_cmem_store
         setup_cmempy_super_user_access()
-        # if use_sparql_endpoint:
-        #     self.cmem_base_uri = environ.get("CMEM_BASE_URI")
-        #     self.oauth_client_secret = environ.get("OAUTH_CLIENT_SECRET")
-        #     self.oauth_token_uri = f"{self.cmem_base_uri}/auth/realms/cmem/protocol/openid-connect/token"
 
-    def post_process(self, validation_graph, utctime):
+
+    def add_prov(self, validation_graph, utctime):
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         validation_graph.add((
             validation_report_uri,
@@ -245,6 +201,60 @@ class ShaclValidation(WorkflowPlugin):
             PROV.generatedAtTime,
             Literal(utctime, datatype=XSD.dateTime)
         ))
+        return validation_graph
+
+    def add_labels(self, validation_graph, data_graph, shacl_graph):
+        self.log.info("Skolemizing validation graph.")
+        validation_graph  = validation_graph.skolemize(basepath=self.validation_graph_uri)
+        self.log.info("Adding labels to validation graph.")
+        validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
+        conforms = str(list(validation_graph.objects(validation_report_uri, SH.conforms))[0])
+        if conforms == "true":
+            label = "SHACL validation report, conforms)"
+        elif conforms == "false":
+            label = "SHACL validation report, nonconforms)"
+        validation_graph.add((
+            validation_report_uri,
+            RDFS.label,
+            Literal(label, datatype=XSD.string)
+        ))
+        for validation_result_uri in validation_graph.subjects(RDF.type, SH.ValidationResult):
+            message = str(list(validation_graph.objects(validation_result_uri, SH.resultMessage))[0])
+            result_path = str(list(validation_graph.objects(validation_result_uri, SH.resultPath))[0]).split("/")[-1]
+            label = f"SHACL: {result_path}: {message}"
+            validation_graph.add((
+                validation_result_uri,
+                RDFS.label,
+                Literal(label, datatype=XSD.string)
+            ))
+            if self.include_graphs_labels:
+                focus_node = list(validation_graph.objects(validation_result_uri, SH.resultMessage))[0]
+                label = list(data_graph.objects(focus_node, RDFS.label))
+                if label:
+                    validation_graph.add((
+                        focus_node,
+                        RDFS.label,
+                        Literal(str(label[0]), datatype=XSD.string)
+                    ))
+
+                value = list(validation_graph.objects(validation_result_uri, SH.value))
+                if value:
+                    if isinstance(value[0], URIRef):
+                        label = list(data_graph.objects(value[0], RDFS.label))
+                        if label:
+                            validation_graph.add((
+                                value[0],
+                                RDFS.label,
+                                Literal(str(label[0]), datatype=XSD.string)
+                            ))
+                source_shape =  list(validation_graph.objects(validation_result_uri, SH.sourceShape))[0]
+                label = list(shacl_graph.objects(source_shape, RDFS.label))
+                if label:
+                    validation_graph.add((
+                        source_shape,
+                        RDFS.label,
+                        Literal(str(label[0]), datatype=XSD.string)
+                    ))
         return validation_graph
 
     def post_graph(self, validation_graph):
@@ -312,28 +322,9 @@ class ShaclValidation(WorkflowPlugin):
         #if self.use_cmem_store:
         #    g = Graph(store=CMEMStore(), identifier=i)
         #else:
-        # if not self.use_sparql_endpoint:
-        #     g = Graph()
-        #     g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
-        #     return g
-        # else:
-        #     endpoint = f"{self.cmem_base_uri}/dataplatform/proxy/default/sparql"
-        #     store = SPARQLStore(endpoint, headers=self.get_headers())
-        #     g = Graph(store=store, identifier=URIRef(self.data_graph_uri))
         g = Graph()
         g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
         return g
-
-    # def get_headers(self):
-    #     # oauth_token_uri = f"{CMEM_BASE_URI}/auth/realms/cmem/protocol/openid-connect/token"
-    #     oauth_credentials = {
-    #         "grant_type": "client_credentials",
-    #         "client_id": "cmem-service-account",
-    #         "client_secret": self.oauth_client_secret
-    #     }
-    #     r = get_token(self.oauth_token_uri, oauth_credentials)
-    #     return {"Authorization": f"Bearer {r['access_token']}"}
-
 
     def execute(self, inputs=()):  # -> Entities:
         self.log.info(f"Loading data graph <{self.data_graph_uri}>.")
@@ -345,20 +336,19 @@ class ShaclValidation(WorkflowPlugin):
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         self.log.info(f"Config length: {len(self.config.get())}")
-        validation_graph = self.post_process(validation_graph, utctime)
+        validation_graph = self.add_prov (validation_graph, utctime)
         if self.output_values:
             self.log.info("Creating entities.")
             entities = self.make_entities(validation_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
-                # replaces blank nodes including thoses that are values in validation results
-                self.log.info("Skolemizing validation graph.")
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
+            if self.add_labels_to_validation_graph:
+                validation_graph = self.add_labels(validation_graph, data_graph, shacl_graph)
+                #validation_graph = self.skolemize_add_labels(validation_graph, data_graph, shacl_graph)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
-            alq = SparqlQuery(add_label_query, query_type="UPDATE")
-            alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
-            uffq = SparqlQuery(update_failure_flag_query, query_type="UPDATE")
-            uffq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
+            #alq = SparqlQuery(add_label_query, query_type="UPDATE")
+            #alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
         if self.output_values:
             return entities
