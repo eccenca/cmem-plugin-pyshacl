@@ -15,6 +15,7 @@ def test_execution():
     skolemize_validation_graph = True
     add_labels_to_validation_graph = True
     include_graphs_labels = True
+    add_shui_conforms_to_validation_graph = True
     post(shacl_graph_uri, "tests/shacl-shacl.nt", replace=True)
     response = get(shacl_graph_uri)
     if response.status_code != 200:
@@ -29,7 +30,8 @@ def test_execution():
         owl_imports_resolution=owl_imports_resolution,
         skolemize_validation_graph=skolemize_validation_graph,
         add_labels_to_validation_graph=add_labels_to_validation_graph,
-        include_graphs_labels=include_graphs_labels
+        include_graphs_labels=include_graphs_labels,
+        add_shui_conforms_to_validation_graph=add_shui_conforms_to_validation_graph
     )
     result = plugin.execute()
     response = get(validation_graph_uri)
