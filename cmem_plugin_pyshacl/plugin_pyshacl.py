@@ -297,9 +297,6 @@ class ShaclValidation(WorkflowPlugin):
         return validation_graph
 
     def post_graph(self, validation_graph):
-        #temp_file = f"{uuid4()}.nt"
-        #validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
-        #post(self.validation_graph_uri, temp_file, replace=self.clear_validation_graph)
         temp_file = f"{uuid4()}.nt"
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
         post_streamed(
