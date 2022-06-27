@@ -6,8 +6,9 @@ from time import time
 from datetime import datetime
 from uuid import uuid4
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
-#from cmem.cmempy.queries import SparqlQuery
-#from cmem.cmempy.rdflib.cmem_store import CMEMStore
+# from cmem.cmempy.queries import SparqlQuery
+# from cmem.cmempy.rdflib.cmem_store import CMEMStore
+# from operator import not_
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
@@ -324,7 +325,7 @@ class ShaclValidation(WorkflowPlugin):
             "value",
             "sourceShape",
             "sourceConstraintComponent",
-            #"detail",
+            # "detail",
             "resultMessage",
             "resultSeverity"
         ]
@@ -359,8 +360,8 @@ class ShaclValidation(WorkflowPlugin):
         )
         return Entities(entities=entities, schema=schema)
 
-    def get_graph(self, i):
-        # if self.use_cmem_store:
+    def get_graph(self, i, cmem_store=False):
+        # if cmem_store:
         #     g = Graph(store=CMEMStore(), identifier=i)
         # else:
         g = Graph()
@@ -369,11 +370,14 @@ class ShaclValidation(WorkflowPlugin):
 
     def execute(self, inputs=()):  # -> Entities:
         self.log.info(f"Loading data graph <{self.data_graph_uri}>.")
+        # data_graph = self.get_graph(self.data_graph_uri, cmem_store=self.use_cmem_store)
         data_graph = self.get_graph(self.data_graph_uri)
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}>.")
         shacl_graph = self.get_graph(self.shacl_graph_uri)
         self.log.info("Starting SHACL validation.")
-        # using undocumented inplace option to skip working-copy step, see https://github.com/RDFLib/pySHACL/issues/60#issuecomment-888663172
+        # using undocumented inplace option to skip working-copy step
+        # see https://github.com/RDFLib/pySHACL/issues/60#issuecomment-888663172
+        # conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=not_(self.use_cmem_store))
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         if self.output_values:
@@ -393,9 +397,9 @@ class ShaclValidation(WorkflowPlugin):
             validation_graph = self.add_prov(validation_graph, utctime)
             self.log.info("Posting SHACL validation graph.")
             self.post_graph(validation_graph)
-            #alq = SparqlQuery(add_label_query, query_type="UPDATE")
-            #alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
-            #uffq = SparqlQuery(update_failure_flag_query, query_type="UPDATE")
-            #uffq.get_results(placeholder={"GRAPH": self.validation_graph_uri})
+            # alq = SparqlQuery(add_label_query, query_type="UPDATE")
+            # alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
+            # uffq = SparqlQuery(update_failure_flag_query, query_type="UPDATE")
+            # uffq.get_results(placeholder={"GRAPH": self.validation_graph_uri})
         if self.output_values:
             return entities
