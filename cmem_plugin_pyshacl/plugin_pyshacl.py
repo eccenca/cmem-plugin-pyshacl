@@ -197,12 +197,9 @@ class ShaclValidation(WorkflowPlugin):
         if generate_graph:
             if not validators.url(validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid.")
-            #if not validation_graph_uri.endswith(("/", "#")):
-            #    validation_graph_uri += "/"
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
-        self.validation_graph_uri = validation_graph_uri # if generate_graph \
-        #    else f"https://eccenca.com/cmem-plugin-pyshacl/graph/{uuid4()}/"
+        self.validation_graph_uri = validation_graph_uri
         self.generate_graph = generate_graph
         self.output_values = output_values
         self.owl_imports_resolution = owl_imports_resolution
@@ -211,7 +208,7 @@ class ShaclValidation(WorkflowPlugin):
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
-        # self.use_cmem_store = False  # use_cmem_store
+        # self.use_cmem_store = use_cmem_store
         setup_cmempy_super_user_access()
 
 
@@ -256,7 +253,8 @@ class ShaclValidation(WorkflowPlugin):
             ))
             if self.include_graphs_labels:
                 focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
-                focus_nodes.append(focus_node)
+                if self.add_shui_conforms_to_validation_graph:
+                    focus_nodes.append(focus_node)
                 label = list(data_graph.objects(focus_node, RDFS.label))
                 if label:
                     validation_graph.add((
@@ -362,11 +360,11 @@ class ShaclValidation(WorkflowPlugin):
         return Entities(entities=entities, schema=schema)
 
     def get_graph(self, i):
-        #if self.use_cmem_store:
-        #    g = Graph(store=CMEMStore(), identifier=i)
-        #else:
+        # if self.use_cmem_store:
+        #     g = Graph(store=CMEMStore(), identifier=i)
+        # else:
         g = Graph()
-        g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution, stream=True).text, format="turtle")
+        g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
         return g
 
     def execute(self, inputs=()):  # -> Entities:
