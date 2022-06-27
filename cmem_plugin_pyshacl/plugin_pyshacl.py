@@ -5,8 +5,7 @@ from os import remove
 from time import time
 from datetime import datetime
 from uuid import uuid4
-from cmem.cmempy.dp.proxy.graph import get, post_streamed #, _get_graph_uri
-from cmem.cmempy.api import request
+from cmem.cmempy.dp.proxy.graph import get_streamed, post_streamed
 #from cmem.cmempy.queries import SparqlQuery
 #from cmem.cmempy.rdflib.cmem_store import CMEMStore
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
@@ -367,7 +366,7 @@ class ShaclValidation(WorkflowPlugin):
         #    g = Graph(store=CMEMStore(), identifier=i)
         #else:
         g = Graph()
-        g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
+        g.parse(data=get_streamed(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
         return g
 
     def execute(self, inputs=()):  # -> Entities:
