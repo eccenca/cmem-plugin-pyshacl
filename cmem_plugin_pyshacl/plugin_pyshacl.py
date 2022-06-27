@@ -5,7 +5,8 @@ from os import remove
 from time import time
 from datetime import datetime
 from uuid import uuid4
-from cmem.cmempy.dp.proxy.graph import get, post
+from cmem.cmempy.dp.proxy.graph import get, post_streamed #, _get_graph_uri
+from cmem.cmempy.api import request
 #from cmem.cmempy.queries import SparqlQuery
 #from cmem.cmempy.rdflib.cmem_store import CMEMStore
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
@@ -296,9 +297,17 @@ class ShaclValidation(WorkflowPlugin):
         return validation_graph
 
     def post_graph(self, validation_graph):
+        #temp_file = f"{uuid4()}.nt"
+        #validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
+        #post(self.validation_graph_uri, temp_file, replace=self.clear_validation_graph)
         temp_file = f"{uuid4()}.nt"
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
-        post(self.validation_graph_uri, temp_file, replace=self.clear_validation_graph)
+        post_streamed(
+            self.validation_graph_uri,
+            temp_file,
+            replace=self.clear_validation_graph,
+            content_type="application/n-triples"
+        )
         remove(temp_file)
 
     def check_object(self, g, s, p):
