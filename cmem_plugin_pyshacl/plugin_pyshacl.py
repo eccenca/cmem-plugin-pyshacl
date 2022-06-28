@@ -19,57 +19,57 @@ from cmem_plugin_base.dataintegration.entity import (
 )
 
 
-add_label_query = """# add labels for SHACL test results
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
-
-# shaclvalidate
-INSERT { GRAPH <{{GRAPH}}> {
-    ?vr rdfs:label ?descr .
-}}
-WHERE { GRAPH <{{GRAPH}}> { 
-  ?vr a <http://www.w3.org/ns/shacl#ValidationResult> .
-  ?vr <http://www.w3.org/ns/shacl#resultPath> ?path .
-  BIND(REPLACE(STR(?path), ".*[/#]([^/#])", "$1") AS ?pathLocal) .
-  ?vr <http://www.w3.org/ns/shacl#resultMessage> ?msg .
-  BIND(CONCAT("SH: ", ?pathLocal, ": ", ?msg) AS ?descr) .
-  FILTER NOT EXISTS { ?vr rdfs:label ?label . }
-}};
-
-# shaclvalidate
-INSERT { GRAPH <{{GRAPH}}> {
-    ?vr rdfs:label ?descr .
-}}
-WHERE { GRAPH <{{GRAPH}}> { 
-  ?vr a <http://www.w3.org/ns/shacl#ValidationReport> .
-  ?vr <http://www.w3.org/ns/shacl#conforms> ?conf .
-  BIND(CONCAT("SH: Validation Report, ", STR(?conf)) AS ?descr) .
-  FILTER NOT EXISTS { ?vr rdfs:label ?label . }
-}}"""
-
-update_failure_flag_query = """# update failure flag
-PREFIX owl:     <http://www.w3.org/2002/07/owl#>
-PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX org:     <http://www.w3.org/ns/org#>
-PREFIX vcard:   <http://www.w3.org/2006/vcard/ns#>
-PREFIX rlog:    <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
-PREFIX sh:      <http://www.w3.org/ns/shacl#>
-PREFIX shui:    <https://vocab.eccenca.com/shui/>
-
-# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
-
-DELETE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
-WHERE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } };
-
-INSERT { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
-WHERE { 
-  {
-    ?tc_ rlog:resource ?res .
-  } UNION {
-    ?tc_ sh:focusNode ?res .
-  } 
-}"""
+# add_label_query = """# add labels for SHACL test results
+# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+#
+# # {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
+#
+# # shaclvalidate
+# INSERT { GRAPH <{{GRAPH}}> {
+#     ?vr rdfs:label ?descr .
+# }}
+# WHERE { GRAPH <{{GRAPH}}> {
+#   ?vr a <http://www.w3.org/ns/shacl#ValidationResult> .
+#   ?vr <http://www.w3.org/ns/shacl#resultPath> ?path .
+#   BIND(REPLACE(STR(?path), ".*[/#]([^/#])", "$1") AS ?pathLocal) .
+#   ?vr <http://www.w3.org/ns/shacl#resultMessage> ?msg .
+#   BIND(CONCAT("SH: ", ?pathLocal, ": ", ?msg) AS ?descr) .
+#   FILTER NOT EXISTS { ?vr rdfs:label ?label . }
+# }};
+#
+# # shaclvalidate
+# INSERT { GRAPH <{{GRAPH}}> {
+#     ?vr rdfs:label ?descr .
+# }}
+# WHERE { GRAPH <{{GRAPH}}> {
+#   ?vr a <http://www.w3.org/ns/shacl#ValidationReport> .
+#   ?vr <http://www.w3.org/ns/shacl#conforms> ?conf .
+#   BIND(CONCAT("SH: Validation Report, ", STR(?conf)) AS ?descr) .
+#   FILTER NOT EXISTS { ?vr rdfs:label ?label . }
+# }}"""
+#
+# update_failure_flag_query = """# update failure flag
+# PREFIX owl:     <http://www.w3.org/2002/07/owl#>
+# PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+# PREFIX org:     <http://www.w3.org/ns/org#>
+# PREFIX vcard:   <http://www.w3.org/2006/vcard/ns#>
+# PREFIX rlog:    <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
+# PREFIX sh:      <http://www.w3.org/ns/shacl#>
+# PREFIX shui:    <https://vocab.eccenca.com/shui/>
+#
+# # {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
+#
+# DELETE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+# WHERE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } };
+#
+# INSERT { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+# WHERE {
+#   {
+#     ?tc_ rlog:resource ?res .
+#   } UNION {
+#     ?tc_ sh:focusNode ?res .
+#   }
+# }"""
 
 
 @Plugin(
@@ -237,7 +237,6 @@ class ShaclValidation(WorkflowPlugin):
 
     def add_labels(self, validation_graph, data_graph, shacl_graph, validation_result_uris):
         focus_nodes = []
-        self.log.info("Adding labels to validation graph.")
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         conforms = str(list(validation_graph.objects(validation_report_uri, SH.conforms))[0])
         label = "SHACL validation report, conforms" if conforms == "true" else "SHACL validation report, nonconforms"
@@ -299,6 +298,7 @@ class ShaclValidation(WorkflowPlugin):
 
     def post_graph(self, validation_graph):
         temp_file = f"{uuid4()}.nt"
+        self.log.info(f"Creating temporary file {temp_file}")
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
         post_streamed(
             self.validation_graph_uri,
@@ -307,6 +307,7 @@ class ShaclValidation(WorkflowPlugin):
             content_type="application/n-triples"
         )
         remove(temp_file)
+        self.log.info(f"Deleted temporary file")
 
     def check_object(self, g, s, p):
         l = list(g.objects(s, p))
@@ -372,35 +373,47 @@ class ShaclValidation(WorkflowPlugin):
         return g
 
     def execute(self, inputs=()):  # -> Entities:
-        self.log.info(f"Loading data graph <{self.data_graph_uri}>.")
+        if not self.use_cmem_store:
+            self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
+            start = time()
+        else:
+            self.log.info(f"Getting CMEMStore data graph <{self.data_graph_uri}>")
         data_graph = self.get_graph(self.data_graph_uri, cmem_store=self.use_cmem_store)
-        self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}>.")
+        if not self.use_cmem_store:
+            self.log.info(f"Finished loading data graph in {round(time() - start, 3)} seconds")
+        self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
+        start = time()
         shacl_graph = self.get_graph(self.shacl_graph_uri)
-        self.log.info("Starting SHACL validation.")
-        # using undocumented inplace option to skip working-copy step
-        # see https://github.com/RDFLib/pySHACL/issues/60#issuecomment-888663172
+        self.log.info(f"Finished loading SHACL graph in {round(time() - start, 3)} seconds")
+        self.log.info(f"Starting SHACL validation...")
+        start = time()
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=not_(self.use_cmem_store))
+        self.log.info(f"Finished SHACL validation in {round(time() - start, 3)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         if self.output_values:
-            self.log.info("Creating entities.")
+            self.log.info("Creating entities")
             entities = self.make_entities(validation_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
-                self.log.info("Skolemizing validation graph.")
+                self.log.info("Skolemizing validation graph")
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             if self.add_labels_to_validation_graph or self.add_shui_conforms_to_validation_graph:
                 validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
                 focus_nodes = None
                 if self.add_labels_to_validation_graph:
+                    self.log.info("Adding labels to validation graph")
                     validation_graph, focus_nodes = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
                 if self.add_shui_conforms_to_validation_graph:
+                    self.log.info("Adding shui:conforms flags to validation graph")
                     validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris, focus_nodes)
+            self.log.info("Adding PROV information validation graph")
             validation_graph = self.add_prov(validation_graph, utctime)
-            self.log.info("Posting SHACL validation graph.")
+            self.log.info("Posting SHACL validation graph...")
             self.post_graph(validation_graph)
             # alq = SparqlQuery(add_label_query, query_type="UPDATE")
             # alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
             # uffq = SparqlQuery(update_failure_flag_query, query_type="UPDATE")
             # uffq.get_results(placeholder={"GRAPH": self.validation_graph_uri})
         if self.output_values:
+            self.log.info("Outputting entities")
             return entities
