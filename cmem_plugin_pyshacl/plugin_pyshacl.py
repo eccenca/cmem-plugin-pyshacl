@@ -7,7 +7,7 @@ from datetime import datetime
 from uuid import uuid4
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 # from cmem.cmempy.queries import SparqlQuery
-# from cmem.cmempy.rdflib.cmem_store import CMEMStore
+# from cmem.cmempy.rdflib.store import CMEMStore
 # from operator import not_
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
@@ -19,57 +19,57 @@ from cmem_plugin_base.dataintegration.entity import (
 )
 
 
-add_label_query = """# add labels for SHACL test results
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
-
-# shaclvalidate
-INSERT { GRAPH <{{GRAPH}}> {
-    ?vr rdfs:label ?descr .
-}}
-WHERE { GRAPH <{{GRAPH}}> { 
-  ?vr a <http://www.w3.org/ns/shacl#ValidationResult> .
-  ?vr <http://www.w3.org/ns/shacl#resultPath> ?path .
-  BIND(REPLACE(STR(?path), ".*[/#]([^/#])", "$1") AS ?pathLocal) .
-  ?vr <http://www.w3.org/ns/shacl#resultMessage> ?msg .
-  BIND(CONCAT("SH: ", ?pathLocal, ": ", ?msg) AS ?descr) .
-  FILTER NOT EXISTS { ?vr rdfs:label ?label . }
-}};
-
-# shaclvalidate
-INSERT { GRAPH <{{GRAPH}}> {
-    ?vr rdfs:label ?descr .
-}}
-WHERE { GRAPH <{{GRAPH}}> { 
-  ?vr a <http://www.w3.org/ns/shacl#ValidationReport> .
-  ?vr <http://www.w3.org/ns/shacl#conforms> ?conf .
-  BIND(CONCAT("SH: Validation Report, ", STR(?conf)) AS ?descr) .
-  FILTER NOT EXISTS { ?vr rdfs:label ?label . }
-}}"""
-
-update_failure_flag_query = """# update failure flag
-PREFIX owl:     <http://www.w3.org/2002/07/owl#>
-PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX org:     <http://www.w3.org/ns/org#>
-PREFIX vcard:   <http://www.w3.org/2006/vcard/ns#>
-PREFIX rlog:    <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
-PREFIX sh:      <http://www.w3.org/ns/shacl#>
-PREFIX shui:    <https://vocab.eccenca.com/shui/>
-
-# {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
-
-DELETE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
-WHERE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } };
-
-INSERT { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
-WHERE { 
-  {
-    ?tc_ rlog:resource ?res .
-  } UNION {
-    ?tc_ sh:focusNode ?res .
-  } 
-}"""
+# add_label_query = """# add labels for SHACL test results
+# PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+#
+# # {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
+#
+# # shaclvalidate
+# INSERT { GRAPH <{{GRAPH}}> {
+#     ?vr rdfs:label ?descr .
+# }}
+# WHERE { GRAPH <{{GRAPH}}> {
+#   ?vr a <http://www.w3.org/ns/shacl#ValidationResult> .
+#   ?vr <http://www.w3.org/ns/shacl#resultPath> ?path .
+#   BIND(REPLACE(STR(?path), ".*[/#]([^/#])", "$1") AS ?pathLocal) .
+#   ?vr <http://www.w3.org/ns/shacl#resultMessage> ?msg .
+#   BIND(CONCAT("SH: ", ?pathLocal, ": ", ?msg) AS ?descr) .
+#   FILTER NOT EXISTS { ?vr rdfs:label ?label . }
+# }};
+#
+# # shaclvalidate
+# INSERT { GRAPH <{{GRAPH}}> {
+#     ?vr rdfs:label ?descr .
+# }}
+# WHERE { GRAPH <{{GRAPH}}> {
+#   ?vr a <http://www.w3.org/ns/shacl#ValidationReport> .
+#   ?vr <http://www.w3.org/ns/shacl#conforms> ?conf .
+#   BIND(CONCAT("SH: Validation Report, ", STR(?conf)) AS ?descr) .
+#   FILTER NOT EXISTS { ?vr rdfs:label ?label . }
+# }}"""
+#
+# update_failure_flag_query = """# update failure flag
+# PREFIX owl:     <http://www.w3.org/2002/07/owl#>
+# PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+# PREFIX org:     <http://www.w3.org/ns/org#>
+# PREFIX vcard:   <http://www.w3.org/2006/vcard/ns#>
+# PREFIX rlog:    <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/rlog#>
+# PREFIX sh:      <http://www.w3.org/ns/shacl#>
+# PREFIX shui:    <https://vocab.eccenca.com/shui/>
+#
+# # {{GRAPH}} -> http://ld.company.org/prod-shacl-validate/
+#
+# DELETE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+# WHERE { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } };
+#
+# INSERT { GRAPH <{{GRAPH}}> { ?res shui:conforms false . } }
+# WHERE {
+#   {
+#     ?tc_ rlog:resource ?res .
+#   } UNION {
+#     ?tc_ sh:focusNode ?res .
+#   }
+# }"""
 
 
 @Plugin(
