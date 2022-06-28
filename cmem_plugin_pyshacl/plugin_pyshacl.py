@@ -2,6 +2,7 @@ import validators
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS
 from pyshacl import validate
 from os import remove
+from os.path import getsize
 from time import time
 from datetime import datetime
 from uuid import uuid4
@@ -170,7 +171,7 @@ from cmem_plugin_base.dataintegration.entity import (
             param_type = BoolParameterType(),
             name="use_cmem_store",
             label="Use CMEM store",
-            description="Use experimental CMEM store implementation (slow).",
+            description="Use experimental CMEM store implementation for data graph (slow).",
             default_value=False,
             advanced=True
         )
@@ -298,8 +299,8 @@ class ShaclValidation(WorkflowPlugin):
 
     def post_graph(self, validation_graph):
         temp_file = f"{uuid4()}.nt"
-        self.log.info(f"Creating temporary file {temp_file}")
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
+        self.log.info(f"Created temporary file {temp_file} with size {getsize(temp_file)} bytes")
         post_streamed(
             self.validation_graph_uri,
             temp_file,
