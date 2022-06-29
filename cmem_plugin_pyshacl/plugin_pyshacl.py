@@ -253,8 +253,11 @@ class ShaclValidation(WorkflowPlugin):
                 v = o
             elif isinstance(o, BNode):
                 v = g.cbd(o).serialize(format="turtle")
-            elif isinstance(o, Literal) and p == SH.value:
-                v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
+            elif isinstance(o, Literal):
+                if p == SH.value:
+                    v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
+                if p == SH.resultMessage:
+                    v = str(o)
         return v
 
     def make_entities(self, g, utctime):
