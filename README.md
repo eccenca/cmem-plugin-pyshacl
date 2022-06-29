@@ -1,6 +1,6 @@
-# pySHACL CMEM Workflow Plugin
+# pySHACL CMEM Workfow Plugin
 
-An eccenca Corporate Memory (CMEM) plugin performing SHACL validation with pySHACL.
+An eccenca Corporate Memory (CMEM) plugin performing in-memory SHACL validation with pySHACL.
 
 ## Options
 
@@ -55,7 +55,3 @@ If enabled along with the *add labels* option, `rdfs:label` triples are added fo
 ### Add shui:conforms flag to focus node resources
 
 If enabled, `shui:conforms false` triples are added to the focus nodes in the validation graph. Default value: *false*.
-
-### Use CMEM store
-
-If enabled, the data graph is processed using the CMEMStore implementation instead of being loaded into an in-memory RDFLib graph. Default value: *false*.
