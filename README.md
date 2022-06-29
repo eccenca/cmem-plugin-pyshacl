@@ -1,9 +1,57 @@
-# cmem-plugin-pyshacl
+# pySHACL CMEM Workfow Plugin
 
-eccenca Corporate Memory plugin performing SHACL validation with pySHACL
+An eccenca Corporate Memory (CMEM) plugin performing in-memory SHACL validation with pySHACL.
 
-## Development
+## Options
 
-- Run [task](https://taskfile.dev/) to see all major development tasks
-- Use [pre-commit](https://pre-commit.com/) to avoid errors before commit
-- This repository was created with [this]() [copier](https://copier.readthedocs.io/) template.
+### Data graph URI
+
+The URI of the graph to be validated. The graph URI is selected from a list of graphs of types:
+- `di:Dataset`
+- `dsm:ThesaurusProject`
+- `owl:Ontology`
+- `shui:ShapeCatalog`
+- `void:Dataset`
+
+
+### SHACL graph URI
+
+The URI of the graph containig the SHACL shapes to be validated against. The graph URI is selected from a list of graphs of type `shui:ShapeCatalog`.
+
+### Generate validation graph
+
+If enabled, the validation graph is posted to the CMEM instance with the graph URI specified with the *validation graph URI* option. Default value: *false*.
+
+### Validation graph URI
+
+If the *generate validation graph* option is enabled the validation graph is posted to the CMEM instance with this graph URI.
+
+### Output values
+
+If enabled, the plugin outputs the validation results and can be connected to, for instance, a CSV dataset to produce a results table. Default value: *false*.
+
+### Clear validation graph
+
+If enabled, the validation graph is cleared before workflow execution. Default value: *true*.
+
+## Advanced Options
+
+### Resolve owl:imports
+
+If enabled, the graph tree defined with `owl:imports` in the data graph is resolved. Default value: *true*.
+
+### Blank node skolemization
+
+If enabled, blank nodes in the validation graph are skolemized into URIs. Default value: *true*.
+
+### Add labels
+
+If enabled, `rdfs:label` triples are added to the validation graph for instances of `sh:ValidationReport` and `sh:ValidationResult`. Default value: *true*.
+
+### Add labels from data and SHACL graphs
+
+If enabled along with the *add labels* option, `rdfs:label` triples are added for the focus nodes, values and SHACL shapes in the validation graph. The labels are taken from the specified data and SHACL graphs. Default value: *false*.
+
+### Add shui:conforms flag to focus node resources
+
+If enabled, `shui:conforms false` triples are added to the focus nodes in the validation graph. Default value: *false*.

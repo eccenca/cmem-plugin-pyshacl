@@ -68,7 +68,7 @@ from cmem_plugin_base.dataintegration.entity import (
             param_type = BoolParameterType(),
             name="clear_validation_graph",
             label="Clear validation graph",
-            description="Clear the validation graph before workflow execution.",
+            description="Clear validation graph before workflow execution.",
             default_value=True
         ),
         PluginParameter(
@@ -82,8 +82,8 @@ from cmem_plugin_base.dataintegration.entity import (
         PluginParameter(
             param_type = BoolParameterType(),
             name="skolemize_validation_graph",
-            label="Skolemize",
-            description="Skolemize the validation graph.",
+            label="Blank node skolemization",
+            description="Skolemize blank nodes in the validation graph into URIs.",
             default_value=True,
             advanced=True
         ),
