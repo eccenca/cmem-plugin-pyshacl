@@ -1,4 +1,4 @@
-# pySHACL CMEM Workflow Plugin
+# pySHACL CMEM Workfow Plugin
 
 An eccenca Corporate Memory (CMEM) plugin performing in-memory SHACL validation with pySHACL.
 
