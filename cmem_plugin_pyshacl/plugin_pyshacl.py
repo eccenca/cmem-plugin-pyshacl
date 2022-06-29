@@ -256,7 +256,7 @@ class ShaclValidation(WorkflowPlugin):
             elif isinstance(o, Literal):
                 if p == SH.value:
                     v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
-                if p == SH.resultMessage:
+                elif p == SH.resultMessage:
                     v = str(o)
         return v
 
@@ -273,16 +273,12 @@ class ShaclValidation(WorkflowPlugin):
         ]
         entities =[]
         for i, validation_result in enumerate(list(g.subjects(RDF.type, SH.ValidationResult))):
-            values = [[self.check_object(g, validation_result, SH[p])] for p in shp]
-            if i == 0:
-                values += [
-                    [list(g.objects(predicate=SH.conforms))[0]],
-                    [self.data_graph_uri],
-                    [self.shacl_graph_uri],
-                    [utctime]
-                ]
-            else:
-                values += 4 * [[""]]
+            values = [[self.check_object(g, validation_result, SH[p])] for p in shp] + [
+                [list(g.objects(predicate=SH.conforms))[0]],
+                [self.data_graph_uri],
+                [self.shacl_graph_uri],
+                [utctime]
+            ]
             entities.append(
                 Entity(
                     uri=validation_result,
