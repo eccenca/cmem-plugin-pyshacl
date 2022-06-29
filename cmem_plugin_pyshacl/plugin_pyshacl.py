@@ -272,9 +272,10 @@ class ShaclValidation(WorkflowPlugin):
             "resultSeverity"
         ]
         entities =[]
+        conforms = list(g.objects(predicate=SH.conforms))[0]
         for i, validation_result in enumerate(list(g.subjects(RDF.type, SH.ValidationResult))):
             values = [[self.check_object(g, validation_result, SH[p])] for p in shp] + [
-                [list(g.objects(predicate=SH.conforms))[0]],
+                [conforms],
                 [self.data_graph_uri],
                 [self.shacl_graph_uri],
                 [utctime]
