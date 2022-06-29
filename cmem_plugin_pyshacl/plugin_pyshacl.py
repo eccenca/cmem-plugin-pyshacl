@@ -2,13 +2,12 @@ import validators
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS
 from pyshacl import validate
 from os import remove
+from os.path import getsize
 from time import time
 from datetime import datetime
 from uuid import uuid4
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 # from cmem.cmempy.queries import SparqlQuery
-# from cmem.cmempy.rdflib.store import CMEMStore
-# from operator import not_
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
@@ -119,13 +118,6 @@ from cmem_plugin_base.dataintegration.entity import (
             description="Output values",
             default_value=False
         ),
-        # PluginParameter(
-        #     param_type = BoolParameterType(),
-        #     name="use_cmem_store",
-        #     label="Use CMEM store",
-        #     description="Use CMEM store",
-        #     default_value=False
-        # ),
         PluginParameter(
             param_type = BoolParameterType(),
             name="clear_validation_graph",
@@ -175,6 +167,8 @@ from cmem_plugin_base.dataintegration.entity import (
         )
     ]
 )
+
+
 class ShaclValidation(WorkflowPlugin):
     """Example Workflow Plugin: Random Values"""
 
@@ -185,7 +179,6 @@ class ShaclValidation(WorkflowPlugin):
         generate_graph,
         validation_graph_uri,
         output_values,
-        # use_cmem_store,
         clear_validation_graph,
         owl_imports_resolution,
         skolemize_validation_graph,
@@ -209,7 +202,6 @@ class ShaclValidation(WorkflowPlugin):
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
-        # self.use_cmem_store = use_cmem_store
         setup_cmempy_super_user_access()
 
 
@@ -234,7 +226,6 @@ class ShaclValidation(WorkflowPlugin):
 
     def add_labels(self, validation_graph, data_graph, shacl_graph, validation_result_uris):
         focus_nodes = []
-        self.log.info("Adding labels to validation graph.")
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
         conforms = str(list(validation_graph.objects(validation_report_uri, SH.conforms))[0])
         label = "SHACL validation report, conforms" if conforms == "true" else "SHACL validation report, nonconforms"
@@ -297,6 +288,7 @@ class ShaclValidation(WorkflowPlugin):
     def post_graph(self, validation_graph):
         temp_file = f"{uuid4()}.nt"
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
+        self.log.info(f"Created temporary file {temp_file} with size {getsize(temp_file)} bytes")
         post_streamed(
             self.validation_graph_uri,
             temp_file,
@@ -304,6 +296,7 @@ class ShaclValidation(WorkflowPlugin):
             content_type="application/n-triples"
         )
         remove(temp_file)
+        self.log.info(f"Deleted temporary file")
 
     def check_object(self, g, s, p):
         l = list(g.objects(s, p))
@@ -360,46 +353,49 @@ class ShaclValidation(WorkflowPlugin):
         )
         return Entities(entities=entities, schema=schema)
 
-    def get_graph(self, i, cmem_store=False):
-        # if cmem_store:
-        #     g = Graph(store=CMEMStore(), identifier=i)
-        # else:
+    def get_graph(self, i):
         g = Graph()
         g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
         return g
 
     def execute(self, inputs=()):  # -> Entities:
-        self.log.info(f"Loading data graph <{self.data_graph_uri}>.")
-        # data_graph = self.get_graph(self.data_graph_uri, cmem_store=self.use_cmem_store)
+        self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
+        start = time()
         data_graph = self.get_graph(self.data_graph_uri)
-        self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}>.")
+        self.log.info(f"Finished loading data graph in {round(time() - start, 3)} seconds")
+        self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
+        start = time()
         shacl_graph = self.get_graph(self.shacl_graph_uri)
-        self.log.info("Starting SHACL validation.")
-        # using undocumented inplace option to skip working-copy step
-        # see https://github.com/RDFLib/pySHACL/issues/60#issuecomment-888663172
-        # conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=not_(self.use_cmem_store))
+        self.log.info(f"Finished loading SHACL graph in {round(time() - start, 3)} seconds")
+        self.log.info(f"Starting SHACL validation...")
+        start = time()
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
+        self.log.info(f"Finished SHACL validation in {round(time() - start, 3)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         if self.output_values:
-            self.log.info("Creating entities.")
+            self.log.info("Creating entities")
             entities = self.make_entities(validation_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
-                self.log.info("Skolemizing validation graph.")
+                self.log.info("Skolemizing validation graph")
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             if self.add_labels_to_validation_graph or self.add_shui_conforms_to_validation_graph:
                 validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
                 focus_nodes = None
                 if self.add_labels_to_validation_graph:
+                    self.log.info("Adding labels to validation graph")
                     validation_graph, focus_nodes = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
                 if self.add_shui_conforms_to_validation_graph:
+                    self.log.info("Adding shui:conforms flags to validation graph")
                     validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris, focus_nodes)
+            self.log.info("Adding PROV information validation graph")
             validation_graph = self.add_prov(validation_graph, utctime)
-            self.log.info("Posting SHACL validation graph.")
+            self.log.info("Posting SHACL validation graph...")
             self.post_graph(validation_graph)
             # alq = SparqlQuery(add_label_query, query_type="UPDATE")
             # alq.get_results(placeholder={"GRAPH": self.validation_graph_uri })
             # uffq = SparqlQuery(update_failure_flag_query, query_type="UPDATE")
             # uffq.get_results(placeholder={"GRAPH": self.validation_graph_uri})
         if self.output_values:
+            self.log.info("Outputting entities")
             return entities
