@@ -146,7 +146,10 @@ class ShaclValidation(WorkflowPlugin):
         self.clear_validation_graph = clear_validation_graph
         self.skolemize_validation_graph = skolemize_validation_graph
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
-        self.include_graphs_labels = include_graphs_labels
+        if add_labels_to_validation_graph:
+            self.include_graphs_labels = include_graphs_labels
+        else:
+            self.include_graphs_labels = False
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
         setup_cmempy_super_user_access()
 
@@ -244,19 +247,32 @@ class ShaclValidation(WorkflowPlugin):
         remove(temp_file)
         self.log.info(f"Deleted temporary file")
 
-    def check_object(self, g, s, p):
+    def check_object(self, g, s, p, data_graph, shacl_graph):
+        if p in (SH.sourceShape, SH.conforms):
+            label_g = shacl_graph
+        elif p in (SH.value, SH.resultPath, SH.focusNode):
+            label_g = data_graph
         l = list(g.objects(s, p))
         o = l[0] if l else None
         v = ""
         if o:
             if isinstance(o, URIRef):
-                v = o
+                if self.include_graphs_labels and p not in (SH.sourceConstraintComponent, SH.resultSeverity):
+                    label = list(label_g.objects(o, RDFS.label))
+                    v = str(label[0]) if label else o
+                else:
+                    v = o
             elif isinstance(o, BNode):
-                # first 50 lines of turtle CBD
-                v = g.cbd(o).serialize(format="turtle")
-                cbd_lines = v.split("\n")
-                if len(cbd_lines) > 50:
-                    v = "\n".join(cbd_lines[:50]) + "\n..."
+                if self.include_graphs_labels:
+                    label = list(label_g.objects(o, RDFS.label))
+                    if label:
+                        v = str(label[0])
+                if not v:
+                    # first 50 lines of turtle CBD
+                    v = g.cbd(o).serialize(format="turtle")
+                    cbd_lines = v.split("\n")
+                    if len(cbd_lines) > 50:
+                        v = "\n".join(cbd_lines[:50]) + "\n..."
             elif isinstance(o, Literal):
                 if p == SH.value:
                     v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
@@ -264,7 +280,7 @@ class ShaclValidation(WorkflowPlugin):
                     v = str(o)
         return v
 
-    def make_entities(self, g, utctime):
+    def make_entities(self, validation_graph, data_graph, shacl_graph, utctime):
         shp = [
             "focusNode",
             "resultPath",
@@ -276,9 +292,9 @@ class ShaclValidation(WorkflowPlugin):
             "resultSeverity"
         ]
         entities =[]
-        conforms = list(g.objects(predicate=SH.conforms))[0]
-        for validation_result in list(g.subjects(RDF.type, SH.ValidationResult)):
-            values = [[self.check_object(g, validation_result, SH[p])] for p in shp] + [
+        conforms = list(validation_graph.objects(predicate=SH.conforms))[0]
+        for validation_result in list(validation_graph.subjects(RDF.type, SH.ValidationResult)):
+            values = [[self.check_object(validation_graph, validation_result, SH[p], data_graph, shacl_graph)] for p in shp] + [
                 [conforms],
                 [self.data_graph_uri],
                 [self.shacl_graph_uri],
@@ -324,7 +340,7 @@ class ShaclValidation(WorkflowPlugin):
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         if self.output_values:
             self.log.info("Creating entities")
-            entities = self.make_entities(validation_graph, utctime)
+            entities = self.make_entities(validation_graph, data_graph, shacl_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
                 self.log.info("Skolemizing validation graph")
