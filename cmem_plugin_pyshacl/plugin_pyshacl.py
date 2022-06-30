@@ -252,7 +252,11 @@ class ShaclValidation(WorkflowPlugin):
             if isinstance(o, URIRef):
                 v = o
             elif isinstance(o, BNode):
+                # first 50 lines of turtle CBD
                 v = g.cbd(o).serialize(format="turtle")
+                cbd_lines = v.split("\n")
+                if len(cbd_lines) > 50:
+                    v = "\n".join(cbd_lines[:50]) + "\n..."
             elif isinstance(o, Literal):
                 if p == SH.value:
                     v = f'"{o}"^^<{o.datatype}>' if o.datatype else f'"{o}"'
@@ -273,7 +277,7 @@ class ShaclValidation(WorkflowPlugin):
         ]
         entities =[]
         conforms = list(g.objects(predicate=SH.conforms))[0]
-        for i, validation_result in enumerate(list(g.subjects(RDF.type, SH.ValidationResult))):
+        for validation_result in list(g.subjects(RDF.type, SH.ValidationResult)):
             values = [[self.check_object(g, validation_result, SH[p])] for p in shp] + [
                 [conforms],
                 [self.data_graph_uri],
