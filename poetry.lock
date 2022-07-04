@@ -84,11 +84,11 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "charset-normalizer"
-version = "2.0.12"
+version = "2.1.0"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
 category = "main"
 optional = false
-python-versions = ">=3.5.0"
+python-versions = ">=3.6.0"
 
 [package.extras]
 unicode_backport = ["unicodedata2"]
@@ -223,14 +223,14 @@ junit-xml = ">=1.8"
 
 [[package]]
 name = "genbadge"
-version = "1.0.6"
+version = "1.1.0"
 description = "Generate badges for tools that do not provide one."
 category = "dev"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-click = "*"
+click = ">7.0"
 pillow = "*"
 requests = "*"
 
@@ -381,7 +381,7 @@ rdflib = ">=6.0.2"
 name = "packaging"
 version = "21.3"
 description = "Core utilities for Python packages"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -480,7 +480,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "pylint"
-version = "2.14.3"
+version = "2.14.4"
 description = "python code static checker"
 category = "dev"
 optional = false
@@ -526,7 +526,7 @@ diagrams = ["railroad-diagrams", "jinja2"]
 
 [[package]]
 name = "pyshacl"
-version = "0.19.0"
+version = "0.19.1"
 description = "Python SHACL Validator"
 category = "main"
 optional = false
@@ -534,11 +534,12 @@ python-versions = ">=3.7.0,<4.0.0"
 
 [package.dependencies]
 owlrl = ">=6.0.2,<7"
+packaging = ">=21.3"
 prettytable = ">=2.2.1,<3.0.0"
 rdflib = ">=6.1.1,<8"
 
 [package.extras]
-dev-lint = ["black (==21.9b0)", "flake8 (>=3.8.0,<4.0.0)", "isort (>=5.7.0,<6.0.0)"]
+dev-lint = ["black (==22.6.0)", "flake8 (>=3.8.0,<4.0.0)", "isort (>=5.7.0,<6.0.0)"]
 dev-type-checking = ["mypy (>=0.800,<0.801)", "types-setuptools"]
 js = ["pyduktape2 (>=0.4.1,<0.5.0)"]
 jsonld = ["rdflib-jsonld (>=0.4.0,<0.6)"]
@@ -606,7 +607,7 @@ tests = ["berkeleydb", "html5lib", "networkx", "pytest", "pytest-cov", "pytest-s
 
 [[package]]
 name = "requests"
-version = "2.28.0"
+version = "2.28.1"
 description = "Python HTTP for Humans."
 category = "main"
 optional = false
@@ -614,13 +615,13 @@ python-versions = ">=3.7, <4"
 
 [package.dependencies]
 certifi = ">=2017.4.17"
-charset-normalizer = ">=2.0.0,<2.1.0"
+charset-normalizer = ">=2,<3"
 idna = ">=2.5,<4"
 urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
-use_chardet_on_py3 = ["chardet (>=3.0.2,<5)"]
+use_chardet_on_py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "requests-toolbelt"
@@ -809,8 +810,8 @@ certifi = [
     {file = "certifi-2022.6.15.tar.gz", hash = "sha256:84c85a9078b11105f04f3036a9482ae10e4621616db313fe045dd24743a0820d"},
 ]
 charset-normalizer = [
-    {file = "charset-normalizer-2.0.12.tar.gz", hash = "sha256:2857e29ff0d34db842cd7ca3230549d1a697f96ee6d3fb071cfa6c7393832597"},
-    {file = "charset_normalizer-2.0.12-py3-none-any.whl", hash = "sha256:6881edbebdb17b39b4eaaa821b438bf6eddffb4468cf344f09f89def34a8b1df"},
+    {file = "charset-normalizer-2.1.0.tar.gz", hash = "sha256:575e708016ff3a5e3681541cb9d79312c416835686d054a23accb873b254f413"},
+    {file = "charset_normalizer-2.1.0-py3-none-any.whl", hash = "sha256:5189b6f22b01957427f35b6a08d9a0bc45b46d3788ef5a92e978433c7a35f8a5"},
 ]
 click = [
     {file = "click-8.1.3-py3-none-any.whl", hash = "sha256:bb4d8133cb15a609f44e8213d9b391b0809795062913b383c62be0ee95b1db48"},
@@ -896,8 +897,8 @@ flake8-formatter-junit-xml = [
     {file = "flake8_formatter_junit_xml-0.0.6.tar.gz", hash = "sha256:1ddd9356bb30ba736c3f14c769c837cfacf4f79c3d383ab963ef9d38eea05a9c"},
 ]
 genbadge = [
-    {file = "genbadge-1.0.6-py2.py3-none-any.whl", hash = "sha256:a47e6996a8a4223132ab08e3ad9bade2cb997e68a03162ff5d122469e9d6a5c6"},
-    {file = "genbadge-1.0.6.tar.gz", hash = "sha256:7c52589f596bccf39cc7b9a70f5855985580911c978e7d3e5351701c4c21aaa7"},
+    {file = "genbadge-1.1.0-py2.py3-none-any.whl", hash = "sha256:add6a6beea812a8e35c612e0ea0f784bee5b984029b6a4b990721d0901fdb3c8"},
+    {file = "genbadge-1.1.0.tar.gz", hash = "sha256:a061187d49c78fc54c94410af201e873178d1bf1877701846c89341360bf79dc"},
 ]
 gitdb = [
     {file = "gitdb-4.0.9-py3-none-any.whl", hash = "sha256:8033ad4e853066ba6ca92050b9df2f89301b8fc8bf7e9324d412a63f8bf1a8fd"},
@@ -1080,8 +1081,8 @@ pyflakes = [
     {file = "pyflakes-2.4.0.tar.gz", hash = "sha256:05a85c2872edf37a4ed30b0cce2f6093e1d0581f8c19d7393122da7e25b2b24c"},
 ]
 pylint = [
-    {file = "pylint-2.14.3-py3-none-any.whl", hash = "sha256:6757a027e15816be23625b079ebc45464e4c9d9dde0c826d18beee53fe22a2e7"},
-    {file = "pylint-2.14.3.tar.gz", hash = "sha256:4e1378f815c63e7e44590d0d339ed6435f5281d0a0cc357d29a86ea0365ef868"},
+    {file = "pylint-2.14.4-py3-none-any.whl", hash = "sha256:89b61867db16eefb7b3c5b84afc94081edaf11544189e2b238154677529ad69f"},
+    {file = "pylint-2.14.4.tar.gz", hash = "sha256:47705453aa9dce520e123a7d51843d5f0032cbfa06870f89f00927aa1f735a4a"},
 ]
 pylint-junit = [
     {file = "pylint_junit-0.3.2.tar.gz", hash = "sha256:c6dbe956e55bb9b365d86e2ec77b58df6b95262b5515d187ac54b8359507174b"},
@@ -1091,8 +1092,8 @@ pyparsing = [
     {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
 ]
 pyshacl = [
-    {file = "pyshacl-0.19.0-py3-none-any.whl", hash = "sha256:76ecd84a13387c8d0a56b059ce232d723469187ebc0dd852c24c18b99fac713b"},
-    {file = "pyshacl-0.19.0.tar.gz", hash = "sha256:f1f5ba943db1437502e6e7a5da74152e90998d24753029aad4db68393fc1d601"},
+    {file = "pyshacl-0.19.1-py3-none-any.whl", hash = "sha256:262a4528f26ece139537816effda24505561e6aa962097749602913d4f072fdd"},
+    {file = "pyshacl-0.19.1.tar.gz", hash = "sha256:eba29e38f6a08033ca579502140a688c0e36795b2b89f169da977197e942e369"},
 ]
 pytest = [
     {file = "pytest-7.1.2-py3-none-any.whl", hash = "sha256:13d0e3ccfc2b6e26be000cb6568c832ba67ba32e719443bfe725814d3c42433c"},
@@ -1142,8 +1143,8 @@ rdflib = [
     {file = "rdflib-6.1.1.tar.gz", hash = "sha256:8dbfa0af2990b98471dacbc936d6494c997ede92fd8ed693fb84ee700ef6f754"},
 ]
 requests = [
-    {file = "requests-2.28.0-py3-none-any.whl", hash = "sha256:bc7861137fbce630f17b03d3ad02ad0bf978c844f3536d0edda6499dafce2b6f"},
-    {file = "requests-2.28.0.tar.gz", hash = "sha256:d568723a7ebd25875d8d1eaf5dfa068cd2fc8194b2e483d7b1f7c81918dbec6b"},
+    {file = "requests-2.28.1-py3-none-any.whl", hash = "sha256:8fefa2a1a1365bf5520aac41836fbee479da67864514bdb821f31ce07ce65349"},
+    {file = "requests-2.28.1.tar.gz", hash = "sha256:7c5599b102feddaa661c826c56ab4fee28bfd17f5abca1ebbe3e7f19d7c97983"},
 ]
 requests-toolbelt = [
     {file = "requests-toolbelt-0.9.1.tar.gz", hash = "sha256:968089d4584ad4ad7c171454f0a5c6dac23971e9472521ea3b6d49d610aa6fc0"},
