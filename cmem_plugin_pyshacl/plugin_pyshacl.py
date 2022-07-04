@@ -177,7 +177,7 @@ class ShaclValidation(WorkflowPlugin):
         SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
         l = g.preferredLabel(s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
         if l:
-            return l
+            return l[0][1]
 
     def add_labels(self, validation_graph, data_graph, shacl_graph, validation_result_uris):
         focus_nodes = []
