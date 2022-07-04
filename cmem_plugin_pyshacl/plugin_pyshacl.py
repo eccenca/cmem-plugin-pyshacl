@@ -91,15 +91,15 @@ from cmem_plugin_base.dataintegration.entity import (
             param_type = BoolParameterType(),
             name="add_labels_to_validation_graph",
             label="Add labels",
-            description="Add RDFS labels to validation graph.",
+            description="Add labels to validation graph.",
             default_value=True,
             advanced=True
         ),
         PluginParameter(
             param_type = BoolParameterType(),
             name="include_graphs_labels",
-            label="Add labels from data and SHACL graphs",
-            description="Include RDFS labels from data and SHACL graph when adding labels to validation graph.",
+            label="Add labels to focus nodes and values",
+            description='Add labels from data and SHACL graph to source shapes, focus nodes and values to the validation graph. Only applied when the option "Add labels" is activated.',
             default_value=False,
             advanced=True
         ),
