@@ -6,11 +6,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+## Changed
+
+- `rdfs:label` in the data/shacl graphs is now preferred when adding labels to the validation graph, preserving original `rdfs:label` if present
+- plain literals instead of `xsd:string` for new string literals added to validation graph
+- using `g.value()` instead of `list(g....)[0]` to retrieve values from graph
 
 ## [1.1.0] 2022-07-04
 
-## Added
+## Added.
 
 - the "Add labels" option now also applies to the entity output
 
