@@ -1,5 +1,5 @@
 import validators
-from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS
+from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS, Namespace
 from pyshacl import validate
 from os import remove
 from os.path import getsize
@@ -173,6 +173,12 @@ class ShaclValidation(WorkflowPlugin):
         ))
         return validation_graph
 
+    def get_label(self, g, s):
+        SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
+        l = g.preferredLabel(s, labelProperties=(SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel, RDFS.label))
+        if l:
+            return Literal(str(l[0][1]), datatype=XSD.string)
+
     def add_labels(self, validation_graph, data_graph, shacl_graph, validation_result_uris):
         focus_nodes = []
         validation_report_uri = list(validation_graph.subjects(RDF.type, SH.ValidationReport))[0]
@@ -196,31 +202,19 @@ class ShaclValidation(WorkflowPlugin):
                 focus_node = list(validation_graph.objects(validation_result_uri, SH.focusNode))[0]
                 if self.add_shui_conforms_to_validation_graph:
                     focus_nodes.append(focus_node)
-                label = list(data_graph.objects(focus_node, RDFS.label))
+                label = self.get_label(data_graph, focus_node)
                 if label:
-                    validation_graph.add((
-                        focus_node,
-                        RDFS.label,
-                        Literal(str(label[0]), datatype=XSD.string)
-                    ))
+                    validation_graph.add((focus_node, RDFS.label, label))
                 value = list(validation_graph.objects(validation_result_uri, SH.value))
                 if value:
-                    if isinstance(value[0], URIRef):
-                        label = list(data_graph.objects(value[0], RDFS.label))
+                    if isinstance(value[0], (URIRef, BNode)):
+                        label = self.get_label(data_graph, value[0])
                         if label:
-                            validation_graph.add((
-                                value[0],
-                                RDFS.label,
-                                Literal(str(label[0]), datatype=XSD.string)
-                            ))
+                            validation_graph.add((value[0], RDFS.label, label))
                 source_shape =  list(validation_graph.objects(validation_result_uri, SH.sourceShape))[0]
-                label = list(shacl_graph.objects(source_shape, RDFS.label))
+                label = self.get_label(shacl_graph, source_shape)
                 if label:
-                    validation_graph.add((
-                        source_shape,
-                        RDFS.label,
-                        Literal(str(label[0]), datatype=XSD.string)
-                    ))
+                    validation_graph.add((source_shape, RDFS.label, label))
         return validation_graph, focus_nodes
 
     def add_shui_conforms(self, validation_graph, validation_result_uris, focus_nodes):
@@ -258,15 +252,15 @@ class ShaclValidation(WorkflowPlugin):
         if o:
             if isinstance(o, URIRef):
                 if self.include_graphs_labels and p not in (SH.sourceConstraintComponent, SH.resultSeverity):
-                    label = list(label_g.objects(o, RDFS.label))
-                    v = str(label[0]) if label else o
+                    label = self.get_label(label_g, o)
+                    v = str(label) if label else o
                 else:
                     v = o
             elif isinstance(o, BNode):
                 if self.include_graphs_labels:
-                    label = list(label_g.objects(o, RDFS.label))
+                    label = self.get_label(label_g, o)
                     if label:
-                        v = str(label[0])
+                        v = str(label)
                 if not v:
                     # first 50 lines of turtle CBD
                     v = g.cbd(o).serialize(format="turtle")
