@@ -6,7 +6,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+## Fixed
+
+- added version number to code
+
+## Changed
+
+- updated dependencies
+
+## Added
+
+- log error if post graph response status code is not 204
 
 ## [1.2.1] 2022-07-04
 
@@ -24,7 +34,7 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 ## [1.1.0] 2022-07-04
 
-## Added.
+## Added
 
 - the "Add labels" option now also applies to the entity output
 
@@ -35,7 +45,7 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 ## Fixed
 
-- When "Add labels" is activated, labels are also addes to `shacl:value` objects that are blank nodes 
+- When "Add labels" is activated, labels are also added to `shacl:value` objects that are blank nodes 
 
 ## [1.0.1] 2022-06-29
 
