@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "0.0.1"
+version = "1.2.2"
 license = "Apache-2.0"
 description = "This eccenca Corporate Memory plugin totally rocks :-)"
 authors = ["Thomas Wilmering <thomas.wilmering@eccena.com>"]

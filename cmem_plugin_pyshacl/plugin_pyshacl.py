@@ -17,6 +17,16 @@ from cmem_plugin_base.dataintegration.entity import (
 )
 
 
+def et(start):
+    return round(time() - start, 3)
+
+def get_label(g, s):
+    SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
+    l = g.preferredLabel(s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
+    if l:
+        return l[0][1]
+
+
 @Plugin(
     label="SHACL validation with pySHACL",
     plugin_id="shacl-pyshacl",
@@ -116,7 +126,6 @@ from cmem_plugin_base.dataintegration.entity import (
 
 
 class ShaclValidation(WorkflowPlugin):
-    """Example Workflow Plugin: Random Values"""
 
     def __init__(
         self,
@@ -153,8 +162,8 @@ class ShaclValidation(WorkflowPlugin):
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
         setup_cmempy_super_user_access()
 
-
     def add_prov(self, validation_graph, utctime):
+        self.log.info("Adding PROV information validation graph")
         validation_report_uri = validation_graph.value(predicate=RDF.type, object=SH.ValidationReport)
         validation_graph.add((
             validation_report_uri,
@@ -173,13 +182,8 @@ class ShaclValidation(WorkflowPlugin):
         ))
         return validation_graph
 
-    def get_label(self, g, s):
-        SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
-        l = g.preferredLabel(s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
-        if l:
-            return l[0][1]
-
     def add_labels(self, validation_graph, data_graph, shacl_graph, validation_result_uris):
+        self.log.info("Adding labels to validation graph")
         focus_nodes = []
         validation_report_uri = validation_graph.value(predicate=RDF.type, object=SH.ValidationReport)
         conforms = validation_graph.value(subject=validation_report_uri, predicate=SH.conforms)
@@ -194,22 +198,23 @@ class ShaclValidation(WorkflowPlugin):
                 focus_node = validation_graph.value(subject=validation_result_uri, predicate=SH.focusNode)
                 if self.add_shui_conforms_to_validation_graph:
                     focus_nodes.append(focus_node)
-                label = self.get_label(data_graph, focus_node)
+                label = get_label(data_graph, focus_node)
                 if label:
                     validation_graph.add((focus_node, RDFS.label, label))
                 value = validation_graph.value(subject=validation_result_uri, predicate=SH.value)
                 if value:
                     if isinstance(value, (URIRef, BNode)):
-                        label = self.get_label(data_graph, value)
+                        label = get_label(data_graph, value)
                         if label:
                             validation_graph.add((value, RDFS.label, label))
                 source_shape = validation_graph.value(subject=validation_result_uri, predicate=SH.sourceShape)
-                label = self.get_label(shacl_graph, source_shape)
+                label = get_label(shacl_graph, source_shape)
                 if label:
                     validation_graph.add((source_shape, RDFS.label, label))
         return validation_graph, focus_nodes
 
     def add_shui_conforms(self, validation_graph, validation_result_uris, focus_nodes):
+        self.log.info("Adding shui:conforms flags to validation graph")
         itr = focus_nodes if focus_nodes else validation_result_uris
         for i in itr:
             s = i if focus_nodes else validation_graph.value(subject=i, predicate=SH.focusNode)
@@ -221,10 +226,11 @@ class ShaclValidation(WorkflowPlugin):
         return validation_graph
 
     def post_graph(self, validation_graph):
+        self.log.info("Posting SHACL validation graph...")
         temp_file = f"{uuid4()}.nt"
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
         self.log.info(f"Created temporary file {temp_file} with size {getsize(temp_file)} bytes")
-        post_streamed(
+        res = post_streamed(
             self.validation_graph_uri,
             temp_file,
             replace=self.clear_validation_graph,
@@ -232,6 +238,10 @@ class ShaclValidation(WorkflowPlugin):
         )
         remove(temp_file)
         self.log.info(f"Deleted temporary file")
+        if str(res.status_code) == "204":
+            self.log.info("Successfully posted SHACL validation graph")
+        else:
+            self.log.info(f"Error posting SHACL validation graph: status code {res.status_code}")
 
     def check_object(self, g, s, p, data_graph, shacl_graph):
         if p in (SH.sourceShape, SH.conforms):
@@ -244,13 +254,13 @@ class ShaclValidation(WorkflowPlugin):
         if o:
             if isinstance(o, URIRef):
                 if self.include_graphs_labels and p not in (SH.sourceConstraintComponent, SH.resultSeverity):
-                    label = self.get_label(label_g, o)
+                    label = get_label(label_g, o)
                     v = str(label) if label else o
                 else:
                     v = o
             elif isinstance(o, BNode):
                 if self.include_graphs_labels:
-                    label = self.get_label(label_g, o)
+                    label = get_label(label_g, o)
                     if label:
                         v = str(label)
                 if not v:
@@ -267,6 +277,7 @@ class ShaclValidation(WorkflowPlugin):
         return v
 
     def make_entities(self, validation_graph, data_graph, shacl_graph, utctime):
+        self.log.info("Creating entities")
         shp = [
             "focusNode",
             "resultPath",
@@ -314,18 +325,17 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(self.data_graph_uri)
-        self.log.info(f"Finished loading data graph in {round(time() - start, 3)} seconds")
+        self.log.info(f"Finished loading data graph in {et(start)} seconds")
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
         shacl_graph = self.get_graph(self.shacl_graph_uri)
-        self.log.info(f"Finished loading SHACL graph in {round(time() - start, 3)} seconds")
+        self.log.info(f"Finished loading SHACL graph in {et(start)} seconds")
         self.log.info(f"Starting SHACL validation...")
         start = time()
         conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
-        self.log.info(f"Finished SHACL validation in {round(time() - start, 3)} seconds")
+        self.log.info(f"Finished SHACL validation in {et(start)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         if self.output_values:
-            self.log.info("Creating entities")
             entities = self.make_entities(validation_graph, data_graph, shacl_graph, utctime)
         if self.generate_graph:
             if self.skolemize_validation_graph:
@@ -335,14 +345,10 @@ class ShaclValidation(WorkflowPlugin):
                 validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
                 focus_nodes = None
                 if self.add_labels_to_validation_graph:
-                    self.log.info("Adding labels to validation graph")
                     validation_graph, focus_nodes = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
                 if self.add_shui_conforms_to_validation_graph:
-                    self.log.info("Adding shui:conforms flags to validation graph")
                     validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris, focus_nodes)
-            self.log.info("Adding PROV information validation graph")
             validation_graph = self.add_prov(validation_graph, utctime)
-            self.log.info("Posting SHACL validation graph...")
             self.post_graph(validation_graph)
         if self.output_values:
             self.log.info("Outputting entities")
