@@ -297,24 +297,14 @@ class ShaclValidation(WorkflowPlugin):
                 [self.shacl_graph_uri],
                 [utctime]
             ]
-            entities.append(
-                Entity(
-                    uri=validation_result,
-                    values=values
-                )
-            )
-        paths = [EntityPath(path=SH[p]) for p in shp] + \
-                    [
-                        EntityPath(path=SH.conforms),
-                        EntityPath(path=PROV.wasDerivedFrom),
-                        EntityPath(path=PROV.wasInformedBy),
-                        EntityPath(path=PROV.generatedAtTime)
-                    ]
-        schema = EntitySchema(
-            type_uri=SH.ValidationResult,
-            paths=paths
-        )
-        return Entities(entities=entities, schema=schema)
+            entities.append(Entity(uri=validation_result, values=values))
+        paths = [EntityPath(path=SH[p]) for p in shp] + [
+                    EntityPath(path=SH.conforms),
+                    EntityPath(path=PROV.wasDerivedFrom),
+                    EntityPath(path=PROV.wasInformedBy),
+                    EntityPath(path=PROV.generatedAtTime)
+                ]
+        return Entities(entities=entities, schema=EntitySchema(type_uri=SH.ValidationResult, paths=paths))
 
     def get_graph(self, i):
         g = Graph()
