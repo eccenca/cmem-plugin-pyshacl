@@ -16,7 +16,7 @@ The URI of the graph to be validated. The graph URI is selected from a list of g
 
 ### SHACL graph URI
 
-The URI of the graph containig the SHACL shapes to be validated against. The graph URI is selected from a list of graphs of type `shui:ShapeCatalog`.
+The URI of the graph containing the SHACL shapes to be validated against. The graph URI is selected from a list of graphs of type `shui:ShapeCatalog`.
 
 ### Generate validation graph
 

@@ -153,7 +153,6 @@ class ShaclValidation(WorkflowPlugin):
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
-
         setup_cmempy_super_user_access()
 
     def add_prov(self, validation_graph, utctime):
@@ -306,6 +305,8 @@ class ShaclValidation(WorkflowPlugin):
         return g
 
     def process_inputs(self, inputs):
+        if not inputs:
+            return
         uri_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
         bool_parameters = [
             "generate_graph",
@@ -346,7 +347,7 @@ class ShaclValidation(WorkflowPlugin):
         if not self.add_labels_to_validation_graph:
             self.include_graphs_labels = False
 
-    def execute(self, inputs=()):  # -> Entities:
+    def execute(self, inputs=()):
         self.process_inputs(inputs)
         self.check_parameters()
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
