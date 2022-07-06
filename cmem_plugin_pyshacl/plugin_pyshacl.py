@@ -6,6 +6,7 @@ from os.path import getsize
 from time import time
 from datetime import datetime
 from uuid import uuid4
+from distutils.util import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
@@ -141,11 +142,6 @@ class ShaclValidation(WorkflowPlugin):
         include_graphs_labels,
         add_shui_conforms_to_validation_graph
     ) -> None:
-        if not output_values and not generate_graph:
-            raise ValueError("Generate validation graph or Output values parameter needs to be set to true.")
-        if generate_graph:
-            if not validators.url(validation_graph_uri):
-                raise ValueError("Validation graph URI parameter is invalid.")
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
         self.validation_graph_uri = validation_graph_uri
@@ -155,11 +151,9 @@ class ShaclValidation(WorkflowPlugin):
         self.clear_validation_graph = clear_validation_graph
         self.skolemize_validation_graph = skolemize_validation_graph
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
-        if add_labels_to_validation_graph:
-            self.include_graphs_labels = include_graphs_labels
-        else:
-            self.include_graphs_labels = False
+        self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
+
         setup_cmempy_super_user_access()
 
     def add_prov(self, validation_graph, utctime):
@@ -311,7 +305,50 @@ class ShaclValidation(WorkflowPlugin):
         g.parse(data=get(i, owl_imports_resolution=self.owl_imports_resolution).text, format="turtle")
         return g
 
+    def process_inputs(self, inputs):
+        uri_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
+        bool_parameters = [
+            "generate_graph",
+            "output_values",
+            "clear_validation_graph",
+            "owl_imports_resolution",
+            "skolemize_validation_graph",
+            "add_labels_to_validation_graph",
+            "include_graphs_labels",
+            "add_shui_conforms_to_validation_graph"
+        ]
+        paths = [e.path for e in inputs[0].schema.paths]
+        values = [e[0] for e in list(inputs[0].entities)[0].values]
+        for i in range(len(paths)):
+            if paths[i] not in uri_parameters + bool_parameters:
+               raise ValueError(f"Invalid parameter: {paths[i]}")
+            if paths[i] in uri_parameters:
+                self.log.info(f"input parameter {paths[i]}: {values[i]}")
+                self.__dict__[paths[i]] = values[i]
+            if paths[i] in bool_parameters:
+                try:
+                    v = bool(strtobool(values[i]))
+                    self.log.info(f"input parameter {paths[i]}: {v}")
+                    self.__dict__[paths[i]] = v
+                except:
+                    raise ValueError(f"Invalid truth value for parameter {paths[i]}")
+
+    def check_parameters(self):
+        if not self.output_values and not self.generate_graph:
+            raise ValueError("Generate validation graph or Output values parameter needs to be set to true.")
+        if not validators.url(self.data_graph_uri):
+            raise ValueError("Data graph URI parameter is invalid.")
+        if not validators.url(self.shacl_graph_uri):
+            raise ValueError("SHACL graph URI parameter is invalid.")
+        if self.generate_graph:
+            if not validators.url(self.validation_graph_uri):
+                raise ValueError("Validation graph URI parameter is invalid.")
+        if not self.add_labels_to_validation_graph:
+            self.include_graphs_labels = False
+
     def execute(self, inputs=()):  # -> Entities:
+        self.process_inputs(inputs)
+        self.check_parameters()
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(self.data_graph_uri)
