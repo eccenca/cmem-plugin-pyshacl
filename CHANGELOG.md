@@ -6,21 +6,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+# Added
+
+- accept input parameters
 
 ## [1.2.2] 2022-07-05
-
-## Fixed
-
-- added version number to code
-
-## Changed
-
-- updated dependencies
 
 ## Added
 
 - log error if post graph response status code is not 204
+
+## Changed
+- 
+- updated dependencies
+
+## Fixed
+
+- added version number to code
 
 ## [1.2.1] 2022-07-04
 
