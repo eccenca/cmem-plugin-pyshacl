@@ -153,6 +153,17 @@ class ShaclValidation(WorkflowPlugin):
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
+        self.uri_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
+        self.bool_parameters = [
+            "generate_graph",
+            "output_values",
+            "clear_validation_graph",
+            "owl_imports_resolution",
+            "skolemize_validation_graph",
+            "add_labels_to_validation_graph",
+            "include_graphs_labels",
+            "add_shui_conforms_to_validation_graph"
+        ]
         setup_cmempy_super_user_access()
 
     def add_prov(self, validation_graph, utctime):
@@ -231,7 +242,7 @@ class ShaclValidation(WorkflowPlugin):
         )
         remove(temp_file)
         self.log.info(f"Deleted temporary file")
-        if str(res.status_code) == "204":
+        if res.status_code == 204:
             self.log.info("Successfully posted SHACL validation graph")
         else:
             self.log.info(f"Error posting SHACL validation graph: status code {res.status_code}")
@@ -305,50 +316,36 @@ class ShaclValidation(WorkflowPlugin):
         return g
 
     def process_inputs(self, inputs):
-        if not inputs:
-            return
-        uri_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
-        bool_parameters = [
-            "generate_graph",
-            "output_values",
-            "clear_validation_graph",
-            "owl_imports_resolution",
-            "skolemize_validation_graph",
-            "add_labels_to_validation_graph",
-            "include_graphs_labels",
-            "add_shui_conforms_to_validation_graph"
-        ]
         paths = [e.path for e in inputs[0].schema.paths]
         values = [e[0] for e in list(inputs[0].entities)[0].values]
         for i in range(len(paths)):
-            if paths[i] not in uri_parameters + bool_parameters:
+            if paths[i] not in self.uri_parameters + self.bool_parameters:
                raise ValueError(f"Invalid parameter: {paths[i]}")
-            if paths[i] in uri_parameters:
-                self.log.info(f"input parameter {paths[i]}: {values[i]}")
-                self.__dict__[paths[i]] = values[i]
-            if paths[i] in bool_parameters:
-                try:
-                    v = bool(strtobool(values[i]))
-                    self.log.info(f"input parameter {paths[i]}: {v}")
-                    self.__dict__[paths[i]] = v
-                except:
-                    raise ValueError(f"Invalid truth value for parameter {paths[i]}")
+            self.log.info(f"input parameter {paths[i]}: {values[i]}")
+            self.__dict__[paths[i]] = values[i]
 
     def check_parameters(self):
         if not self.output_values and not self.generate_graph:
-            raise ValueError("Generate validation graph or Output values parameter needs to be set to true.")
+            raise ValueError("Generate validation graph or Output values parameter needs to be set to true")
         if not validators.url(self.data_graph_uri):
-            raise ValueError("Data graph URI parameter is invalid.")
+            raise ValueError("Data graph URI parameter is invalid")
         if not validators.url(self.shacl_graph_uri):
-            raise ValueError("SHACL graph URI parameter is invalid.")
+            raise ValueError("SHACL graph URI parameter is invalid")
         if self.generate_graph:
             if not validators.url(self.validation_graph_uri):
-                raise ValueError("Validation graph URI parameter is invalid.")
+                raise ValueError("Validation graph URI parameter is invalid")
+        for p in self.bool_parameters:
+            if not isinstance(self.__dict__[p], bool):
+                try:
+                    self.__dict__[p] = bool(strtobool(self.__dict__[p]))
+                except:
+                    raise ValueError(f"Invalid truth value for parameter {p}")
         if not self.add_labels_to_validation_graph:
             self.include_graphs_labels = False
 
     def execute(self, inputs=()):
-        self.process_inputs(inputs)
+        if inputs:
+            self.process_inputs(inputs)
         self.check_parameters()
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
