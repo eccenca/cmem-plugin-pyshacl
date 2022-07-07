@@ -9,16 +9,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 # Added
 
 - accept input parameters
+- check if parameters are valid before executing
 
 ## [1.2.2] 2022-07-05
 
 ## Added
 
 - log error if post graph response status code is not 204
-
-## Changed
-- 
-- updated dependencies
 
 ## Fixed
 

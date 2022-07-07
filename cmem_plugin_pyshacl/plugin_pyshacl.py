@@ -331,9 +331,7 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError("Data graph URI parameter is invalid")
         if not validators.url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
-        graphs_dict = {}
-        for g in get_graphs_list():
-            graphs_dict[g["iri"]] = g["assignedClasses"]
+        graphs_dict = [{g["iri"]: g["assignedClasses"]} for g in get_graphs_list()]
         if self.data_graph_uri not in graphs_dict:
             raise ValueError(f"Data graph <{self.data_graph_uri}> not found")
         if self.shacl_graph_uri not in graphs_dict:
