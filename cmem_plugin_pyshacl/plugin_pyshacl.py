@@ -325,13 +325,14 @@ class ShaclValidation(WorkflowPlugin):
             self.__dict__[paths[i]] = values[i]
 
     def check_parameters(self):
+        self.log.info("Validating parameters...")
         if not self.output_values and not self.generate_graph:
             raise ValueError("Generate validation graph or Output values parameter needs to be set to true")
         if not validators.url(self.data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid")
         if not validators.url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
-        graphs_dict = [{g["iri"]: g["assignedClasses"]} for g in get_graphs_list()]
+        graphs_dict = {g["iri"]:g["assignedClasses"] for g in get_graphs_list()}
         if self.data_graph_uri not in graphs_dict:
             raise ValueError(f"Data graph <{self.data_graph_uri}> not found")
         if self.shacl_graph_uri not in graphs_dict:
@@ -358,6 +359,7 @@ class ShaclValidation(WorkflowPlugin):
                     raise ValueError(f"Invalid truth value for parameter {p}")
         if not self.add_labels_to_validation_graph:
             self.include_graphs_labels = False
+        self.log.info("Parameters OK")
 
     def execute(self, inputs=()):
         if inputs:
