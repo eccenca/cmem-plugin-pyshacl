@@ -11,7 +11,7 @@ from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
-from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType
+from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, get_graphs_list
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import (
     Entities, Entity, EntitySchema, EntityPath,
@@ -331,6 +331,24 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError("Data graph URI parameter is invalid")
         if not validators.url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
+        graphs_dict = {}
+        for g in get_graphs_list():
+            graphs_dict[g["iri"]] = g["assignedClasses"]
+        if self.data_graph_uri not in graphs_dict:
+            raise ValueError(f"Data graph <{self.data_graph_uri}> not found")
+        if self.shacl_graph_uri not in graphs_dict:
+            raise ValueError(f"SHACL graph <{self.shacl_graph_uri}> not found")
+        data_graph_types = [
+            "https://vocab.eccenca.com/di/Dataset",
+            "http://rdfs.org/ns/void#Dataset",
+            "https://vocab.eccenca.com/shui/ShapeCatalog",
+            "http://www.w3.org/2002/07/owl#Ontology",
+            "https://vocab.eccenca.com/dsm/ThesaurusProject"
+        ]
+        if not any(check in graphs_dict[self.data_graph_uri] for check in data_graph_types):
+            raise ValueError(f"Invalid graph type for data graph <{self.data_graph_uri}>")
+        if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
+            raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         if self.generate_graph:
             if not validators.url(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
