@@ -55,3 +55,21 @@ If enabled along with the *add labels* option, `rdfs:label` triples are added fo
 ### Add shui:conforms flag to focus node resources
 
 If enabled, `shui:conforms false` triples are added to the focus nodes in the validation graph. Default value: *false*.
+
+## Parameter Input
+
+In order to set options via the input the following parameter names can be used:
+
+| Option                    | Name                                  |
+|---------------------------|---------------------------------------|
+| Data graph URI            | data_graph_uri                        |
+| SHACL graph URI           | shacl_graph_uri                       |
+| Generate validation graph | generate_graph                        |
+| Validation graph URI      | validation_graph_uri                  |
+| Output values             | output_values                         |
+| Clear validation graph    | clear_validation_graph                |
+| Resolve owl:imports       | owl_imports_resolution                |
+| Blank node skolemization  | skolemize_validation_graph            |
+| Add labels                | add_labels_to_validation_graph        |
+| Add labels from data and SHACL graphs | include_graphs_labels                 |
+| Add shui:conforms flag to focus node resources | add_shui_conforms_to_validation_graph | 
