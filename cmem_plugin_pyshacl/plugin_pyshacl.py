@@ -30,7 +30,7 @@ def get_label(g, s):
     label="SHACL validation with pySHACL",
     plugin_id="shacl-pyshacl",
     description="Performs SHACL validation with pySHACL.",
-    documentation="""This plugin performs SHACL validation with pySHACL.""",
+    documentation="""Performs SHACL validation with pySHACL.""",
     parameters=[
         PluginParameter(
             param_type = GraphParameterType(classes = [
