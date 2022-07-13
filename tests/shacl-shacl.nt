@@ -1,3 +1,4 @@
+<http://www.w3.org/ns/shacl-shacl#> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://vocab.eccenca.com/shui/ShapeCatalog> .
 <http://www.w3.org/ns/shacl-shacl#ShapeShape> <http://www.w3.org/ns/shacl#property> _:n77d4f84e27f145758fb7d2778cdaf949b76 .
 _:n77d4f84e27f145758fb7d2778cdaf949b100 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:n77d4f84e27f145758fb7d2778cdaf949b98 .
 _:n77d4f84e27f145758fb7d2778cdaf949b12 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:n77d4f84e27f145758fb7d2778cdaf949b7 .
