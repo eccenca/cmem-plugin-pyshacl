@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 # Fixed
 
-- added `rdf:type shui:ShapeCatalog` triple to `shacl-shacl.nt` for testing to avoid failed parameter check for SHACL graph URI
+- added `rdf:type shui:ShapeCatalog` triple to `shacl-shacl.nt` to avoid failed parameter check for SHACL graph URI when running the plugin test
 
 ## [2.0.1] 2022-07-07
 
