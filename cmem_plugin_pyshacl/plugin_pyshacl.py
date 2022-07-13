@@ -161,7 +161,7 @@ class ShaclValidation(WorkflowPlugin):
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
         self.meta_shacl = meta_shacl
-        self.uri_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
+        self.graph_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
         self.bool_parameters = [
             "generate_graph",
             "output_values",
@@ -327,11 +327,11 @@ class ShaclValidation(WorkflowPlugin):
     def process_inputs(self, inputs):
         paths = [e.path for e in inputs[0].schema.paths]
         values = [e[0] for e in list(inputs[0].entities)[0].values]
-        for i in range(len(paths)):
-            if paths[i] not in self.uri_parameters + self.bool_parameters:
-               raise ValueError(f"Invalid parameter: {paths[i]}")
-            self.log.info(f"input parameter {paths[i]}: {values[i]}")
-            self.__dict__[paths[i]] = values[i]
+        for p, v in zip(paths, values):
+            if p not in self.graph_parameters + self.bool_parameters:
+               raise ValueError(f"Invalid parameter: {p}")
+            self.__dict__[p] = v
+            self.log.info(f"input parameter {p}: {v}")
 
     def check_parameters(self):
         self.log.info("Validating parameters...")
@@ -357,20 +357,25 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError(f"Invalid graph type for data graph <{self.data_graph_uri}>")
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
-        if self.generate_graph:
-            if not validators.url(self.validation_graph_uri):
-                raise ValueError("Validation graph URI parameter is invalid")
         for p in self.bool_parameters:
             if not isinstance(self.__dict__[p], bool):
                 try:
                     self.__dict__[p] = bool(strtobool(self.__dict__[p]))
                 except:
                     raise ValueError(f"Invalid truth value for parameter {p}")
+        if self.generate_graph:
+            if not validators.url(self.validation_graph_uri):
+                raise ValueError("Validation graph URI parameter is invalid")
+            if self.validation_graph_uri in graphs_dict:
+                self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
         if not self.add_labels_to_validation_graph:
             self.include_graphs_labels = False
-        self.log.info("Parameters OK")
+        self.log.info("Parameters OK:")
+        for p in self.graph_parameters + self.bool_parameters:
+            self.log.info(f"{p}: {self.__dict__[p]}")
 
     def execute(self, inputs=()):
+        # accepts only one set of parameters
         if inputs:
             self.process_inputs(inputs)
         self.check_parameters()

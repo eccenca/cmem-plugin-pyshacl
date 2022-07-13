@@ -73,3 +73,5 @@ In order to set options via the input the following parameter names can be used:
 | Add labels                | add_labels_to_validation_graph        |
 | Add labels from data and SHACL graphs | include_graphs_labels                 |
 | Add shui:conforms flag to focus node resources | add_shui_conforms_to_validation_graph | 
+
+Currently, the plugin only accepts one set of parameters.

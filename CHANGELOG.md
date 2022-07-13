@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - advanced parameter for enabling the pySHACL meta-SHACL option, validating the SHACL shapes graph against the SHACL-SHACL shapes graph before validating the data graph (default: False).
 
+# Changed
+
+- added `rdf:type shui:ShapeCatalog` triple to `shacl-shacl.nt` for testing.
+
 ## [2.0.1] 2022-07-07
 
 ## Fixed
