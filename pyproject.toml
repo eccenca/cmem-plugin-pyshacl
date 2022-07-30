@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "2.1.0a1"
+version = "3.0.0a"
 license = "Apache-2.0"
 description = "This eccenca Corporate Memory plugin totally rocks :-)"
 authors = ["Thomas Wilmering <thomas.wilmering@eccena.com>"]
@@ -21,7 +21,7 @@ pyshacl = "^0.19.0"
 validators = "^0.20.0"
 requests-toolbelt = "^0.9.1"
 rdflib = "^6.1.1"
-cmem-plugin-base = "^1.2.0"
+cmem-plugin-base = "^2.1.0"
 cmem-cmempy = "^22.1.1"
 
 [tool.poetry.dev-dependencies]

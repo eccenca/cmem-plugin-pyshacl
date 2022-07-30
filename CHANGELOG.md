@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - advanced parameter for enabling the pySHACL meta-SHACL option, validating the SHACL shapes graph against the SHACL-SHACL shapes graph before validating the data graph (default: False).
 
+# Changed
+
+- migrated to cmem-plugin-base v2
+- shac-shacl rdf file for testing taken from pyshacl module instead of additional file
+
 # Fixed
 
 - added `rdf:type shui:ShapeCatalog` triple to `shacl-shacl.nt` to avoid failed parameter check for SHACL graph URI when running the plugin test
