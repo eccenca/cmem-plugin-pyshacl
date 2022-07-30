@@ -2,8 +2,10 @@
 ---
 version: '3'
 
+dotenv: ['.copier-answers.env']
+
 vars:
-  PACKAGE: cmem_plugin_pyshacl
+  PACKAGE: cmem_plugin_$project_slug
   DIST_DIR: dist
   PWD:
     sh: pwd
@@ -103,7 +105,7 @@ tasks:
       - poetry:install
       - check:prepare
     cmds:
-      - poetry run safety check
+      - poetry run safety check -i 48547
 
   check:bandit:
     desc: Check source code with bandit.

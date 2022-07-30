@@ -9,18 +9,20 @@ from uuid import uuid4
 from distutils.util import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
+from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, get_graphs_list
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema, EntityPath
 
+SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
+
 
 def et(start):
     return round(time() - start, 3)
 
 def get_label(g, s):
-    SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
     l = g.preferredLabel(s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
     if l:
         return l[0][1]
@@ -374,8 +376,8 @@ class ShaclValidation(WorkflowPlugin):
         for p in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{p}: {self.__dict__[p]}")
 
-    def execute(self, inputs=()):
-        # accepts only one set of parameters
+    def execute(self, inputs=(), context: ExecutionContext=ExecutionContext()):
+        # accepts only one set of input parameters
         if inputs:
             self.process_inputs(inputs)
         self.check_parameters()
