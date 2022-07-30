@@ -9,20 +9,20 @@ from uuid import uuid4
 from distutils.util import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
+from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, get_graphs_list
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
-from cmem_plugin_base.dataintegration.entity import (
-    Entities, Entity, EntitySchema, EntityPath,
-)
+from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema, EntityPath
+
+SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 
 
 def et(start):
     return round(time() - start, 3)
 
 def get_label(g, s):
-    SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
     l = g.preferredLabel(s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
     if l:
         return l[0][1]
@@ -32,7 +32,7 @@ def get_label(g, s):
     label="SHACL validation with pySHACL",
     plugin_id="shacl-pyshacl",
     description="Performs SHACL validation with pySHACL.",
-    documentation="""This plugin performs SHACL validation with pySHACL.""",
+    documentation="""Performs SHACL validation with pySHACL.""",
     parameters=[
         PluginParameter(
             param_type = GraphParameterType(classes = [
@@ -51,8 +51,8 @@ def get_label(g, s):
                 "https://vocab.eccenca.com/shui/ShapeCatalog"
             ]),
             name="shacl_graph_uri",
-            label="SHACL graph URI",
-            description="SHACL graph URI, will only list graphs of type shui:ShapeCatalog"
+            label="SHACL shapes graph URI",
+            description="SHACL shapes graph URI, will only list graphs of type shui:ShapeCatalog"
         ),
         PluginParameter(
             param_type = StringParameterType(),
@@ -110,7 +110,7 @@ def get_label(g, s):
             param_type = BoolParameterType(),
             name="include_graphs_labels",
             label="Add labels to focus nodes and values",
-            description='Add labels from data and SHACL graph to source shapes, focus nodes and values to the validation graph. Only applied when the option "Add labels" is activated.',
+            description='Add labels from data and SHACL shapes graph to source shapes, focus nodes and values in the validation graph. Only applied when the option "Add labels" is activated.',
             default_value=False,
             advanced=True
         ),
@@ -119,6 +119,14 @@ def get_label(g, s):
             name="add_shui_conforms_to_validation_graph",
             label="Add shui:conforms flag to focus node resources.",
             description="Add shui:conforms flag to focus node resources.",
+            default_value=False,
+            advanced=True
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="meta_shacl",
+            label="Meta-SHACL.",
+            description="Validate the SHACL shapes graph against the shacl-shacl shapes graph before validating the data graph.",
             default_value=False,
             advanced=True
         )
@@ -140,7 +148,8 @@ class ShaclValidation(WorkflowPlugin):
         skolemize_validation_graph,
         add_labels_to_validation_graph,
         include_graphs_labels,
-        add_shui_conforms_to_validation_graph
+        add_shui_conforms_to_validation_graph,
+        meta_shacl
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
@@ -153,7 +162,8 @@ class ShaclValidation(WorkflowPlugin):
         self.add_labels_to_validation_graph = add_labels_to_validation_graph
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
-        self.uri_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
+        self.meta_shacl = meta_shacl
+        self.graph_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
         self.bool_parameters = [
             "generate_graph",
             "output_values",
@@ -162,7 +172,8 @@ class ShaclValidation(WorkflowPlugin):
             "skolemize_validation_graph",
             "add_labels_to_validation_graph",
             "include_graphs_labels",
-            "add_shui_conforms_to_validation_graph"
+            "add_shui_conforms_to_validation_graph",
+            "meta_shacl"
         ]
         setup_cmempy_super_user_access()
 
@@ -318,11 +329,11 @@ class ShaclValidation(WorkflowPlugin):
     def process_inputs(self, inputs):
         paths = [e.path for e in inputs[0].schema.paths]
         values = [e[0] for e in list(inputs[0].entities)[0].values]
-        for i in range(len(paths)):
-            if paths[i] not in self.uri_parameters + self.bool_parameters:
-               raise ValueError(f"Invalid parameter: {paths[i]}")
-            self.log.info(f"input parameter {paths[i]}: {values[i]}")
-            self.__dict__[paths[i]] = values[i]
+        for p, v in zip(paths, values):
+            if p not in self.graph_parameters + self.bool_parameters:
+               raise ValueError(f"Invalid parameter: {p}")
+            self.__dict__[p] = v
+            self.log.info(f"input parameter {p}: {v}")
 
     def check_parameters(self):
         self.log.info("Validating parameters...")
@@ -348,20 +359,25 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError(f"Invalid graph type for data graph <{self.data_graph_uri}>")
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
-        if self.generate_graph:
-            if not validators.url(self.validation_graph_uri):
-                raise ValueError("Validation graph URI parameter is invalid")
         for p in self.bool_parameters:
             if not isinstance(self.__dict__[p], bool):
                 try:
                     self.__dict__[p] = bool(strtobool(self.__dict__[p]))
                 except:
                     raise ValueError(f"Invalid truth value for parameter {p}")
+        if self.generate_graph:
+            if not validators.url(self.validation_graph_uri):
+                raise ValueError("Validation graph URI parameter is invalid")
+            if self.validation_graph_uri in graphs_dict:
+                self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
         if not self.add_labels_to_validation_graph:
             self.include_graphs_labels = False
-        self.log.info("Parameters OK")
+        self.log.info("Parameters OK:")
+        for p in self.graph_parameters + self.bool_parameters:
+            self.log.info(f"{p}: {self.__dict__[p]}")
 
-    def execute(self, inputs=()):
+    def execute(self, inputs=(), context: ExecutionContext=ExecutionContext()):
+        # accepts only one set of input parameters
         if inputs:
             self.process_inputs(inputs)
         self.check_parameters()
@@ -375,7 +391,12 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Finished loading SHACL graph in {et(start)} seconds")
         self.log.info(f"Starting SHACL validation...")
         start = time()
-        conforms, validation_graph, results_text = validate(data_graph, shacl_graph=shacl_graph, inplace=True)
+        conforms, validation_graph, results_text = validate(
+            data_graph,
+            shacl_graph=shacl_graph,
+            meta_shacl=self.meta_shacl,
+            inplace=True
+        )
         self.log.info(f"Finished SHACL validation in {et(start)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
         if self.output_values:

@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [3.0.0] 2022-07-30
+
+# Added
+
+- advanced parameter for enabling the pySHACL meta-SHACL option, validating the SHACL shapes graph against the SHACL-SHACL shapes graph before validating the data graph (default: False).
+
+# Changed
+
+- migrated to cmem-plugin-base v2
+- shac-shacl rdf file for testing taken from pyshacl module instead of additional file
+
+# Fixed
+
+- added `rdf:type shui:ShapeCatalog` triple to `shacl-shacl.nt` to avoid failed parameter check for SHACL graph URI when running the plugin test
+
 ## [2.0.1] 2022-07-07
 
 ## Fixed
