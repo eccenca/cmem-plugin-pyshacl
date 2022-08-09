@@ -14,6 +14,8 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 - removed redundant shacl-shacl.nt file
 
+## [3.0.0] 2022-07-30
+
 # Added
 
 - advanced parameter for enabling the pySHACL meta-SHACL option, validating the SHACL shapes graph against the SHACL-SHACL shapes graph before validating the data graph (default: False).
