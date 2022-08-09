@@ -10,7 +10,7 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 ## [3.0.1] 2022-07-30
 
-# Fixed
+# Changed
 
 - removed redundant shacl-shacl.nt file
 
