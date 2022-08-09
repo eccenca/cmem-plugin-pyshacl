@@ -60,7 +60,7 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 ## Fixed
 
-- return only object literal from `get_label` function
+- return only literal from `get_label` function
 
 ## [1.2.0] 2022-07-04
 
