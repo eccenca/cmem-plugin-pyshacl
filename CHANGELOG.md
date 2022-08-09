@@ -18,7 +18,7 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 # Added
 
-- advanced parameter for enabling the pySHACL meta-SHACL option, validating the SHACL shapes graph against the SHACL-SHACL shapes graph before validating the data graph (default: False).
+- advanced parameter for enabling the pySHACL meta-SHACL option, validating the SHACL shapes graph against the SHACL-SHACL shapes graph before validating the data graph (default: False)
 
 # Changed
 
