@@ -34,7 +34,7 @@ def preferredLabel(
         lang=None,
         default=None,
         labelProperties=(SKOS.prefLabel, RDFS.label),
-):
+    ):
     if default is None:
         default = []
     # setup the language filtering

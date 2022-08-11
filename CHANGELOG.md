@@ -6,7 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+### Fixed
+
+- changed Graph.load to Graph.parse in plugin tests for compatibility with rdflib 6.2.0
+
 
 ## [3.0.2] 2022-08-11
 

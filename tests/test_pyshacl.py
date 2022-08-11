@@ -8,7 +8,7 @@ import os, pyshacl
 def post_shacl_shacl(shacl_graph_uri):
     shacl_file = os.path.join(pyshacl.__path__[0], "assets", "shacl-shacl.ttl")
     g = Graph()
-    g.load(shacl_file, format="turtle")
+    g.parse(shacl_file, format="turtle")
     g.add((URIRef("http://www.w3.org/ns/shacl-shacl#"), RDFS.type, URIRef("https://vocab.eccenca.com/shui/ShapeCatalog")))
     temp_file = f"{uuid4()}.nt"
     res = post(shacl_graph_uri, temp_file, replace=True)
