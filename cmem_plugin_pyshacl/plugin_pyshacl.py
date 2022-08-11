@@ -23,10 +23,39 @@ def et(start):
     return round(time() - start, 3)
 
 def get_label(g, s):
-    l = g.preferredLabel(s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
+    l = preferredLabel(g ,s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
     if l:
         return l[0][1]
 
+
+# from rdflib 6.1.1, function removed in rdflib 6.2.0
+def preferredLabel(
+        g,
+        subject,
+        lang=None,
+        default=None,
+        labelProperties=(SKOS.prefLabel, RDFS.label),
+):
+    if default is None:
+        default = []
+    # setup the language filtering
+    if lang is not None:
+        if lang == "":  # we only want not language-tagged literals
+            def langfilter(l_):
+                return l_.language is None
+        else:
+            def langfilter(l_):
+                return l_.language == lang
+    else:  # we don't care about language tags
+        def langfilter(l_):
+            return True
+    for labelProp in labelProperties:
+        labels = list(filter(langfilter, g.objects(subject, labelProp)))
+        if len(labels) == 0:
+            continue
+        else:
+            return [(labelProp, l_) for l_ in labels]
+    return default
 
 @Plugin(
     label="SHACL validation with pySHACL",
