@@ -27,7 +27,6 @@ def get_label(g, s):
     if l:
         return l[0][1]
 
-
 # from rdflib 6.1.1, function removed in rdflib 6.2.0
 def preferredLabel(
         g,
@@ -35,7 +34,7 @@ def preferredLabel(
         lang=None,
         default=None,
         labelProperties=(SKOS.prefLabel, RDFS.label),
-):
+    ):
     if default is None:
         default = []
     # setup the language filtering
@@ -56,6 +55,7 @@ def preferredLabel(
         else:
             return [(labelProp, l_) for l_ in labels]
     return default
+
 
 @Plugin(
     label="SHACL validation with pySHACL",
