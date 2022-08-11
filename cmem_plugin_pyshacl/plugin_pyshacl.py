@@ -27,7 +27,6 @@ def get_label(g, s):
     if l:
         return l[0][1]
 
-
 # from rdflib 6.1.1, function removed in rdflib 6.2.0
 def preferredLabel(
         g,
@@ -56,6 +55,7 @@ def preferredLabel(
         else:
             return [(labelProp, l_) for l_ in labels]
     return default
+
 
 @Plugin(
     label="SHACL validation with pySHACL",
