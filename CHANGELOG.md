@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - restored compatibility with cmem-plugin-base version < 2
 
+### Added
+
+- setting \_\_version\_\_ in init.py
+
+
 ## [3.0.3] 2022-08-11
 
 ### Fixed
