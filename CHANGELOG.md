@@ -8,8 +8,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - restored compatibility with cmem-plugin-base version < 2
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
-
 ## [3.0.3] 2022-08-11
 
 ### Fixed
@@ -25,7 +23,7 @@ TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security se
 
 ## [3.0.1] 2022-07-30
 
-### Changed
+### Fixed
 
 - removed redundant shacl-shacl.nt file
 

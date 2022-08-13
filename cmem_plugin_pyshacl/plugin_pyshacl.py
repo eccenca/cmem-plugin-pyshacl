@@ -9,7 +9,6 @@ from uuid import uuid4
 from distutils.util import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
-
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, get_graphs_list
@@ -17,7 +16,7 @@ from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema, EntityPath
 from importlib.metadata import version
 
-#using importlib, cmem_plugin_base.__version__ return "0.1.0"
+#using importlib, cmem_plugin_base.__version__ returns "0.1.0"
 CMEM_PLUGIN_BASE_VERSION = int(version("cmem-plugin-base").split(".")[0])
 if CMEM_PLUGIN_BASE_VERSION > 1:
     from cmem_plugin_base.dataintegration.context import ExecutionContext
