@@ -28,7 +28,7 @@ def et(start):
     return round(time() - start, 3)
 
 def get_label(g, s):
-    l = preferredLabel(g ,s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
+    l = preferredLabel(g, s, labelProperties=(RDFS.label, SKOSXL.prefLabel/SKOSXL.literalForm, SKOS.prefLabel))
     if l:
         return l[0][1]
 
