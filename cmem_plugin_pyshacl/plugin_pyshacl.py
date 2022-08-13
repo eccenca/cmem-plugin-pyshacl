@@ -22,6 +22,13 @@ if CMEM_PLUGIN_BASE_VERSION > 1:
     from cmem_plugin_base.dataintegration.context import ExecutionContext
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
+DATA_GRAPH_TYPES = [
+                    "https://vocab.eccenca.com/di/Dataset",
+                    "http://rdfs.org/ns/void#Dataset",
+                    "https://vocab.eccenca.com/shui/ShapeCatalog",
+                    "http://www.w3.org/2002/07/owl#Ontology",
+                    "https://vocab.eccenca.com/dsm/ThesaurusProject"
+]
 
 
 def et(start):
@@ -69,13 +76,7 @@ def preferredLabel(
     documentation="""Performs SHACL validation with pySHACL.""",
     parameters=[
         PluginParameter(
-            param_type = GraphParameterType(classes = [
-                "https://vocab.eccenca.com/di/Dataset",
-                "http://rdfs.org/ns/void#Dataset",
-                "https://vocab.eccenca.com/shui/ShapeCatalog",
-                "http://www.w3.org/2002/07/owl#Ontology",
-                "https://vocab.eccenca.com/dsm/ThesaurusProject"
-            ]),
+            param_type = GraphParameterType(classes = DATA_GRAPH_TYPES),
             name="data_graph_uri",
             label="Data graph URI",
             description="Data graph URI, will only list graphs of type di:Dataset, void:Dataset, shui:ShapeCatalog, owl:Ontology, dsm:ThesaurusProject"
@@ -386,14 +387,7 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError(f"Data graph <{self.data_graph_uri}> not found")
         if self.shacl_graph_uri not in graphs_dict:
             raise ValueError(f"SHACL graph <{self.shacl_graph_uri}> not found")
-        data_graph_types = [
-            "https://vocab.eccenca.com/di/Dataset",
-            "http://rdfs.org/ns/void#Dataset",
-            "https://vocab.eccenca.com/shui/ShapeCatalog",
-            "http://www.w3.org/2002/07/owl#Ontology",
-            "https://vocab.eccenca.com/dsm/ThesaurusProject"
-        ]
-        if not any(check in graphs_dict[self.data_graph_uri] for check in data_graph_types):
+        if not any(check in graphs_dict[self.data_graph_uri] for check in DATA_GRAPH_TYPES):
             raise ValueError(f"Invalid graph type for data graph <{self.data_graph_uri}>")
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
