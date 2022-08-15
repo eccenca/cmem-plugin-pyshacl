@@ -20,11 +20,11 @@ python = "^3.9"
 pyshacl = "^0.19.0"
 validators = "^0.20.0"
 requests-toolbelt = "^0.9.1"
-rdflib = "^6.2.0"
-cmem-plugin-base = ">=1.0.0"
+rdflib = "^6.1.1"
 cmem-cmempy = "^22.1.1"
 
 [tool.poetry.dev-dependencies]
+cmem-plugin-base = "^2.1.0"
 pytest = "^7.0"
 pytest-cov = "^3.0.0"
 black = "^22.1.0"
