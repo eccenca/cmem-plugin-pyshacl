@@ -405,7 +405,7 @@ class ShaclValidation(WorkflowPlugin):
     def execute_1(self, inputs=()):
         self.run(inputs)
 
-    def execute_2(self, inputs=(), context: ExecutionContext = ExecutionContext()):
+    def execute_2(self, inputs=(), context: ExecutionContext=ExecutionContext()):
         self.run(inputs)
 
     def run(self, inputs):
@@ -441,7 +441,12 @@ class ShaclValidation(WorkflowPlugin):
                 validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
                 focus_nodes = None
                 if self.add_labels_to_validation_graph:
-                    validation_graph, focus_nodes = self.add_labels(validation_graph, data_graph, shacl_graph, validation_graph_uris)
+                    validation_graph, focus_nodes = self.add_labels(
+                        validation_graph,
+                        data_graph,
+                        shacl_graph,
+                        validation_graph_uris
+                    )
                 if self.add_shui_conforms_to_validation_graph:
                     validation_graph = self.add_shui_conforms(validation_graph, validation_graph_uris, focus_nodes)
             validation_graph = self.add_prov(validation_graph, utctime)
