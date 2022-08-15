@@ -1,4 +1,4 @@
-import validators
+from validators import url as validator_url
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS, Namespace
 from pyshacl import validate
 from os import remove
@@ -370,9 +370,9 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info("Validating parameters...")
         if not self.output_values and not self.generate_graph:
             raise ValueError("Generate validation graph or Output values parameter needs to be set to true")
-        if not validators.url(self.data_graph_uri):
+        if not validator_url(self.data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid")
-        if not validators.url(self.shacl_graph_uri):
+        if not validator_url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
         graphs_dict = {g["iri"]:g["assignedClasses"] for g in get_graphs_list()}
         if self.data_graph_uri not in graphs_dict:
@@ -390,7 +390,7 @@ class ShaclValidation(WorkflowPlugin):
                 except:
                     raise ValueError(f"Invalid truth value for parameter {p}")
         if self.generate_graph:
-            if not validators.url(self.validation_graph_uri):
+            if not validator_url(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
             if self.validation_graph_uri in graphs_dict:
                 self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
