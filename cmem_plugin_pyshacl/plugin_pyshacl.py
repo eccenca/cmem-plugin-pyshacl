@@ -198,18 +198,10 @@ class ShaclValidation(WorkflowPlugin):
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
         self.meta_shacl = meta_shacl
-        self.graph_parameters = ["data_graph_uri", "shacl_graph_uri", "validation_graph_uri"]
-        self.bool_parameters = [
-            "generate_graph",
-            "output_values",
-            "clear_validation_graph",
-            "owl_imports_resolution",
-            "skolemize_validation_graph",
-            "add_labels_to_validation_graph",
-            "include_graphs_labels",
-            "add_shui_conforms_to_validation_graph",
-            "meta_shacl"
-        ]
+        self.bool_parameters = [p.name for p in Plugin.plugins[0].parameters if
+                                isinstance(p.param_type, BoolParameterType)]
+        self.graph_parameters = [p.name for p in Plugin.plugins[0].parameters if
+                                 isinstance(p.param_type, GraphParameterType)]
         setup_cmempy_super_user_access()
         if CMEM_PLUGIN_BASE_VERSION < 2:
             self.execute = self.execute_1
