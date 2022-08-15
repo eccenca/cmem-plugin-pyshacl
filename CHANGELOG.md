@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [3.1.0] 2022-08-15
+
+### Changed
+
+- restored compatibility with cmem-plugin-base version < 2
+
+### Added
+
+- setting \_\_version\_\_ in init.py
+
+
 ## [3.0.3] 2022-08-11
 
 ### Fixed
@@ -19,7 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [3.0.1] 2022-07-30
 
-### Changed
+### Fixed
 
 - removed redundant shacl-shacl.nt file
 

@@ -147,3 +147,4 @@ co
 artifacts
 .DS_Store
 .task
+.idea/
