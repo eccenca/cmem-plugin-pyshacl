@@ -20,6 +20,8 @@ from importlib.metadata import version
 CMEM_PLUGIN_BASE_VERSION = int(version("cmem-plugin-base").split(".")[0])
 if CMEM_PLUGIN_BASE_VERSION > 1:
     from cmem_plugin_base.dataintegration.context import ExecutionContext
+else:
+    ExecutionContext = lambda: None
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -403,7 +405,7 @@ class ShaclValidation(WorkflowPlugin):
     def execute_1(self, inputs=()):
         self.run(inputs)
 
-    def execute_2(self, inputs=(), context: ExecutionContext=ExecutionContext()):
+    def execute_2(self, inputs=(), context: ExecutionContext = ExecutionContext()):
         self.run(inputs)
 
     def run(self, inputs):
