@@ -9,7 +9,7 @@ if floor(CMEM_PLUGIN_BASE_VERSION) >= 2:
 elif CMEM_PLUGIN_BASE_VERSION >= 1.1:
     ExecutionContext = lambda: None
 else:
-    raise VersionConflict("cmem-plugin-base", "version >= 1.1 required")
+    raise VersionConflict("cmem-plugin-base", "version >= 1.1.0 required")
 
 from validators import url as validator_url
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS, Namespace
