@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [3.1.1] 2022-08-17
+
+### Added
+
+- cmem-plugin-base check for version requirement >= 1.1
+
 ## [3.1.0] 2022-08-15
 
 ### Changed

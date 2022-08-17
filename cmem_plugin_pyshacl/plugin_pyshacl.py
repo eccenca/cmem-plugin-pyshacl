@@ -1,3 +1,16 @@
+from importlib.metadata import version
+from math import floor
+from pkg_resources import VersionConflict
+
+# using importlib, cmem_plugin_base.__version__ returns "0.1.0"
+CMEM_PLUGIN_BASE_VERSION = float(".".join(version("cmem-plugin-base").split(".")[:2]))
+if floor(CMEM_PLUGIN_BASE_VERSION) >= 2:
+    from cmem_plugin_base.dataintegration.context import ExecutionContext
+elif CMEM_PLUGIN_BASE_VERSION >= 1.1:
+    ExecutionContext = lambda: None
+else:
+    raise VersionConflict("cmem-plugin-base", "version >= 1.1.0 required")
+
 from validators import url as validator_url
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS, Namespace
 from pyshacl import validate
@@ -14,14 +27,7 @@ from cmem_plugin_base.dataintegration.types import BoolParameterType, StringPara
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, get_graphs_list
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema, EntityPath
-from importlib.metadata import version
 
-#using importlib, cmem_plugin_base.__version__ returns "0.1.0"
-CMEM_PLUGIN_BASE_VERSION = int(version("cmem-plugin-base").split(".")[0])
-if CMEM_PLUGIN_BASE_VERSION > 1:
-    from cmem_plugin_base.dataintegration.context import ExecutionContext
-else:
-    ExecutionContext = lambda: None
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -78,7 +84,7 @@ def preferredLabel(
     documentation="""Performs SHACL validation with pySHACL.""",
     parameters=[
         PluginParameter(
-            param_type = GraphParameterType(classes = DATA_GRAPH_TYPES),
+            param_type = GraphParameterType(classes=DATA_GRAPH_TYPES),
             name="data_graph_uri",
             label="Data graph URI",
             description="Data graph URI, will only list graphs of type di:Dataset, void:Dataset, shui:ShapeCatalog, owl:Ontology, dsm:ThesaurusProject"
