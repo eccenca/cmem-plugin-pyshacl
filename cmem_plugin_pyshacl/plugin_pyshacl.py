@@ -3,13 +3,9 @@ from math import floor
 from pkg_resources import VersionConflict
 
 # using importlib, cmem_plugin_base.__version__ returns "0.1.0"
-CMEM_PLUGIN_BASE_VERSION = float(".".join(version("cmem-plugin-base").split(".")[:2]))
-if floor(CMEM_PLUGIN_BASE_VERSION) >= 2:
-    from cmem_plugin_base.dataintegration.context import ExecutionContext
-elif CMEM_PLUGIN_BASE_VERSION >= 1.1:
-    ExecutionContext = lambda: None
-else:
-    raise VersionConflict("cmem-plugin-base", "version >= 1.1.0 required")
+CMEM_PLUGIN_BASE_VERSION = int(version("cmem-plugin-base").split(".")[0])
+if floor(CMEM_PLUGIN_BASE_VERSION) < 2:
+    raise VersionConflict("cmem-plugin-base", "version >= 2.0 required")
 
 from validators import url as validator_url
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS, Namespace
@@ -21,13 +17,14 @@ from datetime import datetime
 from uuid import uuid4
 from distutils.util import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
-from cmem_plugin_base.dataintegration.utils import setup_cmempy_super_user_access
+from cmem_plugin_base.dataintegration.context import ExecutionContext
+from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, StringParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, get_graphs_list
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema, EntityPath
-
+from cmem_plugin_base.dataintegration.discovery import discover_plugins
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -206,15 +203,14 @@ class ShaclValidation(WorkflowPlugin):
         self.include_graphs_labels = include_graphs_labels
         self.add_shui_conforms_to_validation_graph = add_shui_conforms_to_validation_graph
         self.meta_shacl = meta_shacl
-        self.bool_parameters = [p.name for p in Plugin.plugins[0].parameters if
+
+        if not Plugin.plugins:
+            discover_plugins()
+        this_plugin = [i for i in Plugin.plugins if i.plugin_class == ShaclValidation][0]
+        self.bool_parameters = [p.name for p in this_plugin.parameters if
                                 isinstance(p.param_type, BoolParameterType)]
-        self.graph_parameters = [p.name for p in Plugin.plugins[0].parameters if
+        self.graph_parameters = [p.name for p in this_plugin.parameters if
                                  isinstance(p.param_type, GraphParameterType)]
-        setup_cmempy_super_user_access()
-        if CMEM_PLUGIN_BASE_VERSION < 2:
-            self.execute = self.execute_1
-        else:
-            self.execute = self.execute_2
 
     def add_prov(self, validation_graph, utctime):
         self.log.info("Adding PROV information validation graph")
@@ -408,13 +404,8 @@ class ShaclValidation(WorkflowPlugin):
         for p in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{p}: {self.__dict__[p]}")
 
-    def execute_1(self, inputs=()):
-        self.run(inputs)
-
-    def execute_2(self, inputs=(), context: ExecutionContext=ExecutionContext()):
-        self.run(inputs)
-
-    def run(self, inputs):
+    def execute(self, inputs=(), context: ExecutionContext=ExecutionContext()):
+        setup_cmempy_user_access(context.user)
         # accepts only one set of input parameters
         if inputs:
             self.process_inputs(inputs)

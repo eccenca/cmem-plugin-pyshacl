@@ -6,7 +6,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+### Fixed
+
+- fixed metashacl with rdflib >= 6.2.0 by updating dependency pyshacl to 0.20.0
+- fixed retrieval of plugin information if `Plugin.plugins` is empty or the plugin is not index 0 
+
+### Changed
+
+- dropped support for cmem-plugin-base < 2
+- update dependency rdflib to 6.2.0
+- using `UserContext` based function `setup_cmempy_user_access` instead of `setup_cmempy_super_user_access`
+
+
 
 ## [3.1.1] 2022-08-17
 
