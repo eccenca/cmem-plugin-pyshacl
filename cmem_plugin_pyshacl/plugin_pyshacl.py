@@ -388,7 +388,6 @@ class ShaclValidation(WorkflowPlugin):
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         for p in self.bool_parameters:
-            self.log.warning("{p}, {str(self.__dict__[p])}")
             if not isinstance(self.__dict__[p], bool):
                 try:
                     self.__dict__[p] = bool(strtobool(self.__dict__[p]))
