@@ -1,26 +1,28 @@
 """Plugin tests."""
+
+
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 from cmem.cmempy.dp.proxy.graph import post, get, delete
 from uuid import uuid4
-from rdflib import Graph, URIRef, RDFS
+from rdflib import Graph, URIRef, RDF
 import os, pyshacl
 
 def post_shacl_shacl(shacl_graph_uri):
     shacl_file = os.path.join(pyshacl.__path__[0], "assets", "shacl-shacl.ttl")
     g = Graph()
     g.parse(shacl_file, format="turtle")
-    g.add((URIRef("http://www.w3.org/ns/shacl-shacl#"), RDFS.type, URIRef("https://vocab.eccenca.com/shui/ShapeCatalog")))
+    g.add((URIRef(shacl_graph_uri), RDF.type, URIRef("https://vocab.eccenca.com/shui/ShapeCatalog")))
     temp_file = f"{uuid4()}.nt"
+    g.serialize(temp_file, format="nt")
     res = post(shacl_graph_uri, temp_file, replace=True)
     os.remove(temp_file)
     if res.status_code != 204:
         raise ValueError(f"Response {res.status_code}")
-    os.remove(temp_file)
 
 def test_execution():
     """Test plugin execution"""
     shacl_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
-    data_graph_uri = shacl_graph_uri
+    data_graph_uri = "https://vocab.eccenca.com/shacl/"
     validation_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
     generate_graph = True
     output_values = True
@@ -29,7 +31,7 @@ def test_execution():
     skolemize_validation_graph = True
     add_labels_to_validation_graph = True
     include_graphs_labels = True
-    add_shui_conforms_to_validation_graph = True,
+    add_shui_conforms_to_validation_graph = True
     meta_shacl = False
     post_shacl_shacl(shacl_graph_uri)
     plugin = ShaclValidation(

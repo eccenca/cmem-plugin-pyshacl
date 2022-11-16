@@ -56,6 +56,11 @@ If enabled along with the *add labels* option, `rdfs:label` triples are added fo
 
 If enabled, `shui:conforms false` triples are added to the focus nodes in the validation graph. Default value: *false*.
 
+### Meta-SHACL
+
+If enabled, the SHACL shapes graph is validated against the SHACL-SHACL shapes graph before validating the data graph. Default value: *false*.
+
+
 ## Parameter Input
 
 In order to set options via the input the following parameter names can be used:
@@ -73,5 +78,6 @@ In order to set options via the input the following parameter names can be used:
 | Add labels                | add_labels_to_validation_graph        |
 | Add labels from data and SHACL graphs | include_graphs_labels                 |
 | Add shui:conforms flag to focus node resources | add_shui_conforms_to_validation_graph | 
+| Meta-SHACL                | meta-shacl                            |
 
 Currently, the plugin only accepts one set of parameters.

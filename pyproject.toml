@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "4.0.0"
+version = "4.0.1"
 license = "Apache-2.0"
 description = "This eccenca Corporate Memory plugin totally rocks :-)"
 authors = ["Thomas Wilmering <thomas.wilmering@eccena.com>"]
@@ -23,6 +23,7 @@ requests-toolbelt = "^0.9.1"
 rdflib = "^6.2.0"
 cmem-cmempy = "^22.1.1"
 cmem-plugin-base = "^2.1.0"
+types-setuptools = "^65.5.0.3"
 
 [tool.poetry.dev-dependencies]
 cmem-plugin-base = "^2.1.0"
@@ -31,7 +32,7 @@ pytest-cov = "^3.0.0"
 black = "^22.1.0"
 bandit = "^1.7.2"
 pylint-junit = "^0.3.2"
-safety = "^1.10.3"
+safety = "^2.2.0"
 genbadge = "^1.0.6"
 flake8-formatter-junit-xml = "^0.0.6"
 typed-ast = "^1.5.2"
