@@ -37,11 +37,11 @@ def et(start):
 
 
 def get_label(g, s):
-    labels = preferredLabel(g, s, labelProperties=(RDFS.label,
-                                                  SKOSXL.prefLabel/SKOSXL.literalForm,
-                                                  SKOS.prefLabel
-                                                  )
-                           )
+    labels = preferredLabel(g, s, labelProperties=(
+        RDFS.label,
+        SKOSXL.prefLabel/SKOSXL.literalForm,
+        SKOS.prefLabel
+    ))
     if labels:
         return labels[0][1]
 
