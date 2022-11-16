@@ -6,11 +6,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+### Changed
+
+- removed cmem-plugin-base version check
 
 ## [4.0.3] 2022-11-16
 
-### Fixed
+### Changed
 
 - removed unnecessary parameter warnings
 
