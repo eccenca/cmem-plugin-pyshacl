@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [4.0.3] 2022-11-16
+
+### Fixed
+
+- removed unnecessary parameter warnings
+
 ## [4.0.2] 2022-11-16
 
 ### Fixed
