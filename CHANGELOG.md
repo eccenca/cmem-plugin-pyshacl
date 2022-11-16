@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+### Fixed
+
+- fixed Meta-SHACL parameter name in documentation 
 
 ## [4.0.1] 2022-11-16
 
