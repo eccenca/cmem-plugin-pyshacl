@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [4.0.1] 2022-11-16
+
+### Added
+
+- documentation of advanced option meta-SHACL
+
+### Fixed
+
+- fixed task check:pytest
+
+### Changed
+
+- print warning when 'ExecutionContext' object has no attribute 'user'
+
+
 ## [4.0.0] 2022-11-04
 
 ### Fixed

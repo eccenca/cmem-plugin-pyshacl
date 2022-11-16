@@ -388,10 +388,12 @@ class ShaclValidation(WorkflowPlugin):
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         for p in self.bool_parameters:
+            self.log.warning("{p}, {str(self.__dict__[p])}")
             if not isinstance(self.__dict__[p], bool):
                 try:
                     self.__dict__[p] = bool(strtobool(self.__dict__[p]))
                 except:
+                    self.log.info(str(p))
                     raise ValueError(f"Invalid truth value for parameter {p}")
         if self.generate_graph:
             if not validator_url(self.validation_graph_uri):
@@ -405,7 +407,10 @@ class ShaclValidation(WorkflowPlugin):
             self.log.info(f"{p}: {self.__dict__[p]}")
 
     def execute(self, inputs=(), context: ExecutionContext=ExecutionContext()):
-        setup_cmempy_user_access(context.user)
+        try:
+            setup_cmempy_user_access(context.user)
+        except:
+            self.log.warning("'ExecutionContext' object has no attribute 'user'")
         # accepts only one set of input parameters
         if inputs:
             self.process_inputs(inputs)
