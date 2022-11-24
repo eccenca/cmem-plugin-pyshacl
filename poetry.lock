@@ -1,6 +1,6 @@
 [[package]]
 name = "astroid"
-version = "2.12.12"
+version = "2.12.13"
 description = "An abstract syntax tree for Python with inference support."
 category = "dev"
 optional = false
@@ -101,7 +101,7 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cmem-cmempy"
-version = "22.1.1"
+version = "22.2"
 description = "API wrapper for eccenca Corporate Memory"
 category = "main"
 optional = false
@@ -110,6 +110,7 @@ python-versions = "*"
 [package.dependencies]
 certifi = "*"
 pyparsing = "*"
+pysocks = "*"
 rdflib = "*"
 requests = "*"
 requests-toolbelt = "*"
@@ -174,6 +175,14 @@ python-versions = ">=3.7"
 
 [package.extras]
 graph = ["objgraph (>=1.7.2)"]
+
+[[package]]
+name = "distutils-strtobool"
+version = "0.1.0"
+description = "distutils.utils.strtobool"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "dparse"
@@ -496,7 +505,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "pylint"
-version = "2.15.5"
+version = "2.15.6"
 description = "python code static checker"
 category = "dev"
 optional = false
@@ -561,6 +570,14 @@ dev-lint = ["black (==22.8.0)", "flake8 (>=5.0.4,<6.0.0)", "isort (>=5.10.1,<6.0
 dev-type-checking = ["mypy (>=0.800,<0.801)", "platformdirs", "types-setuptools"]
 js = ["pyduktape2 (>=0.4.1,<0.5.0)"]
 jsonld = ["rdflib-jsonld (>=0.4.0,<0.6)"]
+
+[[package]]
+name = "pysocks"
+version = "1.7.1"
+description = "A Python SOCKS client module. See https://github.com/Anorov/PySocks for more information."
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "pytest"
@@ -680,7 +697,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "safety"
-version = "2.3.1"
+version = "2.2.1"
 description = "Checks installed dependencies for known vulnerabilities and licenses."
 category = "dev"
 optional = false
@@ -694,13 +711,9 @@ requests = "*"
 "ruamel.yaml" = ">=0.17.21"
 setuptools = ">=19.3"
 
-[package.extras]
-github = ["jinja2 (>=3.1.0)", "pygithub (>=1.43.3)"]
-gitlab = ["python-gitlab (>=1.3.0)"]
-
 [[package]]
 name = "setuptools"
-version = "65.5.1"
+version = "65.6.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
@@ -772,7 +785,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "types-setuptools"
-version = "65.5.0.3"
+version = "65.6.0.0"
 description = "Typing stubs for setuptools"
 category = "main"
 optional = false
@@ -840,12 +853,12 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0f7b00554f0ce20fcad9a72f86cfb962b7b69d214cd3497bf9562db3b789735c"
+content-hash = "2290add1214d7d388bc1b21894d65224c49565c11689f917de6b88ea190c7893"
 
 [metadata.files]
 astroid = [
-    {file = "astroid-2.12.12-py3-none-any.whl", hash = "sha256:72702205200b2a638358369d90c222d74ebc376787af8fb2f7f2a86f7b5cc85f"},
-    {file = "astroid-2.12.12.tar.gz", hash = "sha256:1c00a14f5a3ed0339d38d2e2e5b74ea2591df5861c0936bb292b84ccf3a78d83"},
+    {file = "astroid-2.12.13-py3-none-any.whl", hash = "sha256:10e0ad5f7b79c435179d0d0f0df69998c4eef4597534aae44910db060baeb907"},
+    {file = "astroid-2.12.13.tar.gz", hash = "sha256:1493fe8bd3dfd73dc35bd53c9d5b6e49ead98497c47b2307662556a5692d29d7"},
 ]
 attrs = [
     {file = "attrs-22.1.0-py2.py3-none-any.whl", hash = "sha256:86efa402f67bf2df34f51a335487cf46b1ec130d02b8d39fd248abfd30da551c"},
@@ -891,8 +904,8 @@ click = [
     {file = "click-8.1.3.tar.gz", hash = "sha256:7682dc8afb30297001674575ea00d1814d808d6a36af415a82bd481d37ba7b8e"},
 ]
 cmem-cmempy = [
-    {file = "cmem_cmempy-22.1.1-py3-none-any.whl", hash = "sha256:fc19a7ae3c75c50acd402058aff1262f73dafd66f293a0563e8c1a8db9f0398d"},
-    {file = "cmem_cmempy-22.1.1.tar.gz", hash = "sha256:c8aa17a84034f1ef58b01763faa5f3e49ef0c2c09c913fd0ee9c80e736671f75"},
+    {file = "cmem_cmempy-22.2-py3-none-any.whl", hash = "sha256:4f801fea95f379b2cf855aeefcfdf52b187755f7bc7180f3c69fd93474053513"},
+    {file = "cmem_cmempy-22.2.tar.gz", hash = "sha256:21d8093e1262f0c3f4c204648e113e738a4bacdfee43ee4f3ff7084580c1db2b"},
 ]
 cmem-plugin-base = [
     {file = "cmem-plugin-base-2.1.0.tar.gz", hash = "sha256:ab27d0f8e4736511adb973fc29a8095d23dbd10a0b011ba5f2a3de7ad3e8e6ba"},
@@ -965,6 +978,9 @@ defusedxml = [
 dill = [
     {file = "dill-0.3.6-py3-none-any.whl", hash = "sha256:a07ffd2351b8c678dfc4a856a3005f8067aea51d6ba6c700796a4d9e280f39f0"},
     {file = "dill-0.3.6.tar.gz", hash = "sha256:e5db55f3687856d8fbdab002ed78544e1c4559a130302693d839dfe8f93f2373"},
+]
+distutils-strtobool = [
+    {file = "distutils-strtobool-0.1.0.tar.gz", hash = "sha256:92f189acca35ec50ca462acd70904ee8c1a81422ef3658fa2fec2b5c7068d662"},
 ]
 dparse = [
     {file = "dparse-0.6.2-py3-none-any.whl", hash = "sha256:8097076f1dd26c377f30d4745e6ec18fef42f3bf493933b842ac5bafad8c345f"},
@@ -1172,8 +1188,8 @@ pyflakes = [
     {file = "pyflakes-2.5.0.tar.gz", hash = "sha256:491feb020dca48ccc562a8c0cbe8df07ee13078df59813b83959cbdada312ea3"},
 ]
 pylint = [
-    {file = "pylint-2.15.5-py3-none-any.whl", hash = "sha256:c2108037eb074334d9e874dc3c783752cc03d0796c88c9a9af282d0f161a1004"},
-    {file = "pylint-2.15.5.tar.gz", hash = "sha256:3b120505e5af1d06a5ad76b55d8660d44bf0f2fc3c59c2bdd94e39188ee3a4df"},
+    {file = "pylint-2.15.6-py3-none-any.whl", hash = "sha256:15060cc22ed6830a4049cf40bc24977744df2e554d38da1b2657591de5bcd052"},
+    {file = "pylint-2.15.6.tar.gz", hash = "sha256:25b13ddcf5af7d112cf96935e21806c1da60e676f952efb650130f2a4483421c"},
 ]
 pylint-junit = [
     {file = "pylint_junit-0.3.2.tar.gz", hash = "sha256:c6dbe956e55bb9b365d86e2ec77b58df6b95262b5515d187ac54b8359507174b"},
@@ -1185,6 +1201,11 @@ pyparsing = [
 pyshacl = [
     {file = "pyshacl-0.20.0-py3-none-any.whl", hash = "sha256:5de57ed490748f621301f69e47224fa5bd84b0fb5aab40126118dc8e90d4ede6"},
     {file = "pyshacl-0.20.0.tar.gz", hash = "sha256:47f014c52cc69167b902c89b3940dd400f7f5d2169a62f97f837f3419b4a737d"},
+]
+pysocks = [
+    {file = "PySocks-1.7.1-py27-none-any.whl", hash = "sha256:08e69f092cc6dbe92a0fdd16eeb9b9ffbc13cadfe5ca4c7bd92ffb078b293299"},
+    {file = "PySocks-1.7.1-py3-none-any.whl", hash = "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5"},
+    {file = "PySocks-1.7.1.tar.gz", hash = "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0"},
 ]
 pytest = [
     {file = "pytest-7.2.0-py3-none-any.whl", hash = "sha256:892f933d339f068883b6fd5a459f03d85bfcb355e4981e146d2c7616c21fef71"},
@@ -1288,12 +1309,12 @@ ruamel-yaml-clib = [
     {file = "ruamel.yaml.clib-0.2.7.tar.gz", hash = "sha256:1f08fd5a2bea9c4180db71678e850b995d2a5f4537be0e94557668cf0f5f9497"},
 ]
 safety = [
-    {file = "safety-2.3.1-py3-none-any.whl", hash = "sha256:8f098d12b607db2756886280e85c28ece8db1bba4f45fc5f981f4663217bd619"},
-    {file = "safety-2.3.1.tar.gz", hash = "sha256:6e6fcb7d4e8321098cf289f59b65051cafd3467f089c6e57c9f894ae32c23b71"},
+    {file = "safety-2.2.1-py3-none-any.whl", hash = "sha256:b0049b3f0af4128834f6bc5e6cd23a20ccc28303d6c92cbc019b71f1f06bc038"},
+    {file = "safety-2.2.1.tar.gz", hash = "sha256:d8b48c46ac6628bb83441b7dddc4756cfe2582abe13a112ee6e4ef1a34aad032"},
 ]
 setuptools = [
-    {file = "setuptools-65.5.1-py3-none-any.whl", hash = "sha256:d0b9a8433464d5800cbe05094acf5c6d52a91bfac9b52bcfc4d41382be5d5d31"},
-    {file = "setuptools-65.5.1.tar.gz", hash = "sha256:e197a19aa8ec9722928f2206f8de752def0e4c9fc6953527360d1c36d94ddb2f"},
+    {file = "setuptools-65.6.0-py3-none-any.whl", hash = "sha256:6211d2f5eddad8757bd0484923ca7c0a6302ebc4ab32ea5e94357176e0ca0840"},
+    {file = "setuptools-65.6.0.tar.gz", hash = "sha256:d1eebf881c6114e51df1664bc2c9133d022f78d12d5f4f665b9191f084e2862d"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
@@ -1346,8 +1367,8 @@ typed-ast = [
     {file = "typed_ast-1.5.4.tar.gz", hash = "sha256:39e21ceb7388e4bb37f4c679d72707ed46c2fbf2a5609b8b8ebc4b067d977df2"},
 ]
 types-setuptools = [
-    {file = "types-setuptools-65.5.0.3.tar.gz", hash = "sha256:17769171f5f2a2dc69b25c0d3106552a5cda767bbf6b36cb6212b26dae5aa9fc"},
-    {file = "types_setuptools-65.5.0.3-py3-none-any.whl", hash = "sha256:9254c32b0cc91c486548e7d7561243b5bd185402a383e93c6691e1b9bc8d86e2"},
+    {file = "types-setuptools-65.6.0.0.tar.gz", hash = "sha256:3270beadb99bc6fa4b9a5cc35106e7144a5c33028ce48992b10e74adc8cc5c82"},
+    {file = "types_setuptools-65.6.0.0-py3-none-any.whl", hash = "sha256:9466c5c057dc8e5a0f0dc3b2b0b4b4284524d45bd1cd80ac62b96f19da1459b0"},
 ]
 typing-extensions = [
     {file = "typing_extensions-4.4.0-py3-none-any.whl", hash = "sha256:16fa4864408f655d35ec496218b85f79b3437c829e93320c7c9215ccfd92489e"},
