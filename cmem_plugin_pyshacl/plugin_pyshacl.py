@@ -35,7 +35,6 @@ DATA_GRAPH_TYPES = [
 ]
 
 
-
 def e_t(start):
     """
     calculate rounded elapsed time
@@ -55,7 +54,6 @@ def get_label(graph, subject):
     if labels:
         return labels[0][1]
     return None
-
 
 
 def preferred_label(
@@ -289,10 +287,10 @@ class ShaclValidation(WorkflowPlugin):
                 subject=validation_result_uri,
                 predicate=SH.resultMessage
             ))
-            #result_path = str(validation_graph.value(
-            #    subject=validation_result_uri,
-            #    predicate=SH.resultPath
-            #)).split("/")[-1]
+            # result_path = str(validation_graph.value(
+            #     subject=validation_result_uri,
+            #     predicate=SH.resultPath
+            # )).split("/")[-1]
             result_path = basename(validation_graph.value(
                 subject=validation_result_uri,
                 predicate=SH.resultPath
@@ -393,7 +391,7 @@ class ShaclValidation(WorkflowPlugin):
                 if self.include_graphs_labels:
                     label = get_label(label_g, obj)
                     if label:
-                        res_val= str(label)
+                        res_val = str(label)
                 if not res_val:
                     # first 50 lines of turtle CBD
                     res_val = graph.cbd(obj).serialize(format="turtle")

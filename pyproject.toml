@@ -26,6 +26,7 @@ cmem-plugin-base = "^2.1.0"
 types-setuptools = "^65.5.0.3"
 ruamel-yaml = "^0.17.21"
 distutils-strtobool = "^0.1.0"
+packaging = "21.3"
 
 [tool.poetry.dev-dependencies]
 cmem-plugin-base = "^2.1.0"
@@ -61,7 +62,12 @@ disable = "fixme"
 disable = "R0903"
 
 [tool.pylint.format]
-max-line-length = "88"
+max-line-length = "100"
+
+[tool.pylint.design]
+max-args = "13"
+max-branches = "15"
+max-attributes = "14"
 
 [tool.mypy]
 warn_return_any = true
