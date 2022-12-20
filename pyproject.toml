@@ -24,9 +24,9 @@ rdflib = "^6.2.0"
 cmem-cmempy = "^22.1.1"
 cmem-plugin-base = "^2.1.0"
 types-setuptools = "^65.5.0.3"
-ruamel-yaml = "^0.17.21"
 distutils-strtobool = "^0.1.0"
 packaging = "21.3"
+ruamel-yaml = "*" #"^0.17.21"
 
 [tool.poetry.dev-dependencies]
 cmem-plugin-base = "^2.1.0"
