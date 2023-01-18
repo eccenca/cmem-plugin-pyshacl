@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "4.0.4"
+version = "0.0.0"
 license = "Apache-2.0"
-description = "This eccenca Corporate Memory plugin totally rocks :-)"
-authors = ["Thomas Wilmering <thomas.wilmering@eccena.com>"]
+description = "Validate your Knowledge Graphs based on tests generated from SHACL shapes."
+authors = ["Thomas Wilmering <thomas.wilmering@eccenca.com>"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Plugins",
@@ -11,9 +11,8 @@ classifiers = [
 ]
 readme = "README-public.md"
 keywords = [
-    "eccenca Corporate Memory", "plugin"
+    "eccenca Corporate Memory", "plugin", "SHACL", "testing"
 ]
-include = ["CHANGELOG.md"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -30,23 +29,29 @@ ruamel-yaml = "^0.17.21"
 PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
-cmem-plugin-base = "^2.1.0"
 pytest = "^7.0"
-pytest-cov = "^3.0.0"
+pytest-cov = "^4.0.0"
+pytest-memray = "^1.3.0"
 black = "^22.1.0"
 bandit = "^1.7.2"
 pylint-junit = "^0.3.2"
-safety = "2.2.1"
+safety = "^1.10.3"
 genbadge = "^1.0.6"
 flake8-formatter-junit-xml = "^0.0.6"
 typed-ast = "^1.5.2"
-mypy = "^0.931"
+mypy = "^0.991"
 coverage = "^6.3.2"
 defusedxml = "^0.7.1"
+wheel = "^0.38.3"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+dirty = true
 
 [tool.pylint.MASTER]
 load-plugins="pylint_junit"

@@ -1,7 +1,11 @@
 # Changes here will be overwritten by Copier
-_commit: v1.0.2
+_commit: v3.4.1-7-g83314e0
 _src_path: gh:eccenca/cmem-plugin-template
-author_mail: thomas.wilmering@eccena.com
+author_mail: thomas.wilmering@eccenca.com
 author_name: Thomas Wilmering
-project_description: This eccenca Corporate Memory plugin totally rocks :-)
+github_page: ''
+project_description: Validate your Knowledge Graphs based on tests generated from
+    SHACL shapes.
 project_slug: pyshacl
+pypi: false
+
