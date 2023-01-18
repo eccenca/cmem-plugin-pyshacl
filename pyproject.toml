@@ -27,6 +27,7 @@ distutils-strtobool = "^0.1.0"
 packaging = "21.3"
 ruamel-yaml = "^0.17.21"
 PyYAML = "^6.0"
+charset-normalizer = "^2.1.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
@@ -66,14 +67,6 @@ disable = "fixme"
 # https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html#pylint
 [tool.pylint.messages_control]
 disable = "R0903"
-
-[tool.pylint.format]
-max-line-length = "100"
-
-[tool.pylint.design]
-max-args = "13"
-max-branches = "15"
-max-attributes = "14"
 
 [tool.mypy]
 warn_return_any = true
