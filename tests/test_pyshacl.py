@@ -13,7 +13,7 @@ def post_shacl_shacl(shacl_graph_uri):
     g.parse(shacl_file, format="turtle")
     g.add((URIRef(shacl_graph_uri), RDF.type, URIRef("https://vocab.eccenca.com/shui/ShapeCatalog")))
     temp_file = f"{uuid4()}.nt"
-    g.serialize(temp_file, format="nt")
+    g.serialize(temp_file, format="nt", encoding="utf-8")
     res = post(shacl_graph_uri, temp_file, replace=True)
     os.remove(temp_file)
     if res.status_code != 204:
