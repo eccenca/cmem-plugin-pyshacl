@@ -192,10 +192,12 @@ def preferred_label(
         )
     ]
 )
+# pylint: disable-msg=too-many-instance-attributes
 class ShaclValidation(WorkflowPlugin):
     """
     Plugin class
     """
+    # pylint: disable-msg=too-many-arguments
     def __init__(
         self,
         data_graph_uri,
@@ -366,6 +368,8 @@ class ShaclValidation(WorkflowPlugin):
             self.log.info("Error posting SHACL validation graph: "
                           f"status code {res.status_code}")
 
+    # pylint: disable-msg=too-many-arguments
+    # pylint: disable-msg=too-many-branches
     def check_object(self, graph, subj, pred, data_graph, shacl_graph):
         """
         format RDF objects for entities output
@@ -474,6 +478,7 @@ class ShaclValidation(WorkflowPlugin):
             self.__dict__[param] = val
             self.log.info(f"input parameter {param}: {val}")
 
+    # pylint: disable-msg=too-many-branches
     def check_parameters(self):
         """
         validate plugin parameters
