@@ -13,12 +13,12 @@ from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS
 from pyshacl import validate
 from strtobool import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
-from cmem_plugin_base.dataintegration.context import ExecutionContext, PluginContext
+from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, \
     PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, \
-    StringParameterType, Autocompletion
+    StringParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, \
     get_graphs_list
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
@@ -270,7 +270,6 @@ class ShaclValidation(WorkflowPlugin):
                                 isinstance(p.param_type, BoolParameterType)]
         self.graph_parameters = [p.name for p in this_plugin.parameters if
                                  isinstance(p.param_type, GraphParameterType)]
-
 
     def add_prov(self, validation_graph, utctime):
         """

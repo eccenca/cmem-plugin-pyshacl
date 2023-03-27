@@ -42,6 +42,7 @@ def test_execution(tmp_path):
     include_graphs_labels = True
     add_shui_conforms_to_validation_graph = True
     meta_shacl = False
+    inference = "none"
     post_shacl_shacl(shacl_graph_uri, tmp_path)
     plugin = ShaclValidation(
         data_graph_uri=data_graph_uri,
@@ -55,7 +56,8 @@ def test_execution(tmp_path):
         add_labels_to_validation_graph=add_labels_to_validation_graph,
         include_graphs_labels=include_graphs_labels,
         add_shui_conforms_to_validation_graph=add_shui_conforms_to_validation_graph,
-        meta_shacl=meta_shacl
+        meta_shacl=meta_shacl,
+        inference=inference
     )
     plugin.execute()
     response = get(validation_graph_uri)
