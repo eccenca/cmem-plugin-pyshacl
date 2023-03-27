@@ -6,9 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Added
+
+- advanced option pySHACL *ont_graph*
+- advanced option pySHACL *inference*
+
 ### Changed
 
-- removed cmem-plugin-base version check
+- removed `cmem-plugin-base` version check
+- update dependencies including `cmem-plugin-base` (3.0.0)
+- default value for parameter Output values is now True
 
 ## [4.0.3] 2022-11-16
 

@@ -7,23 +7,26 @@ from time import time
 from datetime import datetime
 from uuid import uuid4
 from validators import url as validator_url
+from collections import OrderedDict
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS,\
     Namespace
 from pyshacl import validate
 from strtobool import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
-from cmem_plugin_base.dataintegration.context import ExecutionContext
+from cmem_plugin_base.dataintegration.context import ExecutionContext, PluginContext
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, \
     PluginParameter
 from cmem_plugin_base.dataintegration.types import BoolParameterType, \
-    StringParameterType
+    StringParameterType, Autocompletion
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType, \
     get_graphs_list
+from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema, \
     EntityPath
 from cmem_plugin_base.dataintegration.discovery import discover_plugins
+from typing import Any
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -64,7 +67,7 @@ def preferred_label(
         label_properties=(SKOS.prefLabel, RDFS.label)
         ):
     """
-    from rdflib 6.1.1, function removed in rdflib 6.2.0
+    adapted from rdflib 6.1.1, function removed in rdflib 6.2.0
     """
     if default is None:
         default = []
@@ -78,7 +81,7 @@ def preferred_label(
                 return lbl.language == lang
     else:  # we don't care about language tags
         def langfilter(lbl):
-            lbl = True      # use lbl for pylint
+            lbl = True
             return lbl
     for label_prop in label_properties:
         labels = list(filter(langfilter, graph.objects(subject, label_prop)))
@@ -130,20 +133,20 @@ def preferred_label(
             name="output_values",
             label="Output values",
             description="Output values",
-            default_value=False
+            default_value=True
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="clear_validation_graph",
             label="Clear validation graph",
-            description="Clear validation graph before workflow execution.",
+            description="Clear validation graph before workflow execution",
             default_value=True
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="owl_imports_resolution",
             label="Resolve owl:imports",
-            description="Resolve graph tree defined via owl:imports.",
+            description="Resolve graph tree defined via owl:imports",
             default_value=True,
             advanced=True
         ),
@@ -151,7 +154,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="skolemize_validation_graph",
             label="Blank node skolemization",
-            description="Skolemize blank nodes in the validation graph into URIs.",
+            description="Skolemize blank nodes in the validation graph into URIs",
             default_value=True,
             advanced=True
         ),
@@ -159,7 +162,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="add_labels_to_validation_graph",
             label="Add labels",
-            description="Add labels to validation graph.",
+            description="Add labels to validation graph",
             default_value=True,
             advanced=True
         ),
@@ -177,7 +180,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="add_shui_conforms_to_validation_graph",
             label="Add shui:conforms flag to focus node resources.",
-            description="Add shui:conforms flag to focus node resources.",
+            description="Add shui:conforms flag to focus node resources",
             default_value=False,
             advanced=True
         ),
@@ -186,9 +189,40 @@ def preferred_label(
             name="meta_shacl",
             label="Meta-SHACL.",
             description="Validate the SHACL shapes graph against the shacl-shacl "
-                        "shapes graph before validating the data graph.",
+                        "shapes graph before validating the data graph",
             default_value=False,
             advanced=True
+        ),
+        PluginParameter(
+            param_type=GraphParameterType(classes=[
+                "http://www.w3.org/2002/07/owl#Ontology"
+            ]),
+            name="ontology_graph_uri",
+            label="Ontology graph URI",
+            description="Ontology graph which gets parsed and mixed with the data "
+                        "graph before pre-inferencing, will only list graphs of type "
+                        "owl:Ontology",
+            default_value="",
+            advanced=True
+        ),
+        PluginParameter(
+            param_type=ChoiceParameterType(
+                OrderedDict(
+                    {
+                        "none": "None",
+                        "rdfs": "RDFS",
+                        "owlrl": "OWLRL",
+                        "both": "Both"
+                    }
+                )
+            ),
+            name="inference",
+            label="Inference",
+            description="indicates whether or not to perform OWL inferencing "
+                        "expansion of the data graph before validation",
+            default_value="none",
+            advanced=True
+
         )
     ]
 )
@@ -202,6 +236,7 @@ class ShaclValidation(WorkflowPlugin):
         self,
         data_graph_uri,
         shacl_graph_uri,
+        ontology_graph_uri,
         generate_graph,
         validation_graph_uri,
         output_values,
@@ -211,10 +246,12 @@ class ShaclValidation(WorkflowPlugin):
         add_labels_to_validation_graph,
         include_graphs_labels,
         add_shui_conforms_to_validation_graph,
-        meta_shacl
+        meta_shacl,
+        inference
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
+        self.ontology_graph_uri = ontology_graph_uri
         self.validation_graph_uri = validation_graph_uri
         self.generate_graph = generate_graph
         self.output_values = output_values
@@ -226,15 +263,25 @@ class ShaclValidation(WorkflowPlugin):
         self.add_shui_conforms_to_validation_graph =  \
             add_shui_conforms_to_validation_graph
         self.meta_shacl = meta_shacl
+        self.inference = inference
 
         if not Plugin.plugins:
             discover_plugins()
+
+        for i in Plugin.plugins:
+            self.log.info(str(i.plugin_class))
+            self.log.info(str(i))
+
+        self.log.info(str(self.inference))
         this_plugin = [i for i in Plugin.plugins if i.plugin_class ==
                        ShaclValidation][0]
         self.bool_parameters = [p.name for p in this_plugin.parameters if
                                 isinstance(p.param_type, BoolParameterType)]
         self.graph_parameters = [p.name for p in this_plugin.parameters if
                                  isinstance(p.param_type, GraphParameterType)]
+
+        self.bool_parameters = []
+        self.graph_parameters = []
 
     def add_prov(self, validation_graph, utctime):
         """
@@ -480,6 +527,7 @@ class ShaclValidation(WorkflowPlugin):
 
     # pylint: disable-msg=too-many-branches
     def check_parameters(self):
+        self.log.info(f"inference {self.inference}")
         """
         validate plugin parameters
         """
@@ -493,6 +541,19 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError("SHACL graph URI parameter is invalid")
         graphs_dict = {graph["iri"]: graph["assignedClasses"]
                        for graph in get_graphs_list()}
+
+        if self.ontology_graph_uri:
+            if not validator_url(self.ontology_graph_uri):
+                raise ValueError("Ontology graph URI parameter is invalid")
+            elif self.ontology_graph_uri not in graphs_dict:
+                raise ValueError(
+                    f"Ontology graph <{self.ontology_graph_uri}> not found"
+                )
+            elif "http://www.w3.org/2002/07/owl#Ontology" not in \
+                    graphs_dict[self.ontology_graph_uri]:
+                raise ValueError("Invalid graph type for Ontology graph "
+                                 f"<{self.ontology_graph_uri}>")
+
         if self.data_graph_uri not in graphs_dict:
             raise ValueError(f"Data graph <{self.data_graph_uri}> not found")
         if self.shacl_graph_uri not in graphs_dict:
@@ -544,11 +605,17 @@ class ShaclValidation(WorkflowPlugin):
         start = time()
         shacl_graph = self.get_graph(self.shacl_graph_uri)
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
+
+        if self.ontology_graph_uri:
+            ontology_graph = self.get_graph(self.ontology_graph_uri)
+            self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
+
         self.log.info("Starting SHACL validation...")
         start = time()
         _conforms, validation_graph, _results_text = validate(
             data_graph,
             shacl_graph=shacl_graph,
+            ont_graph=ontology_graph,
             meta_shacl=self.meta_shacl,
             inplace=True
         )

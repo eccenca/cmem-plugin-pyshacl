@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "0.0.0"
+version = "4.0.5"
 license = "Apache-2.0"
 description = "Validate your Knowledge Graphs based on tests generated from SHACL shapes."
 authors = ["Thomas Wilmering <thomas.wilmering@eccenca.com>"]
@@ -18,16 +18,16 @@ keywords = [
 python = "^3.9"
 pyshacl = "^0.20.0"
 validators = "^0.20.0"
-requests-toolbelt = "^0.9.1"
+requests-toolbelt = "^0.10.1"
 rdflib = "^6.2.0"
 cmem-cmempy = "^22.1.1"
-cmem-plugin-base = "^2.1.0"
+cmem-plugin-base = "^3.0.0"
 types-setuptools = "^65.5.0.3"
 distutils-strtobool = "^0.1.0"
 packaging = "21.3"
 ruamel-yaml = "^0.17.21"
 PyYAML = "^6.0"
-charset-normalizer = "^2.1.1"
+charset-normalizer = "^3.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
