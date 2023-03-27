@@ -25,8 +25,7 @@ from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterTyp
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema, \
     EntityPath
-from cmem_plugin_base.dataintegration.discovery import discover_plugins
-from typing import Any
+from cmem_plugin_base.dataintegration.discovery import discover_plugins_in_module
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -265,23 +264,15 @@ class ShaclValidation(WorkflowPlugin):
         self.meta_shacl = meta_shacl
         self.inference = inference
 
-        if not Plugin.plugins:
-            discover_plugins()
+        discover_plugins_in_module("cmem_plugin_pyshacl")
+        this_plugin = Plugin.plugins[0]
 
-        for i in Plugin.plugins:
-            self.log.info(str(i.plugin_class))
-            self.log.info(str(i))
-
-        self.log.info(str(self.inference))
-        this_plugin = [i for i in Plugin.plugins if i.plugin_class ==
-                       ShaclValidation][0]
         self.bool_parameters = [p.name for p in this_plugin.parameters if
                                 isinstance(p.param_type, BoolParameterType)]
         self.graph_parameters = [p.name for p in this_plugin.parameters if
                                  isinstance(p.param_type, GraphParameterType)]
 
-        self.bool_parameters = []
-        self.graph_parameters = []
+        self.log.info(self.inference)
 
     def add_prov(self, validation_graph, utctime):
         """
@@ -581,6 +572,10 @@ class ShaclValidation(WorkflowPlugin):
                 self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
         if not self.add_labels_to_validation_graph:
             self.include_graphs_labels = False
+
+        if self.inference not in ("none", "rdfs", "owlrl", "both"):
+            raise ValueError("Invalid value for inference parameter")
+
         self.log.info("Parameters OK:")
         for param in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{param}: {self.__dict__[param]}")
