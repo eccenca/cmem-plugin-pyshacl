@@ -610,6 +610,7 @@ class ShaclValidation(WorkflowPlugin):
             shacl_graph=shacl_graph,
             ont_graph=ontology_graph,
             meta_shacl=self.meta_shacl,
+            inference=self.inference,
             inplace=True
         )
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")
