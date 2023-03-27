@@ -221,7 +221,6 @@ def preferred_label(
                         "expansion of the data graph before validation",
             default_value="none",
             advanced=True
-
         )
     ]
 )
@@ -272,7 +271,6 @@ class ShaclValidation(WorkflowPlugin):
         self.graph_parameters = [p.name for p in this_plugin.parameters if
                                  isinstance(p.param_type, GraphParameterType)]
 
-        self.log.info(self.inference)
 
     def add_prov(self, validation_graph, utctime):
         """
