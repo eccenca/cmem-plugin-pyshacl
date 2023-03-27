@@ -11,7 +11,7 @@ classifiers = [
 ]
 readme = "README-public.md"
 keywords = [
-    "eccenca Corporate Memory", "plugin", "SHACL", "testing"
+    "eccenca Corporate Memory", "plugin", "SHACL"
 ]
 
 [tool.poetry.dependencies]
