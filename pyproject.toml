@@ -24,10 +24,10 @@ cmem-cmempy = "^22.1.1"
 cmem-plugin-base = "^3.0.0"
 types-setuptools = "^65.5.0.3"
 distutils-strtobool = "^0.1.0"
-packaging = "21.3"
 ruamel-yaml = "^0.17.21"
 PyYAML = "^6.0"
 charset-normalizer = "^3.1.0"
+packaging = "^23.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"

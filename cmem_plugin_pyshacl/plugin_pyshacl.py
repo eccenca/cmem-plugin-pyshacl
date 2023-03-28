@@ -6,8 +6,8 @@ from os.path import getsize, basename
 from time import time
 from datetime import datetime
 from uuid import uuid4
-from validators import url as validator_url
 from collections import OrderedDict
+from validators import url as validator_url
 from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS,\
     Namespace
 from pyshacl import validate
@@ -515,7 +515,6 @@ class ShaclValidation(WorkflowPlugin):
 
     # pylint: disable-msg=too-many-branches
     def check_parameters(self):
-        self.log.info(f"inference {self.inference}")
         """
         validate plugin parameters
         """
@@ -533,11 +532,11 @@ class ShaclValidation(WorkflowPlugin):
         if self.ontology_graph_uri:
             if not validator_url(self.ontology_graph_uri):
                 raise ValueError("Ontology graph URI parameter is invalid")
-            elif self.ontology_graph_uri not in graphs_dict:
+            if self.ontology_graph_uri not in graphs_dict:
                 raise ValueError(
                     f"Ontology graph <{self.ontology_graph_uri}> not found"
                 )
-            elif "http://www.w3.org/2002/07/owl#Ontology" not in \
+            if "http://www.w3.org/2002/07/owl#Ontology" not in \
                     graphs_dict[self.ontology_graph_uri]:
                 raise ValueError("Invalid graph type for Ontology graph "
                                  f"<{self.ontology_graph_uri}>")
