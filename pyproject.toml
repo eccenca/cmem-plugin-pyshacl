@@ -63,6 +63,7 @@ ignore = "version.py"
 [tool.pylint.'MESSAGES CONTROL']
 extension-pkg-whitelist = "pydantic"
 disable = "fixme"
+max-locals = 16
 
 # https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html#pylint
 [tool.pylint.messages_control]

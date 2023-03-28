@@ -66,4 +66,3 @@ def test_workflow_execution():
         raise ValueError(f"Response {response.status_code}: {response.url}")
     delete(shacl_graph_uri)
     delete(validation_graph_uri)
-
