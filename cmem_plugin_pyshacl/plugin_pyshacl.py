@@ -582,7 +582,7 @@ class ShaclValidation(WorkflowPlugin):
         """
         try:
             setup_cmempy_user_access(context.user)
-        except AttributeError:
+        except KeyError:
             self.log.warning("'ExecutionContext' object has no attribute 'user'")
         # accepts only one set of input parameters
         if inputs:
@@ -600,6 +600,8 @@ class ShaclValidation(WorkflowPlugin):
         if self.ontology_graph_uri:
             ontology_graph = self.get_graph(self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
+        else:
+            ontology_graph = None
 
         self.log.info("Starting SHACL validation...")
         start = time()

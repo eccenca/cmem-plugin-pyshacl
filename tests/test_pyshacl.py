@@ -1,8 +1,9 @@
 """Plugin tests."""
 
+
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 from cmem.cmempy.dp.proxy.graph import post, get, delete
-from tests.utils import TestExecutionContext
+from .utils import TestExecutionContext
 
 from uuid import uuid4
 from rdflib import Graph, URIRef, RDF
@@ -31,10 +32,11 @@ def post_shacl_shacl(shacl_graph_uri):
 
 def test_workflow_execution():
     """Test plugin execution"""
-    shacl_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
     data_graph_uri = "https://vocab.eccenca.com/shacl/"
-    validation_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
+    shacl_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
+    ontology_graph_uri = ""
     generate_graph = True
+    validation_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
     output_values = True
     clear_validation_graph = True
     owl_imports_resolution = True
@@ -49,6 +51,7 @@ def test_workflow_execution():
         data_graph_uri=data_graph_uri,
         shacl_graph_uri=shacl_graph_uri,
         validation_graph_uri=validation_graph_uri,
+        ontology_graph_uri=ontology_graph_uri,
         generate_graph=generate_graph,
         output_values=output_values,
         clear_validation_graph=clear_validation_graph,
