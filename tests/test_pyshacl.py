@@ -32,36 +32,25 @@ def post_shacl_shacl(shacl_graph_uri):
 
 def test_workflow_execution():
     """Test plugin execution"""
-    data_graph_uri = "https://vocab.eccenca.com/shacl/"
     shacl_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
-    ontology_graph_uri = ""
-    generate_graph = True
     validation_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
-    output_values = True
-    clear_validation_graph = True
-    owl_imports_resolution = True
-    skolemize_validation_graph = True
-    add_labels_to_validation_graph = True
-    include_graphs_labels = True
-    add_shui_conforms_to_validation_graph = True
-    meta_shacl = False
-    inference = "none"
     post_shacl_shacl(shacl_graph_uri)
     plugin = ShaclValidation(
-        data_graph_uri=data_graph_uri,
+        data_graph_uri="https://vocab.eccenca.com/shacl/",
         shacl_graph_uri=shacl_graph_uri,
         validation_graph_uri=validation_graph_uri,
-        ontology_graph_uri=ontology_graph_uri,
-        generate_graph=generate_graph,
-        output_values=output_values,
-        clear_validation_graph=clear_validation_graph,
-        owl_imports_resolution=owl_imports_resolution,
-        skolemize_validation_graph=skolemize_validation_graph,
-        add_labels_to_validation_graph=add_labels_to_validation_graph,
-        include_graphs_labels=include_graphs_labels,
-        add_shui_conforms_to_validation_graph=add_shui_conforms_to_validation_graph,
-        meta_shacl=meta_shacl,
-        inference=inference
+        ontology_graph_uri="",
+        generate_graph=True,
+        output_values=True,
+        clear_validation_graph=True,
+        owl_imports_resolution=True,
+        skolemize_validation_graph=True,
+        add_labels_to_validation_graph=True,
+        include_graphs_labels=True,
+        add_shui_conforms_to_validation_graph=True,
+        meta_shacl=False,
+        inference="none",
+        advanced=False
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
     response = get(validation_graph_uri)

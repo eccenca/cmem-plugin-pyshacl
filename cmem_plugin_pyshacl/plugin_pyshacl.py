@@ -186,7 +186,7 @@ def preferred_label(
         PluginParameter(
             param_type=BoolParameterType(),
             name="meta_shacl",
-            label="Meta-SHACL.",
+            label="Meta-SHACL",
             description="Validate the SHACL shapes graph against the shacl-shacl "
                         "shapes graph before validating the data graph",
             default_value=False,
@@ -221,6 +221,14 @@ def preferred_label(
                         "expansion of the data graph before validation",
             default_value="none",
             advanced=True
+        ),
+        PluginParameter(
+            param_type=BoolParameterType(),
+            name="advanced",
+            label="SHACL Advanced Features",
+            description="enable SHACL Advanced Features",
+            default_value=False,
+            advanced=True
         )
     ]
 )
@@ -245,7 +253,8 @@ class ShaclValidation(WorkflowPlugin):
         include_graphs_labels,
         add_shui_conforms_to_validation_graph,
         meta_shacl,
-        inference
+        inference,
+        advanced
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
@@ -262,6 +271,7 @@ class ShaclValidation(WorkflowPlugin):
             add_shui_conforms_to_validation_graph
         self.meta_shacl = meta_shacl
         self.inference = inference
+        self.advanced = advanced
 
         discover_plugins_in_module("cmem_plugin_pyshacl")
         this_plugin = Plugin.plugins[0]
@@ -611,6 +621,7 @@ class ShaclValidation(WorkflowPlugin):
             ont_graph=ontology_graph,
             meta_shacl=self.meta_shacl,
             inference=self.inference,
+            advanced=self.advanced,
             inplace=True
         )
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")
