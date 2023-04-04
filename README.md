@@ -66,7 +66,7 @@ The URI of a graph containing extra ontological information. The graph URI is se
 
 ### Inference
 
-If enabled, OWL inferencing expansion of the data_graph is performed before validation. Options are 'RDFS', 'OWLRL', 'Both', or 'None'. Default value: *None*.
+If enabled, OWL inferencing expansion of the data_graph is performed before validation. Options are *RDFS*, *OWLRL*, *Both*, *None*. Default value: *None*.
 
 ### Advanced
 
@@ -91,6 +91,6 @@ In order to set options via the input the following parameter names can be used:
 | Add labels from data and SHACL graphs          | include_graphs_labels                 |
 | Add shui:conforms flag to focus node resources | add_shui_conforms_to_validation_graph | 
 | Meta-SHACL                                     | meta_shacl                            |
-| Ontology graph URI                             | ontology_graph_uri                             |
+| Ontology graph URI                             | ontology_graph_uri                    |
 | Inference                                      | inference                             |
 | Advanced                                       | advanced                              |
