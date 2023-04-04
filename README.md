@@ -91,6 +91,6 @@ In order to set options via the input the following parameter names can be used:
 | Add labels from data and SHACL graphs          | include_graphs_labels                 |
 | Add shui:conforms flag to focus node resources | add_shui_conforms_to_validation_graph | 
 | Meta-SHACL                                     | meta_shacl                            |
-| Ontology graph URI                             | ont_graph                             |
+| Ontology graph URI                             | ontology_graph_uri                             |
 | Inference                                      | inference                             |
 | Advanced                                       | advanced                              |
