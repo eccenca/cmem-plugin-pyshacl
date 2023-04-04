@@ -132,7 +132,7 @@ def preferred_label(
             name="output_values",
             label="Output values",
             description="Output values",
-            default_value=True
+            default_value=False
         ),
         PluginParameter(
             param_type=BoolParameterType(),
