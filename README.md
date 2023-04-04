@@ -62,7 +62,7 @@ If enabled, the SHACL shapes graph is validated against the SHACL-SHACL shapes g
 
 ### Ontology graph URI
 
-The URI of a graph containing extra ontological information.
+The URI of a graph containing extra ontological information. The graph URI is selected from a list of graphs of type `owl:Ontology`.
 
 ### Inference
 
