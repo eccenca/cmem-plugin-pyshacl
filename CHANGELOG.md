@@ -14,8 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Changed
 
 - removed `cmem-plugin-base` version check
-- update dependencies including `cmem-plugin-base` (3.0.0)
-- default value for parameter Output values is now True
+- update dependencies including `cmem-plugin-base`
 
 ## [4.0.3] 2022-11-16
 
