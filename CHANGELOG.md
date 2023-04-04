@@ -8,13 +8,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Added
 
-- advanced option pySHACL *ont_graph*
-- advanced option pySHACL *inference*
+- advanced pySHACL options *ont_graph*, *inference*, *advanced*
 
 ### Changed
 
 - removed `cmem-plugin-base` version check
 - update dependencies including `cmem-plugin-base`
+
+### Fixed
+
+- CMEM 23.1 compatibility
 
 ## [4.0.3] 2022-11-16
 
