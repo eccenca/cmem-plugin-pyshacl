@@ -618,7 +618,7 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyshacl"
-version = "0.20.0"
+version = "0.22.2"
 description = "Python SHACL Validator"
 category = "main"
 optional = false
@@ -634,9 +634,9 @@ rdflib = ">=6.2.0,<7"
 [package.extras]
 dev-coverage = ["coverage (>6.1,!=6.1.1,<7)", "platformdirs", "pytest-cov (>=2.8.1,<3.0.0)"]
 dev-lint = ["black (==22.8.0)", "flake8 (>=5.0.4,<6.0.0)", "isort (>=5.10.1,<6.0.0)", "platformdirs"]
-dev-type-checking = ["mypy (>=0.800,<0.801)", "platformdirs", "types-setuptools"]
-js = ["pyduktape2 (>=0.4.1,<0.5.0)"]
-jsonld = ["rdflib-jsonld (>=0.4.0,<0.6)"]
+dev-type-checking = ["mypy (>=0.800,<0.900)", "mypy (>=0.900,<0.1000)", "platformdirs", "types-setuptools"]
+http = ["sanic (>=22.12,<23)", "sanic-cors (==2.2.0)", "sanic-ext (>=23.3,<23.6)"]
+js = ["pyduktape2 (>=0.4.2,<0.5.0)"]
 
 [[package]]
 name = "pysocks"
@@ -969,7 +969,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "79edffa504fbc41d24910d86ae2993e24e581d1c62dc9244409aefcef4a3cfcb"
+content-hash = "c19ea79a01a13274f98c538ee15871e02b74e83376988fef0e252d18a34c7ca5"
 
 [metadata.files]
 astroid = [
@@ -1496,8 +1496,8 @@ pyparsing = [
     {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
 ]
 pyshacl = [
-    {file = "pyshacl-0.20.0-py3-none-any.whl", hash = "sha256:5de57ed490748f621301f69e47224fa5bd84b0fb5aab40126118dc8e90d4ede6"},
-    {file = "pyshacl-0.20.0.tar.gz", hash = "sha256:47f014c52cc69167b902c89b3940dd400f7f5d2169a62f97f837f3419b4a737d"},
+    {file = "pyshacl-0.22.2-py3-none-any.whl", hash = "sha256:d7188d955c52bb37c4be25d46ce0e57a41e6e3fcf47265117a4f734b5788ca5f"},
+    {file = "pyshacl-0.22.2.tar.gz", hash = "sha256:a9cbba8048438410eca0ee437df2cc55612cf5ed14574dc9524713063d10d3e4"},
 ]
 pysocks = [
     {file = "PySocks-1.7.1-py27-none-any.whl", hash = "sha256:08e69f092cc6dbe92a0fdd16eeb9b9ffbc13cadfe5ca4c7bd92ffb078b293299"},
