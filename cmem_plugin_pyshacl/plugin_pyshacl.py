@@ -173,7 +173,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="add_labels_to_validation_graph",
             label="Add labels",
-            description="If enabled, rdfs:label triples are added to the validation "
+            description="If enabled, `rdfs:label` triples are added to the validation "
                         "graph for instances of `sh:ValidationReport` and "
                         "`sh:ValidationResult`.",
             default_value=True,
@@ -183,9 +183,10 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="include_graphs_labels",
             label="Add labels to focus nodes and values",
-            description="Add labels from data and SHACL shapes graph to source shapes, "
-                        "focus nodes and values in the validation graph. Only applied "
-                        "when the option `Add labels` is activated.",
+            description="If enabled along with the `Add labels` option, `rdfs:label` "
+                        "triples are added for the focus nodes, values and SHACL "
+                        "shapes in the validation graph. The labels are taken from "
+                        "the specified data and SHACL graphs.",
             default_value=False,
             advanced=True
         ),
