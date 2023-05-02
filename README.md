@@ -74,11 +74,11 @@ If enabled, the SHACL shapes graph is validated against the SHACL-SHACL shapes g
 
 ### Ontology graph URI
 
-The URI of a graph containing extra ontological information. The graph URI is selected from a list of graphs of type `owl:Ontology`.
+The URI of a graph containing extra ontological information. RDFS and OWL definitions from this are used to inoculate the data graph. The graph URI is selected from a list of graphs of type `owl:Ontology`.
 
 ### Inference
 
-If enabled, OWL inferencing expansion of the data_graph is performed before validation. Options are *RDFS*, *OWLRL*, *Both*, *None*. Default value: *None*.
+If enabled, OWL inferencing expansion of the data graph is performed before validation. Options are *RDFS*, *OWLRL*, *Both*, *None*. Default value: *None*.
 
 ### Advanced
 

@@ -94,15 +94,17 @@ def preferred_label(
     label="SHACL validation with pySHACL",
     plugin_id="shacl-pyshacl",
     description="Performs SHACL validation with pySHACL.",
-    documentation="""Performs SHACL validation with pySHACL.""",
+    documentation="Performs SHACL validation with pySHACL "
+                  "(https://github.com/RDFLib/pySHACL).",
     parameters=[
         PluginParameter(
             param_type=GraphParameterType(classes=DATA_GRAPH_TYPES),
             name="data_graph_uri",
             label="Data graph URI",
-            description="Data graph URI, will only list graphs of type di:Dataset, "
-                        "void:Dataset, shui:ShapeCatalog, owl:Ontology, "
-                        "dsm:ThesaurusProject"
+            description="The URI of the graph to be validated. The graph URI is "
+                        "selected from a list of graphs of types `void:Dataset`, "
+                        "`shui:ShapeCatalog`, `owl:Ontology` and "
+                        "`dsm:ThesaurusProject`."
         ),
         PluginParameter(
             param_type=GraphParameterType(classes=[
@@ -110,42 +112,51 @@ def preferred_label(
             ]),
             name="shacl_graph_uri",
             label="SHACL shapes graph URI",
-            description="SHACL shapes graph URI, will only list graphs of type "
-                        "shui:ShapeCatalog"
+            description="The URI of the graph containing the SHACL shapes to be "
+                        "validated against. The graph URI is selected from a list of "
+                        "graphs of type `shui:ShapeCatalog`."
         ),
         PluginParameter(
             param_type=StringParameterType(),
             name="validation_graph_uri",
             label="Validation graph URI",
-            description="Validation graph URI",
+            description="If the `Generate validation graph` option is enabled the "
+                        "validation graph is posted to the CMEM instance with this "
+                        "graph URI.",
             default_value=""
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="generate_graph",
             label="Generate validation graph",
-            description="Generate validation graph",
+            description="If enabled, the validation graph is posted to the CMEM "
+                        "instance with the graph URI specified with the `Validation "
+                        "graph URI` option.",
             default_value=False
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="output_values",
             label="Output values",
-            description="Output values",
+            description="If enabled, the plugin outputs the validation results and "
+                        "can be connected to, for instance, a CSV dataset to produce "
+                        "a results table.",
             default_value=False
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="clear_validation_graph",
             label="Clear validation graph",
-            description="Clear validation graph before workflow execution",
+            description="If enabled, the validation graph is cleared before workflow "
+                        "execution.",
             default_value=True
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="owl_imports_resolution",
             label="Resolve owl:imports",
-            description="Resolve graph tree defined via owl:imports",
+            description="If enabled, the graph tree defined with owl:imports in the "
+                        "data graph is resolved.",
             default_value=True,
             advanced=True
         ),
@@ -153,7 +164,8 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="skolemize_validation_graph",
             label="Blank node skolemization",
-            description="Skolemize validation graph blank nodes into URIs",
+            description="If enabled, blank nodes in the validation graph are "
+                        "skolemized into URIs.",
             default_value=True,
             advanced=True
         ),
@@ -161,7 +173,9 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="add_labels_to_validation_graph",
             label="Add labels",
-            description="Add labels to validation graph resources",
+            description="If enabled, rdfs:label triples are added to the validation "
+                        "graph for instances of `sh:ValidationReport` and "
+                        "`sh:ValidationResult`.",
             default_value=True,
             advanced=True
         ),
@@ -169,9 +183,9 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="include_graphs_labels",
             label="Add labels to focus nodes and values",
-            description='Add labels from data and SHACL shapes graph to source shapes, '
-                        'focus nodes and values in the validation graph. Only applied '
-                        'when the option "Add labels" is activated.',
+            description="Add labels from data and SHACL shapes graph to source shapes, "
+                        "focus nodes and values in the validation graph. Only applied "
+                        "when the option `Add labels` is activated.",
             default_value=False,
             advanced=True
         ),
@@ -179,7 +193,8 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="add_shui_conforms_to_validation_graph",
             label="Add shui:conforms flag to focus node resources.",
-            description="Add shui:conforms flag to focus node resources",
+            description="If enabled, `shui:conforms false` triples are added to the "
+                        "focus nodes in the validation graph.",
             default_value=False,
             advanced=True
         ),
@@ -187,8 +202,8 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="meta_shacl",
             label="Meta-SHACL",
-            description="Validate the SHACL shapes graph against the shacl-shacl "
-                        "shapes graph before validating the data graph",
+            description="If enabled, the SHACL shapes graph is validated against the "
+                        "SHACL-SHACL shapes graph before validating the data graph.",
             default_value=False,
             advanced=True
         ),
@@ -198,9 +213,10 @@ def preferred_label(
             ]),
             name="ontology_graph_uri",
             label="Ontology graph URI",
-            description="Ontology graph which gets parsed and mixed with the data "
-                        "graph before pre-inferencing, will only list graphs of type "
-                        "owl:Ontology",
+            description="The URI of a graph containing extra ontological information. "
+                        "RDFS and OWL definitions from this are used to inoculate the "
+                        "data graph. The graph URI is selected from a list of graphs "
+                        "of type `owl:Ontology`.",
             default_value="",
             advanced=True
         ),
@@ -217,8 +233,9 @@ def preferred_label(
             ),
             name="inference",
             label="Inference",
-            description="indicates whether or not to perform OWL inferencing "
-                        "expansion of the data graph before validation",
+            description="If enabled, OWL inferencing expansion of the data graph is "
+                        "performed before validation. Options are RDFS, OWLRL, Both, "
+                        "None.",
             default_value="none",
             advanced=True
         ),
@@ -226,7 +243,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="advanced",
             label="SHACL Advanced Features",
-            description="enable SHACL Advanced Features",
+            description="Enable SHACL Advanced Features.",
             default_value=False,
             advanced=True
         )
