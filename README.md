@@ -1,6 +1,6 @@
 # cmem-plugin-pyshacl
 
-An eccenca Corporate Memory (CMEM) workflow plugin performing in-memory [SHACL](https://www.w3.org/TR/shacl/) validation with [pySHACL](https://github.com/RDFLib/pySHACL).
+An eccenca Corporate Memory (CMEM) workflow plugin performing [SHACL](https://www.w3.org/TR/shacl/) validation with [pySHACL](https://github.com/RDFLib/pySHACL).
 
 ## Installation
 
