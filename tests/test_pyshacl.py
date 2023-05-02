@@ -12,6 +12,7 @@ import pyshacl
 
 
 def post_shacl_shacl(shacl_graph_uri):
+    """upload shacl-shacl graph to cmem"""
     shacl_file = os.path.join(pyshacl.__path__[0], "assets", "shacl-shacl.ttl")
     g = Graph()
     g.parse(shacl_file, format="turtle")
@@ -27,7 +28,7 @@ def post_shacl_shacl(shacl_graph_uri):
     res = post(shacl_graph_uri, temp_file, replace=True)
     os.remove(temp_file)
     if res.status_code != 204:
-        raise ValueError(f"Response {res.status_code}")
+        raise ValueError(f"Response {res.status_code}: {res.url}")
 
 
 def test_workflow_execution():
@@ -53,8 +54,8 @@ def test_workflow_execution():
         advanced=False
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
-    response = get(validation_graph_uri)
-    if response.status_code != 200:
-        raise ValueError(f"Response {response.status_code}: {response.url}")
+    res = get(validation_graph_uri)
+    if res.status_code != 200:
+        raise ValueError(f"Response {res.status_code}: {res.url}")
     delete(shacl_graph_uri)
     delete(validation_graph_uri)
