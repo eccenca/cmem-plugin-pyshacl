@@ -1,6 +1,18 @@
-# pySHACL CMEM Workflow Plugin
+# cmem-plugin-pyshacl
 
-An eccenca Corporate Memory (CMEM) plugin performing in-memory SHACL validation with pySHACL.
+An eccenca Corporate Memory (CMEM) workflow plugin performing in-memory [SHACL](https://www.w3.org/TR/shacl/) validation with [pySHACL](https://github.com/RDFLib/pySHACL).
+
+## Installation
+
+`cmemc -c my-cmem admin workspace python install cmem-plugin-pyshacl`
+
+[![eccenca Corporate Memory](https://img.shields.io/badge/eccenca-Corporate%20Memory-orange)](https://documentation.eccenca.com)   
+
+## Development
+
+- Run [task](https://taskfile.dev/) to see all major development tasks.
+- Use [pre-commit](https://pre-commit.com/) to avoid errors before commit.
+- This repository was created with [this copier template](https://github.com/eccenca/cmem-plugin-template).
 
 ## Options
 

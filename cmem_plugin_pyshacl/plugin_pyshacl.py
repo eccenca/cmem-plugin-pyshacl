@@ -153,7 +153,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="skolemize_validation_graph",
             label="Blank node skolemization",
-            description="Skolemize blank nodes in the validation graph into URIs",
+            description="Skolemize validation graph blank nodes into URIs",
             default_value=True,
             advanced=True
         ),
@@ -161,7 +161,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="add_labels_to_validation_graph",
             label="Add labels",
-            description="Add labels to validation graph",
+            description="Add labels to validation graph resources",
             default_value=True,
             advanced=True
         ),
