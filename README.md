@@ -25,7 +25,6 @@ The URI of the graph to be validated. The graph URI is selected from a list of g
 - `shui:ShapeCatalog`
 - `void:Dataset`
 
-
 ### SHACL graph URI
 
 The URI of the graph containing the SHACL shapes to be validated against. The graph URI is selected from a list of graphs of type `shui:ShapeCatalog`.
@@ -38,7 +37,7 @@ If enabled, the validation graph is posted to the CMEM instance with the graph U
 
 If the *generate validation graph* option is enabled the validation graph is posted to the CMEM instance with this graph URI.
 
-### Output values
+### Output entities
 
 If enabled, the plugin outputs the validation results and can be connected to, for instance, a CSV dataset to produce a results table. Default value: *false*.
 
@@ -95,7 +94,7 @@ In order to set options via the input the following parameter names can be used:
 | SHACL graph URI                                | shacl_graph_uri                       |
 | Generate validation graph                      | generate_graph                        |
 | Validation graph URI                           | validation_graph_uri                  |
-| Output values                                  | output_values                         |
+| Output entities                                | output_values                         |
 | Clear validation graph                         | clear_validation_graph                |
 | Resolve owl:imports                            | owl_imports_resolution                |
 | Blank node skolemization                       | skolemize_validation_graph            |

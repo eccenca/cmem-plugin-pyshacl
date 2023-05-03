@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [4.1.1] 2023-05-03
+
+### Changed
+
+- minor plugin description change
+
+### Fixed
+
+- inline code comment edits
+
+
 ## [4.1.0] 2023-05-02
 
 ### Added
