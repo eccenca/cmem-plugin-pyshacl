@@ -4,7 +4,10 @@ An eccenca Corporate Memory (CMEM) workflow plugin performing [SHACL](https://ww
 
 ## Installation
 
-`cmemc -c my-cmem admin workspace python install cmem-plugin-pyshacl`
+```
+➜ task build
+➜ cmemc -c YOUR_CMEM admin workspace python install dist/*.gz
+```
 
 [![eccenca Corporate Memory](https://img.shields.io/badge/eccenca-Corporate%20Memory-orange)](https://documentation.eccenca.com)   
 
