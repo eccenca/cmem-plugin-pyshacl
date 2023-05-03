@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "4.1.1"
+version = "0.0.0"
 license = "Apache-2.0"
 description = "Validate your Knowledge Graphs based on tests generated from SHACL shapes."
-authors = ["Thomas Wilmering <thomas.wilmering@eccenca.com>"]
+authors = ["eccenca GmbH <cmempy-developer@eccenca.com>"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Plugins",
@@ -16,12 +16,12 @@ keywords = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+cmem-plugin-base = ">=3.1.0,<4.0.0"
 pyshacl = "^0.22.2"
 validators = "^0.20.0"
 requests-toolbelt = "^0.10.1"
 rdflib = "^6.2.0"
 cmem-cmempy = "^22.1.1"
-cmem-plugin-base = ">=2.1.0,<4.0.0"
 types-setuptools = "^65.5.0.3"
 distutils-strtobool = "^0.1.0"
 ruamel-yaml = "^0.17.21"
@@ -29,21 +29,21 @@ PyYAML = "^6.0"
 charset-normalizer = "^3.1.0"
 packaging = "^23.0"
 
-[tool.poetry.dev-dependencies]
-pytest = "^7.0"
-pytest-cov = "^4.0.0"
-pytest-memray = "^1.3.0"
-black = "^22.1.0"
-bandit = "^1.7.2"
-pylint-junit = "^0.3.2"
-safety = "^1.10.3"
-genbadge = "^1.0.6"
-flake8-formatter-junit-xml = "^0.0.6"
-typed-ast = "^1.5.2"
-mypy = "^0.991"
-coverage = "^6.3.2"
+[tool.poetry.group.dev.dependencies]
+bandit = "^1.7.5"
+black = "^23.3.0"
+coverage = "^7.2.3"
 defusedxml = "^0.7.1"
-wheel = "^0.38.3"
+flake8-formatter-junit-xml = "^0.0.6"
+genbadge = "^1.1.0"
+mypy = "^1.2.0"
+pylint-junit = "^0.3.2"
+pytest = "^7.3.1"
+pytest-cov = "^4.0.0"
+pytest-memray = "^1.4.0"
+safety = "^1.10.3"
+typed-ast = "^1.5.4"
+wheel = "^0.38.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
