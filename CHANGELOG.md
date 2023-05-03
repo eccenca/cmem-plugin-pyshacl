@@ -6,7 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
-TODO: add at least one Added, Changed, Deprecated, Removed, Fixed or Security section
+### Changed
+
+- minor plugin description change
+
+### Fixed
+
+- inline code comment edits
+
 
 ## [4.1.0] 2023-05-02
 
