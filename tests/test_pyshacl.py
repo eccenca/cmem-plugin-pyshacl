@@ -1,6 +1,5 @@
 """Plugin tests."""
 
-
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 from cmem.cmempy.dp.proxy.graph import post, get, delete
 from .utils import TestExecutionContext

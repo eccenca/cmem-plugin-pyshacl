@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "4.1.0"
+version = "4.1.1"
 license = "Apache-2.0"
 description = "Validate your Knowledge Graphs based on tests generated from SHACL shapes."
 authors = ["Thomas Wilmering <thomas.wilmering@eccenca.com>"]
