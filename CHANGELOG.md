@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Changed
 
 - migrate to open source on Github
+- changed internal parameter names
 
 ## [4.1.2] 2023-05-03
 

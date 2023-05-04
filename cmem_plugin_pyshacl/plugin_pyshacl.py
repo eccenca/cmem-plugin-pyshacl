@@ -159,7 +159,7 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=BoolParameterType(),
-            name="owl_imports_resolution",
+            name="owl_imports",
             label="Resolve owl:imports",
             description="If enabled, the graph tree defined with owl:imports in the "
                         "data graph is resolved.",
@@ -168,7 +168,7 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=BoolParameterType(),
-            name="skolemize_validation_graph",
+            name="skolemize",
             label="Blank node skolemization",
             description="If enabled, blank nodes in the validation graph are "
                         "skolemized into URIs.",
@@ -177,7 +177,7 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=BoolParameterType(),
-            name="add_labels_to_validation_graph",
+            name="add_labels",
             label="Add labels",
             description="If enabled, `rdfs:label` triples are added to the validation "
                         "graph for instances of `sh:ValidationReport` and "
@@ -198,7 +198,7 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=BoolParameterType(),
-            name="add_shui_conforms_to_validation_graph",
+            name="add_shui_conforms",
             label="Add shui:conforms flag to focus node resources.",
             description="If enabled, `shui:conforms false` triples are added to the "
                         "focus nodes in the validation graph.",
@@ -271,11 +271,11 @@ class ShaclValidation(WorkflowPlugin):
         validation_graph_uri,
         output_values,
         clear_validation_graph,
-        owl_imports_resolution,
-        skolemize_validation_graph,
-        add_labels_to_validation_graph,
+        owl_imports,
+        skolemize,
+        add_labels,
         include_graphs_labels,
-        add_shui_conforms_to_validation_graph,
+        add_shui_conforms,
         meta_shacl,
         inference,
         advanced
@@ -286,13 +286,12 @@ class ShaclValidation(WorkflowPlugin):
         self.validation_graph_uri = validation_graph_uri
         self.generate_graph = generate_graph
         self.output_values = output_values
-        self.owl_imports_resolution = owl_imports_resolution
+        self.owl_imports = owl_imports
         self.clear_validation_graph = clear_validation_graph
-        self.skolemize_validation_graph = skolemize_validation_graph
-        self.add_labels_to_validation_graph = add_labels_to_validation_graph
+        self.skolemize = skolemize
+        self.add_labels = add_labels
         self.include_graphs_labels = include_graphs_labels
-        self.add_shui_conforms_to_validation_graph =  \
-            add_shui_conforms_to_validation_graph
+        self.add_shui_conforms = add_shui_conforms
         self.meta_shacl = meta_shacl
         self.inference = inference
         self.advanced = advanced
@@ -331,7 +330,7 @@ class ShaclValidation(WorkflowPlugin):
         ))
         return validation_graph
 
-    def add_labels(
+    def add_labels_val(
             self,
             validation_graph,
             data_graph,
@@ -373,7 +372,7 @@ class ShaclValidation(WorkflowPlugin):
                     subject=validation_result_uri,
                     predicate=SH.focusNode
                 )
-                if self.add_shui_conforms_to_validation_graph:
+                if self.add_shui_conforms:
                     focus_nodes.append(focus_node)
                 label = get_label(data_graph, focus_node)
                 if label:
@@ -396,7 +395,7 @@ class ShaclValidation(WorkflowPlugin):
                     validation_graph.add((source_shape, RDFS.label, label))
         return validation_graph, focus_nodes
 
-    def add_shui_conforms(self, validation_graph, validation_result_uris, focus_nodes):
+    def add_shui_conforms_val(self, validation_graph, validation_result_uris, focus_nodes):
         """
         add shui conforms flag
         """
@@ -531,7 +530,7 @@ class ShaclValidation(WorkflowPlugin):
         graph = Graph()
         graph.parse(data=get(
                 uri,
-                owl_imports_resolution=self.owl_imports_resolution).text,
+                owl_imports_resolution=self.owl_imports).text,
                 format="turtle")
         return graph
 
@@ -600,7 +599,7 @@ class ShaclValidation(WorkflowPlugin):
                 raise ValueError("Validation graph URI parameter is invalid")
             if self.validation_graph_uri in graphs_dict:
                 self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
-        if not self.add_labels_to_validation_graph:
+        if not self.add_labels:
             self.include_graphs_labels = False
 
         if self.inference not in ("none", "rdfs", "owlrl", "both"):
@@ -658,27 +657,27 @@ class ShaclValidation(WorkflowPlugin):
                 utctime
             )
         if self.generate_graph:
-            if self.skolemize_validation_graph:
+            if self.skolemize:
                 self.log.info("Skolemizing validation graph")
                 validation_graph = validation_graph.skolemize(
                     basepath=self.validation_graph_uri
                 )
-            if self.add_labels_to_validation_graph or \
-                    self.add_shui_conforms_to_validation_graph:
+            if self.add_labels or \
+                    self.add_shui_conforms:
                 validation_graph_uris = validation_graph.subjects(
                     RDF.type,
                     SH.ValidationResult
                 )
                 focus_nodes = None
-                if self.add_labels_to_validation_graph:
-                    validation_graph, focus_nodes = self.add_labels(
+                if self.add_labels:
+                    validation_graph, focus_nodes = self.add_labels_val(
                         validation_graph,
                         data_graph,
                         shacl_graph,
                         validation_graph_uris
                     )
-                if self.add_shui_conforms_to_validation_graph:
-                    validation_graph = self.add_shui_conforms(
+                if self.add_shui_conforms:
+                    validation_graph = self.add_shui_conforms_val(
                         validation_graph,
                         validation_graph_uris,
                         focus_nodes
