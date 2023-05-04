@@ -8,7 +8,7 @@ An eccenca Corporate Memory (CMEM) workflow plugin performing [SHACL](https://ww
 cmemc admin workspace python install cmem-plugin-pyshacl
 ```
 
-[![eccenca Corporate Memory](https://img.shields.io/badge/eccenca-Corporate%20Memory-orange)](https://documentation.eccenca.com)   
+[![eccenca Corporate Memory](https://img.shields.io/badge/eccenca-Corporate%20Memory-orange)](https://documentation.eccenca.com) [![workflow](https://github.com/eccenca/cmem-plugin-pyshacl/actions/workflows/check.yml/badge.svg)](https://github.com/eccenca/cmem-plugin-pyshacl/actions) [![PyPI](https://img.shields.io/pypi/v/cmem-plugin-pyshacl)](https://pypi.org/project/cmem-plugin-pyshacl/)  
 
 ## Development
 
