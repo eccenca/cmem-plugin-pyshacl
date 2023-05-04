@@ -395,7 +395,12 @@ class ShaclValidation(WorkflowPlugin):
                     validation_graph.add((source_shape, RDFS.label, label))
         return validation_graph, focus_nodes
 
-    def add_shui_conforms_val(self, validation_graph, validation_result_uris, focus_nodes):
+    def add_shui_conforms_val(
+            self,
+            validation_graph,
+            validation_result_uris,
+            focus_nodes
+    ):
         """
         add shui conforms flag
         """
