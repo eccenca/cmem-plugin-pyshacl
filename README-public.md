@@ -8,8 +8,6 @@ This is a plugin for [eccenca](https://eccenca.com) [Corporate Memory](https://d
 cmemc admin workspace python install cmem-plugin-pyshacl
 ```
 
-[![eccenca Corporate Memory](https://img.shields.io/badge/eccenca-Corporate%20Memory-orange)](https://documentation.eccenca.com)
-
 ## Options
 
 ### Data graph URI
