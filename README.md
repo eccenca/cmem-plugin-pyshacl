@@ -96,7 +96,7 @@ In order to set options via the input the following parameter names can be used:
 | SHACL graph URI                                | shacl_graph_uri        |
 | Generate validation graph                      | generate_graph         |
 | Validation graph URI                           | validation_graph_uri   |
-| Output entities                                | output_values          |
+| Output entities                                | output_entities        |
 | Clear validation graph                         | clear_validation_graph |
 | Resolve owl:imports                            | owl_imports            |
 | Blank node skolemization                       | skolemize              |

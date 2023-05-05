@@ -41,7 +41,7 @@ def test_workflow_execution():
         validation_graph_uri=validation_graph_uri,
         ontology_graph_uri="",
         generate_graph=True,
-        output_values=True,
+        output_entities=True,
         clear_validation_graph=True,
         owl_imports=True,
         skolemize=True,
