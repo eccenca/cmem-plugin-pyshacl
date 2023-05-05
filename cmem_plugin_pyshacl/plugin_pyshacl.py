@@ -142,7 +142,7 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=BoolParameterType(),
-            name="output_values",
+            name="output_entities",
             label="Output entities",
             description="If enabled, the plugin outputs the validation results as "
                         "entities and can be connected to, for instance, a CSV "
@@ -269,7 +269,7 @@ class ShaclValidation(WorkflowPlugin):
         ontology_graph_uri,
         generate_graph,
         validation_graph_uri,
-        output_values,
+        output_entities,
         clear_validation_graph,
         owl_imports,
         skolemize,
@@ -285,7 +285,7 @@ class ShaclValidation(WorkflowPlugin):
         self.ontology_graph_uri = ontology_graph_uri
         self.validation_graph_uri = validation_graph_uri
         self.generate_graph = generate_graph
-        self.output_values = output_values
+        self.output_entities = output_entities
         self.owl_imports = owl_imports
         self.clear_validation_graph = clear_validation_graph
         self.skolemize = skolemize
@@ -557,7 +557,7 @@ class ShaclValidation(WorkflowPlugin):
         validate plugin parameters
         """
         self.log.info("Validating parameters...")
-        if not self.output_values and not self.generate_graph:
+        if not self.output_entities and not self.generate_graph:
             raise ValueError("Generate validation graph or Output values parameter "
                              "needs to be set to true")
         if not validator_url(self.data_graph_uri):
@@ -654,7 +654,7 @@ class ShaclValidation(WorkflowPlugin):
         )
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
-        if self.output_values:
+        if self.output_entities:
             entities = self.make_entities(
                 validation_graph,
                 data_graph,
@@ -689,7 +689,7 @@ class ShaclValidation(WorkflowPlugin):
                     )
             validation_graph = self.add_prov(validation_graph, utctime)
             self.post_graph(validation_graph)
-        if self.output_values:
+        if self.output_entities:
             self.log.info("Outputting entities")
             return entities
         return None
