@@ -635,7 +635,9 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
 
         if self.ontology_graph_uri:
-            self.log.info(f"Loading ontology graph <{self.ontology_graph_uri}> into memory...")
+            self.log.info(
+                f"Loading ontology graph <{self.ontology_graph_uri}> into memory..."
+            )
             ontology_graph = self.get_graph(self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
         else:
