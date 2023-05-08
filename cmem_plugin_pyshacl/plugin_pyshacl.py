@@ -48,11 +48,7 @@ def get_label(graph, subject):
     """
     get preferred label
     """
-    labels = preferred_label(graph, subject, label_properties=(
-        RDFS.label,
-        SKOSXL.prefLabel/SKOSXL.literalForm,
-        SKOS.prefLabel
-    ))
+    labels = preferred_label(graph, subject)
     if labels:
         return labels[0][1]
     return None
@@ -63,8 +59,11 @@ def preferred_label(
         subject,
         lang=None,
         default=None,
-        label_properties=(SKOS.prefLabel, RDFS.label)
-        ):
+        label_properties=(
+                RDFS.label,
+                SKOSXL.prefLabel/SKOSXL.literalForm,
+                SKOS.prefLabel
+        )):
     """
     adapted from rdflib 6.1.1, function removed in rdflib 6.2.0
     """
@@ -636,6 +635,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
 
         if self.ontology_graph_uri:
+            self.log.info(f"Loading ontology graph <{self.ontology_graph_uri}> into memory...")
             ontology_graph = self.get_graph(self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
         else:
