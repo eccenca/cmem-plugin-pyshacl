@@ -543,8 +543,9 @@ class ShaclValidation(WorkflowPlugin):
         get graph from cmem
         """
         if cmem_store:
-            backup_graph(uri)
-            graph = Graph(store=CMEMStore(), identifier=uri)
+            # only for data graph
+            self.copy_data_graph()
+            graph = Graph(store=CMEMStore(), identifier=f"{uri}_backup")
         else:
             graph = Graph()
             graph.parse(data=get(
@@ -657,8 +658,6 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(self.data_graph_uri, cmem_store=self.cmem_store)
-        if self.cmem_store:
-            self.data_graph_uri = f"{self.data_graph_uri}_copy"
         self.log.info(f"Finished loading data graph in {e_t(start)} seconds")
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
@@ -725,5 +724,5 @@ class ShaclValidation(WorkflowPlugin):
             return
         if self.cmem_store:
             self.log.info("removing data graph copy")
-            delete(self.data_graph_uri)
+            delete(f"{self.data_graph_uri}_backup")
         return None
