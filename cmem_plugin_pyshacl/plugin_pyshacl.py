@@ -545,7 +545,7 @@ class ShaclValidation(WorkflowPlugin):
         if cmem_store:
             # only for data graph
             self.copy_data_graph()
-            graph = Graph(store=CMEMStore(), identifier=f"{uri}_backup")
+            graph = Graph(store=CMEMStore(), identifier=f"{uri}_copy")
         else:
             graph = Graph()
             graph.parse(data=get(
@@ -726,5 +726,5 @@ class ShaclValidation(WorkflowPlugin):
             return
         if self.cmem_store:
             self.log.info("removing data graph copy")
-            delete(f"{self.data_graph_uri}_backup")
+            delete(f"{self.data_graph_uri}_copy")
         return None
