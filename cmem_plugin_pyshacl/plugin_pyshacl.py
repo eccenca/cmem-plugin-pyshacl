@@ -12,7 +12,8 @@ from rdflib import Graph, URIRef, Literal, BNode, RDF, SH, PROV, XSD, RDFS, SKOS
     Namespace
 from pyshacl import validate
 from strtobool import strtobool
-from cmem.cmempy.dp.proxy.graph import get, post_streamed
+from cmem.cmempy.dp.proxy.graph import get, post_streamed, delete
+from cmem.cmempy.store.cmem_store import CMEMStore
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from cmem_plugin_base.dataintegration.description import Plugin, \
@@ -252,6 +253,14 @@ def preferred_label(
             description="Enable SHACL Advanced Features.",
             default_value=False,
             advanced=True
+        ),
+        PluginParameter(
+            param_type = BoolParameterType(),
+            name="cmem_store",
+            label="Use CMEM store",
+            description="Use CMEM Store implementation for data graph (experimental).",
+            default_value=False,
+            advanced=True
         )
     ]
 )
@@ -277,7 +286,8 @@ class ShaclValidation(WorkflowPlugin):
         add_shui_conforms,
         meta_shacl,
         inference,
-        advanced
+        advanced,
+        cmem_store
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
@@ -294,6 +304,7 @@ class ShaclValidation(WorkflowPlugin):
         self.meta_shacl = meta_shacl
         self.inference = inference
         self.advanced = advanced
+        self.cmem_store = cmem_store
 
         discover_plugins_in_module("cmem_plugin_pyshacl")
         this_plugin = Plugin.plugins[0]
@@ -527,15 +538,19 @@ class ShaclValidation(WorkflowPlugin):
             schema=EntitySchema(type_uri=SH.ValidationResult, paths=paths)
         )
 
-    def get_graph(self, uri):
+    def get_graph(self, uri, cmem_store=False):
         """
         get graph from cmem
         """
-        graph = Graph()
-        graph.parse(data=get(
+        if cmem_store:
+            backup_graph(uri)
+            graph = Graph(store=CMEMStore(), identifier=uri)
+        else:
+            graph = Graph()
+            graph.parse(data=get(
                 uri,
                 owl_imports_resolution=self.owl_imports).text,
-                format="turtle")
+                        format="turtle")
         return graph
 
     def process_inputs(self, inputs):
@@ -613,6 +628,20 @@ class ShaclValidation(WorkflowPlugin):
         for param in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{param}: {self.__dict__[param]}")
 
+    def copy_data_graph(self):
+        """
+        create copy of data graph for inplace changes when cmem_store=True
+        """
+        self.log.info("creating copy of data graph for CMEM Store")
+        graph = self.get_graph(self.data_graph_uri)
+        temp_file = f"{uuid4()}.nt"
+        graph.serialize(temp_file, format="nt", encoding="utf-8")
+        res = post_streamed(f"{self.data_graph_uri}_copy", temp_file, replace=True)
+        remove(temp_file)
+        if res.status_code != 204:
+            raise ValueError(f"Response {res.status_code}: {res.url}")
+
+
     def execute(self, inputs=(), context: ExecutionContext = ExecutionContext()):
         """
         execute plugin
@@ -627,7 +656,9 @@ class ShaclValidation(WorkflowPlugin):
         self.check_parameters()
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
-        data_graph = self.get_graph(self.data_graph_uri)
+        data_graph = self.get_graph(self.data_graph_uri, cmem_store=self.cmem_store)
+        if self.cmem_store:
+            self.data_graph_uri = f"{self.data_graph_uri}_copy"
         self.log.info(f"Finished loading data graph in {e_t(start)} seconds")
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
@@ -691,5 +722,8 @@ class ShaclValidation(WorkflowPlugin):
             self.post_graph(validation_graph)
         if self.output_entities:
             self.log.info("Outputting entities")
-            return entities
+            return
+        if self.cmem_store:
+            self.log.info("removing data graph copy")
+            delete(self.data_graph_uri)
         return None
