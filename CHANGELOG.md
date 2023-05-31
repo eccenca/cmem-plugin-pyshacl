@@ -6,10 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [4.2.0]
 
+
+### Fixed
+
+- fixed handling of `SH.ValidationResult` without `SH.resultPath`
+
 ### Changed
 
 - migrate to open source on Github
 - changed internal parameter names
+- `SH.ValidationResult` labels now contain full result paths
 
 ## [4.1.2] 2023-05-03
 

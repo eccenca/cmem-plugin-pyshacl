@@ -356,15 +356,12 @@ class ShaclValidation(WorkflowPlugin):
                 subject=validation_result_uri,
                 predicate=SH.resultMessage
             ))
-            # result_path = str(validation_graph.value(
-            #     subject=validation_result_uri,
-            #     predicate=SH.resultPath
-            # )).split("/")[-1]
-            result_path = basename(validation_graph.value(
+            result_path = validation_graph.value(
                 subject=validation_result_uri,
                 predicate=SH.resultPath
-            ))
-            label = f"SHACL: {result_path}: {message}"
+            )
+            result_path_string = f"{result_path}: " if result_path else ""
+            label = f"SHACL: {result_path_string}{message}"
             validation_graph.add((validation_result_uri, RDFS.label, Literal(label)))
             if self.include_graphs_labels:
                 focus_node = validation_graph.value(
@@ -613,7 +610,7 @@ class ShaclValidation(WorkflowPlugin):
         for param in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{param}: {self.__dict__[param]}")
 
-    def execute(self, inputs=(), context: ExecutionContext = ExecutionContext()):
+    def execute(self, inputs=(), context: ExecutionContext= ExecutionContext()):
         """
         execute plugin
         """
