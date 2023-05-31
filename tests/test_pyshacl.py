@@ -19,7 +19,7 @@ def post_shacl_shacl(shacl_graph_uri):
         (
             URIRef(shacl_graph_uri),
             RDF.type,
-            URIRef("https://vocab.eccenca.com/shui/ShapeCatalog")
+            URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"),
         )
     )
     temp_file = f"{uuid4()}.nt"
@@ -50,7 +50,7 @@ def test_workflow_execution():
         add_shui_conforms=True,
         meta_shacl=False,
         inference="none",
-        advanced=False
+        advanced=False,
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
     res = get(validation_graph_uri)
