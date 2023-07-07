@@ -20,7 +20,7 @@ cmemc admin workspace python install cmem-plugin-pyshacl
 
 ### Data graph URI
 
-The URI of the graph to be validated. The graph URI is selected from a list of graphs of types:
+The URI of the data graph to be validated. The graph URI is selected from a list of graphs of types:
 - `di:Dataset`
 - `dsm:ThesaurusProject`
 - `owl:Ontology`
