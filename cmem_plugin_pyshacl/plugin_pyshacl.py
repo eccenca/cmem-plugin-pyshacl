@@ -367,11 +367,7 @@ class ShaclValidation(WorkflowPlugin):
         conforms = validation_graph.value(
             subject=validation_report_uri, predicate=SH.conforms
         )
-        label = (
-            "SHACL validation report, conforms"
-            if conforms == "true"
-            else "SHACL validation report, nonconforms"
-        )
+        label = f"SHACL validation report, conforms={str(conforms)}"
         validation_graph.add((validation_report_uri, RDFS.label, Literal(label)))
         for validation_result_uri in validation_result_uris:
             message = str(

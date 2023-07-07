@@ -10,10 +10,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Fixed
 
 - fixed handling of `SH.ValidationResult` without `SH.resultPath`
+- ValidationReport label includes correct _conforms=true/false_ information
 
 ### Changed
 
-- migrate to open source on Github
+- migrate to open source on GitHub
 - changed internal parameter names
 - `SH.ValidationResult` labels now contain full result paths
 
