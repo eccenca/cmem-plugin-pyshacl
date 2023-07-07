@@ -17,17 +17,16 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Install Task
         uses: arduino/setup-task@v1
 
       - name: Set up python
         id: setup-python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.11'
-          cache: 'poetry'
+          python-version: 3.9
 
       - name: Install and configure poetry
         uses: snok/install-poetry@v1
@@ -40,10 +39,16 @@ jobs:
         run: |
           poetry self add "poetry-dynamic-versioning[plugin]"
 
+      - name: Load cached venv if cache exists
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
       - name: Publish Package
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           poetry config pypi-token.pypi "$PYPI_TOKEN"
           poetry publish --build
-

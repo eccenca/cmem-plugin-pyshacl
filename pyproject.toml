@@ -29,6 +29,7 @@ ruamel-yaml = "^0.17.21"
 PyYAML = "^6.0"
 charset-normalizer = "^3.1.0"
 packaging = "^23.0"
+pillow = "9.5.0"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.5"
@@ -38,7 +39,6 @@ defusedxml = "^0.7.1"
 flake8-formatter-junit-xml = "^0.0.6"
 genbadge = "^1.1.0"
 mypy = "^1.2.0"
-pillow = "^9.5.0"
 pylint-junit = "^0.3.2"
 pytest = "^7.3.1"
 pytest-cov = "^4.0.0"
@@ -77,4 +77,3 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = ""
-
