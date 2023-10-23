@@ -14,10 +14,13 @@ on:
 
 jobs:
   check:
+
     runs-on: ubuntu-latest
+    concurrency: testing_environment
+
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Task
         uses: arduino/setup-task@v1
@@ -26,7 +29,7 @@ jobs:
         id: setup-python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: '3.11'
 
       - name: Install and configure poetry
         uses: snok/install-poetry@v1
@@ -35,12 +38,9 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
-      - name: Load cached venv if cache exists
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install dynamic versioning plugin
+        run: |
+          poetry self add "poetry-dynamic-versioning[plugin]"
 
       - name: bandit
         run: |
@@ -70,7 +70,7 @@ jobs:
           task check:safety
 
       - name: Publish Test Report in Action
-        uses: mikepenz/action-junit-report@v3
+        uses: mikepenz/action-junit-report@v4
         if: always()  # always run even if the previous step fails
         with:
           report_paths: dist/junit-*.xml

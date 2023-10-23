@@ -6,7 +6,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [4.2.0]
 
-
 ### Added
 
 - Compatibility with cmem-plugin-base v4
@@ -21,6 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - migrate to open source on GitHub
 - changed internal parameter names
 - `SH.ValidationResult` labels now contain full result paths
+- upgrade template to 5.3.3
 
 ## [4.1.2] 2023-05-03
 

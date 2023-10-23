@@ -16,20 +16,12 @@ keywords = [
 homepage = "https://github.com/eccenca/cmem-plugin-pyshacl"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-cmem-plugin-base = ">=3.1.0,<5.0.0"
-pyshacl = "^0.22.2"
-validators = "^0.20.0"
-requests-toolbelt = "^0.10.1"
-rdflib = "^6.2.0"
-cmem-cmempy = "^23.1"
-types-setuptools = "^65.5.0.3"
-distutils-strtobool = "^0.1.0"
-ruamel-yaml = "^0.17.21"
-PyYAML = "^6.0"
-charset-normalizer = "^3.1.0"
-packaging = "^23.0"
-pillow = "9.5.0"
+# if you need to change python version here, change it also in .python-version
+python = "^3.11"
+
+[tool.poetry.dependencies.cmem-plugin-base]
+version = ">=3.1.0,<5.0.0"
+# allow-prereleases = true
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.5"
@@ -37,15 +29,27 @@ black = "^23.3.0"
 coverage = "^7.2.3"
 defusedxml = "^0.7.1"
 flake8-formatter-junit-xml = "^0.0.6"
+# https://github.com/smarie/python-genbadge/issues/31
+pillow = "^9.5.0"
 genbadge = "^1.1.0"
 mypy = "^1.2.0"
+# https://github.com/rasjani/pylint-junit/issues/1
+pylint = "^2"
 pylint-junit = "^0.3.2"
 pytest = "^7.3.1"
 pytest-cov = "^4.0.0"
-pytest-memray = "^1.4.0"
+pytest-memray = { version = "^1.4.0",  markers = "platform_system != 'Windows'" }
 safety = "^1.10.3"
 typed-ast = "^1.5.4"
 wheel = "^0.38.4"
+pyshacl = "^0.22.2"
+validators = "^0.20.0"
+rdflib = "^6.2.0"
+distutils-strtobool = "^0.1.0"
+ruamel-yaml = "^0.17.21"
+PyYAML = "^6.0"
+charset-normalizer = "^3.1.0"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
