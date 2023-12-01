@@ -289,6 +289,7 @@ def preferred_label(
 )
 # pylint: disable-msg=too-many-instance-attributes
 # pylint: disable-msg=too-many-arguments
+# pylint: disable-msg=too-many-locals
 class ShaclValidation(WorkflowPlugin):
     """
     Plugin class
