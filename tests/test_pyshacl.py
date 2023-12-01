@@ -48,10 +48,12 @@ def test_workflow_execution():
         add_labels=True,
         include_graphs_labels=True,
         add_shui_conforms=True,
-        meta_shacl=False,
-        inference="none",
-        advanced=False,
-        remove_graph_types=False,
+        meta_shacl=True,
+        inference="both",
+        advanced=True,
+        remove_dataset_graph_type=True,
+        remove_thesaurus_graph_typ=True,
+        remove_shape_catalog_graph_type=True,
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
     res = get(validation_graph_uri)

@@ -79,11 +79,6 @@ If enabled, OWL inferencing expansion of the data graph is performed before vali
 
 Enable SHACL Advanced Features. Default value: *false*.
 
-### Remove additional graph types from data graph
-
-Before validating, remove graph types that may have been added by CMEM to the data graph. Removes triples of the form `<graph> a <type>`, where `<type>` is one
-of `<http://rdfs.org/ns/void#Dataset>`, `<https://vocab.eccenca.com/shui/ShapeCatalog>`, `<https://vocab.eccenca.com/dsm/ThesaurusProject>`. Default value: *false*.
-
 ## Parameter Input
 
 In order to set options via the input the following parameter names can be used:
@@ -105,4 +100,3 @@ In order to set options via the input the following parameter names can be used:
 | Ontology graph URI                             | ontology_graph_uri     |
 | Inference                                      | inference              |
 | SHACL Advanced Features                        | advanced               |
-| Remove additional graph types from data graph  | remove_graph_types     |  

@@ -275,13 +275,32 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=BoolParameterType(),
-            name="remove_graph_types",
-            label="Remove additional graph types from data graph",
-            description="Before validating, remove graph types that may have been "
-            "added by CMEM to the data graph. Removes triples of the form <graph> a "
-            "<type>, where type is one of <http://rdfs.org/ns/void#Dataset>, "
-            "<https://vocab.eccenca.com/shui/ShapeCatalog>, "
-            "<https://vocab.eccenca.com/dsm/ThesaurusProject>.",
+            name="remove_dataset_graph_type",
+            label="Remove graph type <http://rdfs.org/ns/void#Dataset> from data graph",
+            description="Before validating, remove the triple <data_graph_uri> a "
+            "<http://rdfs.org/ns/void#Dataset> from the loaded data graph.",
+            default_value=False,
+            advanced=True,
+        ),
+        PluginParameter(
+            param_type=BoolParameterType(),
+            name="remove_thesaurus_graph_type",
+            label="Remove graph type <https://vocab.eccenca.com/dsm/ThesaurusProject> "
+            "from data graph",
+            description="Before validating, remove the triple <data_graph_uri> a "
+            "<https://vocab.eccenca.com/dsm/ThesaurusProject> from the loaded data "
+            "graph.",
+            default_value=False,
+            advanced=True,
+        ),
+        PluginParameter(
+            param_type=BoolParameterType(),
+            name="remove_shape_catalog_graph_type",
+            label="Remove graph type <https://vocab.eccenca.com/shui/ShapeCatalog> "
+            "from data graph",
+            description="Before validating, remove the triple <data_graph_uri> a "
+            "<https://vocab.eccenca.com/shui/ShapeCatalog> from the loaded data "
+            "graph.",
             default_value=False,
             advanced=True,
         ),
@@ -312,7 +331,9 @@ class ShaclValidation(WorkflowPlugin):
         meta_shacl,
         inference,
         advanced,
-        remove_graph_types,
+        remove_dataset_graph_type,
+        remove_thesaurus_graph_type,
+        remove_shape_catalog_graph_type,
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
@@ -329,7 +350,9 @@ class ShaclValidation(WorkflowPlugin):
         self.meta_shacl = meta_shacl
         self.inference = inference
         self.advanced = advanced
-        self.remove_graph_types = remove_graph_types
+        self.remove_dataset_graph_type = remove_dataset_graph_type
+        self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
+        self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
 
         discover_plugins_in_module("cmem_plugin_pyshacl")
         this_plugin = Plugin.plugins[0]
@@ -655,6 +678,13 @@ class ShaclValidation(WorkflowPlugin):
         for param in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{param}: {self.__dict__[param]}")
 
+    def remove_graph_type(self, data_graph, iri):
+        """
+        Remove triple <data_graph_uri> a <iri>
+        """
+        self.log.info(f"Removing graph type <{iri}> from data graph")
+        data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
+
     def execute(self, inputs=(), context: ExecutionContext = ExecutionContext()):
         """
         execute plugin
@@ -672,15 +702,16 @@ class ShaclValidation(WorkflowPlugin):
         data_graph = self.get_graph(self.data_graph_uri)
         self.log.info(f"Finished loading data graph in {e_t(start)} seconds")
 
-        if self.remove_graph_types:
-            self.log.info("Removing additional graph types from data graph")
-            graph_type_iris = [
-                "http://rdfs.org/ns/void#Dataset",
-                "https://vocab.eccenca.com/shui/ShapeCatalog",
-                "https://vocab.eccenca.com/dsm/ThesaurusProject",
-            ]
-            for iri in graph_type_iris:
-                data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
+        if self.remove_dataset_graph_type:
+            self.remove_graph_type(data_graph, "http://rdfs.org/ns/void#Dataset")
+        if self.remove_thesaurus_graph_type:
+            self.remove_graph_type(
+                data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject"
+            )
+        if self.remove_shape_catalog_graph_type:
+            self.remove_graph_type(
+                data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog"
+            )
 
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()

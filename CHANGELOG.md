@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Added
 
 - Compatibility with cmem-plugin-base v4
-- Added parameter "Remove additional graph types from data graph"
+- Parameters for removing additionnal graph types from the data graph"
 
 ### Fixed
 
