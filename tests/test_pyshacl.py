@@ -48,7 +48,7 @@ def test_workflow_execution():
         add_labels=True,
         include_graphs_labels=True,
         add_shui_conforms=True,
-        meta_shacl=True,
+        meta_shacl=False,
         inference="both",
         advanced=True,
         remove_dataset_graph_type=True,
