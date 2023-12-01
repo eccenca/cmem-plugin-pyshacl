@@ -51,6 +51,7 @@ def test_workflow_execution():
         meta_shacl=False,
         inference="none",
         advanced=False,
+        remove_graph_types=False,
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
     res = get(validation_graph_uri)
