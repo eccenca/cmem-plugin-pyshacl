@@ -52,7 +52,7 @@ def test_workflow_execution():
         inference="both",
         advanced=True,
         remove_dataset_graph_type=True,
-        remove_thesaurus_graph_typ=True,
+        remove_thesaurus_graph_type=True,
         remove_shape_catalog_graph_type=True,
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
