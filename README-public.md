@@ -102,5 +102,5 @@ In order to set options via the input the following parameter names can be used:
 | Meta-SHACL                                     | meta_shacl             |
 | Ontology graph URI                             | ontology_graph_uri     |
 | Inference                                      | inference              |
-| Advanced                                       | advanced               |
+| SHACL Advanced Features                        | advanced               |
 | Remove additional graph types from data graph  | remove_graph_types     |  
