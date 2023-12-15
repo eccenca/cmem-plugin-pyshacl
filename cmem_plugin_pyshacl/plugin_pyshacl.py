@@ -26,7 +26,7 @@ from strtobool import strtobool
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
-from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
+from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.types import (
     BoolParameterType,
     StringParameterType,
@@ -116,6 +116,7 @@ def preferred_label(
 
 @Plugin(
     label="SHACL validation with pySHACL",
+    icon=Icon(file_name="shacl.jpg", package=__package__),
     plugin_id="shacl-pyshacl",
     description="Performs SHACL validation with pySHACL.",
     documentation="Performs SHACL validation with "

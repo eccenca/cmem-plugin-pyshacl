@@ -17,7 +17,7 @@ homepage = "https://github.com/eccenca/cmem-plugin-pyshacl"
 
 [tool.poetry.dependencies]
 # if you need to change python version here, change it also in .python-version
-python = ">=3.9,<4.0"
+python = "^3.11"
 pyshacl = "^0.22.2"
 validators = "^0.21.1"
 rdflib = "^6.2.0"
@@ -27,7 +27,7 @@ PyYAML = "^6.0"
 charset-normalizer = "^3.1.0"
 
 [tool.poetry.dependencies.cmem-plugin-base]
-version = ">=3.1.0,<5.0.0"
+version = "^4.3.0"
 # allow-prereleases = true
 
 [tool.poetry.group.dev.dependencies]
@@ -49,6 +49,7 @@ pytest-memray = { version = "^1.4.0",  markers = "platform_system != 'Windows'" 
 safety = "^1.10.3"
 typed-ast = "^1.5.4"
 wheel = "^0.38.4"
+pip = ">=23.3" # Avoid safety issue 62044 for pip less than 23.3
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
