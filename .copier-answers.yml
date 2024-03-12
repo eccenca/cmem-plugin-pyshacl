@@ -7,5 +7,5 @@ github_page: https://github.com/eccenca/cmem-plugin-pyshacl
 project_description: Validate your Knowledge Graphs based on tests generated from
     SHACL shapes.
 project_slug: pyshacl
-pypi: true
+pypi: false
 

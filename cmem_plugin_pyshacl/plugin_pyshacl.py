@@ -1,49 +1,48 @@
-"""
-CMEM plugin for SHACl validation using pySHACL
-"""
-from os import remove
-from os.path import getsize
-from time import time
-from datetime import datetime
-from uuid import uuid4
+"""CMEM plugin for SHACl validation using pySHACL"""
 from collections import OrderedDict
-from validators import url as validator_url
-from rdflib import (
-    Graph,
-    URIRef,
-    Literal,
-    BNode,
-    RDF,
-    SH,
-    PROV,
-    XSD,
-    RDFS,
-    SKOS,
-    Namespace,
-)
-from pyshacl import validate
-from strtobool import strtobool
+from collections.abc import Sequence
+from datetime import UTC, datetime
+from pathlib import Path
+from time import time
+from uuid import uuid4
+
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.context import ExecutionContext
-from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
-from cmem_plugin_base.dataintegration.types import (
-    BoolParameterType,
-    StringParameterType,
+from cmem_plugin_base.dataintegration.discovery import discover_plugins_in_module
+from cmem_plugin_base.dataintegration.entity import (
+    Entities,
+    Entity,
+    EntityPath,
+    EntitySchema,
 )
+from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import (
     GraphParameterType,
     get_graphs_list,
 )
-from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
-from cmem_plugin_base.dataintegration.entity import (
-    Entities,
-    Entity,
-    EntitySchema,
-    EntityPath,
+from cmem_plugin_base.dataintegration.types import (
+    BoolParameterType,
+    StringParameterType,
 )
-from cmem_plugin_base.dataintegration.discovery import discover_plugins_in_module
+from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
+from pyshacl import validate
+from rdflib import (
+    PROV,
+    RDF,
+    RDFS,
+    SH,
+    SKOS,
+    XSD,
+    BNode,
+    Graph,
+    Literal,
+    Namespace,
+    URIRef,
+)
+from strtobool import strtobool
+from validators import url as validator_url
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -55,17 +54,13 @@ DATA_GRAPH_TYPES = [
 ]
 
 
-def e_t(start):
-    """
-    calculate rounded elapsed time
-    """
+def e_t(start: float) -> float:
+    """Calculate rounded elapsed time"""
     return round(time() - start, 3)
 
 
-def get_label(graph, subject):
-    """
-    get preferred label
-    """
+def get_label(graph: Graph, subject: URIRef | BNode) -> Literal | None:
+    """Get preferred label"""
     labels = preferred_label(graph, subject)
     if labels:
         return labels[0][1]
@@ -73,38 +68,35 @@ def get_label(graph, subject):
 
 
 def preferred_label(
-    graph,
-    subject,
-    lang=None,
-    default=None,
-    label_properties=(
+    graph: Graph,
+    subject: URIRef | BNode,
+    lang: str | None = None,
+    default: list | None = None,
+    label_properties: tuple = (
         RDFS.label,
         SKOSXL.prefLabel / SKOSXL.literalForm,
         SKOS.prefLabel,
     ),
-):
-    """
-    adapted from rdflib 6.1.1, function removed in rdflib 6.2.0
-    """
+) -> list:
+    """Adapted from rdflib 6.1.1, function removed in rdflib 6.2.0"""
     if default is None:
         default = []
     # setup the language filtering
     if lang is not None:
         if lang == "":  # we only want not language-tagged literals
 
-            def langfilter(lbl):
+            def langfilter(lbl: Literal) -> bool:
                 return lbl.language is None
 
         else:
 
-            def langfilter(lbl):
+            def langfilter(lbl: Literal) -> bool:
                 return lbl.language == lang
 
     else:  # we don't care about language tags
 
-        def langfilter(lbl):
-            lbl = True
-            return lbl
+        def langfilter(lbl: Literal) -> bool:  # noqa: ARG001
+            return True
 
     for label_prop in label_properties:
         labels = list(filter(langfilter, graph.objects(subject, label_prop)))
@@ -138,9 +130,7 @@ def preferred_label(
             "`dsm:ThesaurusProject`.",
         ),
         PluginParameter(
-            param_type=GraphParameterType(
-                classes=["https://vocab.eccenca.com/shui/ShapeCatalog"]
-            ),
+            param_type=GraphParameterType(classes=["https://vocab.eccenca.com/shui/ShapeCatalog"]),
             name="shacl_graph_uri",
             label="SHACL shapes graph URI",
             description="The URI of the graph containing the SHACL shapes to be "
@@ -178,8 +168,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="clear_validation_graph",
             label="Clear validation graph",
-            description="If enabled, the validation graph is cleared before workflow "
-            "execution.",
+            description="If enabled, the validation graph is cleared before workflow " "execution.",
             default_value=True,
         ),
         PluginParameter(
@@ -240,9 +229,7 @@ def preferred_label(
             advanced=True,
         ),
         PluginParameter(
-            param_type=GraphParameterType(
-                classes=["http://www.w3.org/2002/07/owl#Ontology"]
-            ),
+            param_type=GraphParameterType(classes=["http://www.w3.org/2002/07/owl#Ontology"]),
             name="ontology_graph_uri",
             label="Ontology graph URI",
             description="The URI of a graph containing extra ontological information. "
@@ -254,9 +241,7 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=ChoiceParameterType(
-                OrderedDict(
-                    {"none": "None", "rdfs": "RDFS", "owlrl": "OWLRL", "both": "Both"}
-                )
+                OrderedDict({"none": "None", "rdfs": "RDFS", "owlrl": "OWLRL", "both": "Both"})
             ),
             name="inference",
             label="Inference",
@@ -307,34 +292,29 @@ def preferred_label(
         ),
     ],
 )
-# pylint: disable-msg=too-many-instance-attributes
-# pylint: disable-msg=too-many-arguments
-# pylint: disable-msg=too-many-locals
 class ShaclValidation(WorkflowPlugin):
-    """
-    Plugin class
-    """
+    """Plugin class"""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        data_graph_uri,
-        shacl_graph_uri,
-        ontology_graph_uri,
-        generate_graph,
-        validation_graph_uri,
-        output_entities,
-        clear_validation_graph,
-        owl_imports,
-        skolemize,
-        add_labels,
-        include_graphs_labels,
-        add_shui_conforms,
-        meta_shacl,
-        inference,
-        advanced,
-        remove_dataset_graph_type,
-        remove_thesaurus_graph_type,
-        remove_shape_catalog_graph_type,
+        data_graph_uri: str,
+        shacl_graph_uri: str,
+        ontology_graph_uri: str,
+        generate_graph: bool,
+        validation_graph_uri: str,
+        output_entities: bool,
+        clear_validation_graph: bool,
+        owl_imports: bool,
+        skolemize: bool,
+        add_labels: bool,
+        include_graphs_labels: bool,
+        add_shui_conforms: bool,
+        meta_shacl: bool,
+        inference: str,
+        advanced: bool,
+        remove_dataset_graph_type: bool,
+        remove_thesaurus_graph_type: bool,
+        remove_shape_catalog_graph_type: bool,
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
@@ -359,20 +339,14 @@ class ShaclValidation(WorkflowPlugin):
         this_plugin = Plugin.plugins[0]
 
         self.bool_parameters = [
-            p.name
-            for p in this_plugin.parameters
-            if isinstance(p.param_type, BoolParameterType)
+            p.name for p in this_plugin.parameters if isinstance(p.param_type, BoolParameterType)
         ]
         self.graph_parameters = [
-            p.name
-            for p in this_plugin.parameters
-            if isinstance(p.param_type, GraphParameterType)
+            p.name for p in this_plugin.parameters if isinstance(p.param_type, GraphParameterType)
         ]
 
-    def add_prov(self, validation_graph, utctime):
-        """
-        add provenance data
-        """
+    def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
+        """Add provenance data"""
         self.log.info("Adding PROV information validation graph")
         validation_report_uri = validation_graph.value(
             predicate=RDF.type, object=SH.ValidationReport
@@ -393,26 +367,24 @@ class ShaclValidation(WorkflowPlugin):
         return validation_graph
 
     def add_labels_val(
-        self, validation_graph, data_graph, shacl_graph, validation_result_uris
-    ):
-        """
-        add labels
-        """
+        self,
+        validation_graph: Graph,
+        data_graph: Graph,
+        shacl_graph: Graph,
+        validation_result_uris: list,
+    ) -> tuple:
+        """Add labels"""
         self.log.info("Adding labels to validation graph")
         focus_nodes = []
         validation_report_uri = validation_graph.value(
             predicate=RDF.type, object=SH.ValidationReport
         )
-        conforms = validation_graph.value(
-            subject=validation_report_uri, predicate=SH.conforms
-        )
-        label = f"SHACL validation report, conforms={str(conforms)}"
+        conforms = validation_graph.value(subject=validation_report_uri, predicate=SH.conforms)
+        label = f"SHACL validation report, conforms={conforms!s}"
         validation_graph.add((validation_report_uri, RDFS.label, Literal(label)))
         for validation_result_uri in validation_result_uris:
             message = str(
-                validation_graph.value(
-                    subject=validation_result_uri, predicate=SH.resultMessage
-                )
+                validation_graph.value(subject=validation_result_uri, predicate=SH.resultMessage)
             )
             result_path = validation_graph.value(
                 subject=validation_result_uri, predicate=SH.resultPath
@@ -429,14 +401,11 @@ class ShaclValidation(WorkflowPlugin):
                 label = get_label(data_graph, focus_node)
                 if label:
                     validation_graph.add((focus_node, RDFS.label, label))
-                value = validation_graph.value(
-                    subject=validation_result_uri, predicate=SH.value
-                )
-                if value:
-                    if isinstance(value, (URIRef, BNode)):
-                        label = get_label(data_graph, value)
-                        if label:
-                            validation_graph.add((value, RDFS.label, label))
+                value = validation_graph.value(subject=validation_result_uri, predicate=SH.value)
+                if value and isinstance(value, URIRef | BNode):
+                    label = get_label(data_graph, value)
+                    if label:
+                        validation_graph.add((value, RDFS.label, label))
                 source_shape = validation_graph.value(
                     subject=validation_result_uri, predicate=SH.sourceShape
                 )
@@ -446,19 +415,13 @@ class ShaclValidation(WorkflowPlugin):
         return validation_graph, focus_nodes
 
     def add_shui_conforms_val(
-        self, validation_graph, validation_result_uris, focus_nodes
-    ):
-        """
-        add shui conforms flag
-        """
+        self, validation_graph: Graph, validation_result_uris: list, focus_nodes: list
+    ) -> Graph:
+        """Add shui conforms flag"""
         self.log.info("Adding shui:conforms flags to validation graph")
         itr = focus_nodes if focus_nodes else validation_result_uris
         for i in itr:
-            subj = (
-                i
-                if focus_nodes
-                else validation_graph.value(subject=i, predicate=SH.focusNode)
-            )
+            subj = i if focus_nodes else validation_graph.value(subject=i, predicate=SH.focusNode)
             validation_graph.add(
                 (
                     subj,
@@ -468,16 +431,14 @@ class ShaclValidation(WorkflowPlugin):
             )
         return validation_graph
 
-    def post_graph(self, validation_graph):
-        """
-        post validation graph to cmem
-        """
+    def post_graph(self, validation_graph: Graph) -> None:
+        """Post validation graph to cmem"""
         self.log.info("Posting SHACL validation graph...")
-        temp_file = f"{uuid4()}.nt"
+        temp_file = Path(f"{uuid4()}.nt")
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
         self.log.info(
             f"Created temporary file {temp_file} with size "
-            f"{getsize(temp_file)} bytes"
+            f"{Path.stat(temp_file).st_size()} bytes"
         )
         res = post_streamed(
             self.validation_graph_uri,
@@ -485,22 +446,17 @@ class ShaclValidation(WorkflowPlugin):
             replace=self.clear_validation_graph,
             content_type="application/n-triples",
         )
-        remove(temp_file)
+        Path.unlink(temp_file)
         self.log.info("Deleted temporary file")
-        if res.status_code == 204:
+        if res.status_code == 204:  # noqa: PLR2004
             self.log.info("Successfully posted SHACL validation graph")
         else:
-            self.log.info(
-                "Error posting SHACL validation graph: "
-                f"status code {res.status_code}"
-            )
+            self.log.info("Error posting SHACL validation graph: " f"status code {res.status_code}")
 
-    # pylint: disable-msg=too-many-arguments
-    # pylint: disable-msg=too-many-branches
-    def check_object(self, graph, subj, pred, data_graph, shacl_graph):
-        """
-        format RDF objects for entities output
-        """
+    def check_object(  # noqa: C901 PLR0912 PLR0913
+        self, graph: Graph, subj: URIRef, pred: URIRef, data_graph: Graph, shacl_graph: Graph
+    ) -> str:
+        """Format RDF objects for entities output"""
         if pred in (SH.sourceShape, SH.conforms):
             label_g = shacl_graph
         elif pred in (SH.value, SH.resultPath, SH.focusNode):
@@ -527,21 +483,19 @@ class ShaclValidation(WorkflowPlugin):
                     # first 50 lines of turtle CBD
                     res_val = graph.cbd(obj).serialize(format="turtle")
                     cbd_lines = res_val.split("\n")
-                    if len(cbd_lines) > 50:
+                    if len(cbd_lines) > 50:  # noqa: PLR2004
                         res_val = "\n".join(cbd_lines[:50]) + "\n..."
             elif isinstance(obj, Literal):
                 if pred == SH.value:
-                    res_val = (
-                        f'"{obj}"^^<{obj.datatype}>' if obj.datatype else f'"{obj}"'
-                    )
+                    res_val = f'"{obj}"^^<{obj.datatype}>' if obj.datatype else f'"{obj}"'
                 elif pred == SH.resultMessage:
                     res_val = str(obj)
         return res_val
 
-    def make_entities(self, validation_graph, data_graph, shacl_graph, utctime):
-        """
-        create entities
-        """
+    def make_entities(
+        self, validation_graph: Graph, data_graph: Graph, shacl_graph: Graph, utctime: str
+    ) -> Entities:
+        """Create entities"""
         self.log.info("Creating entities")
         shp = [
             "focusNode",
@@ -554,10 +508,8 @@ class ShaclValidation(WorkflowPlugin):
             "resultSeverity",
         ]
         entities = []
-        conforms = list(validation_graph.objects(predicate=SH.conforms))[0]
-        for validation_result in list(
-            validation_graph.subjects(RDF.type, SH.ValidationResult)
-        ):
+        conforms = next(iter(validation_graph.objects(predicate=SH.conforms)))
+        for validation_result in list(validation_graph.subjects(RDF.type, SH.ValidationResult)):
             values = [
                 [
                     self.check_object(
@@ -582,88 +534,61 @@ class ShaclValidation(WorkflowPlugin):
             schema=EntitySchema(type_uri=SH.ValidationResult, paths=paths),
         )
 
-    def get_graph(self, uri):
-        """
-        get graph from cmem
-        """
+    def get_graph(self, uri: str) -> Graph:
+        """Get graph from cmem"""
         graph = Graph()
-        graph.parse(
-            data=get(uri, owl_imports_resolution=self.owl_imports).text, format="turtle"
-        )
+        graph.parse(data=get(uri, owl_imports_resolution=self.owl_imports).text, format="turtle")
         return graph
 
-    def process_inputs(self, inputs):
-        """
-        process input parameters
-        """
+    def process_inputs(self, inputs: Sequence[Entities]) -> None:
+        """Process input parameters"""
         paths = [e.path for e in inputs[0].schema.paths]
-        values = [e[0] for e in list(inputs[0].entities)[0].values]
-        for param, val in zip(paths, values):
+        values = [e[0] for e in next(iter(inputs[0].entities)).values]
+        for param, val in zip(paths, values, strict=False):
             if param not in self.graph_parameters + self.bool_parameters:
                 raise ValueError(f"Invalid parameter: {param}")
             self.__dict__[param] = val
             self.log.info(f"input parameter {param}: {val}")
 
-    # pylint: disable-msg=too-many-branches
-    def check_parameters(self):
-        """
-        validate plugin parameters
-        """
+    def check_parameters(  # noqa: C901 PLR0912
+        self,
+    ) -> None:
+        """Validate plugin parameters"""
         self.log.info("Validating parameters...")
         if not self.output_entities and not self.generate_graph:
             raise ValueError(
-                "Generate validation graph or Output values parameter "
-                "needs to be set to true"
+                "Generate validation graph or Output values parameter " "needs to be set to true"
             )
         if not validator_url(self.data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid")
         if not validator_url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
-        graphs_dict = {
-            graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()
-        }
+        graphs_dict = {graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()}
 
         if self.ontology_graph_uri:
             if not validator_url(self.ontology_graph_uri):
                 raise ValueError("Ontology graph URI parameter is invalid")
             if self.ontology_graph_uri not in graphs_dict:
+                raise ValueError(f"Ontology graph <{self.ontology_graph_uri}> not found")
+            if "http://www.w3.org/2002/07/owl#Ontology" not in graphs_dict[self.ontology_graph_uri]:
                 raise ValueError(
-                    f"Ontology graph <{self.ontology_graph_uri}> not found"
-                )
-            if (
-                "http://www.w3.org/2002/07/owl#Ontology"
-                not in graphs_dict[self.ontology_graph_uri]
-            ):
-                raise ValueError(
-                    "Invalid graph type for Ontology graph "
-                    f"<{self.ontology_graph_uri}>"
+                    "Invalid graph type for Ontology graph " f"<{self.ontology_graph_uri}>"
                 )
 
         if self.data_graph_uri not in graphs_dict:
             raise ValueError(f"Data graph <{self.data_graph_uri}> not found")
         if self.shacl_graph_uri not in graphs_dict:
             raise ValueError(f"SHACL graph <{self.shacl_graph_uri}> not found")
-        if not any(
-            check in graphs_dict[self.data_graph_uri] for check in DATA_GRAPH_TYPES
-        ):
-            raise ValueError(
-                "Invalid graph type for data graph " f"<{self.data_graph_uri}>"
-            )
-        if (
-            "https://vocab.eccenca.com/shui/ShapeCatalog"
-            not in graphs_dict[self.shacl_graph_uri]
-        ):
-            raise ValueError(
-                "Invalid graph type for SHACL graph " f"<{self.shacl_graph_uri}>"
-            )
+        if not any(check in graphs_dict[self.data_graph_uri] for check in DATA_GRAPH_TYPES):
+            raise ValueError("Invalid graph type for data graph " f"<{self.data_graph_uri}>")
+        if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
+            raise ValueError("Invalid graph type for SHACL graph " f"<{self.shacl_graph_uri}>")
         for param in self.bool_parameters:
             if not isinstance(self.__dict__[param], bool):
                 try:
                     self.__dict__[param] = bool(strtobool(self.__dict__[param]))
                 except ValueError as err:
-                    raise ValueError(
-                        f"Invalid truth value for parameter {param}"
-                    ) from err
+                    raise ValueError(f"Invalid truth value for parameter {param}") from err
         if self.generate_graph:
             if not validator_url(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
@@ -679,17 +604,15 @@ class ShaclValidation(WorkflowPlugin):
         for param in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{param}: {self.__dict__[param]}")
 
-    def remove_graph_type(self, data_graph, iri):
-        """
-        Remove triple <data_graph_uri> a <iri>
-        """
+    def remove_graph_type(self, data_graph: Graph, iri: str) -> None:
+        """Remove triple <data_graph_uri> a <iri>"""
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def execute(self, inputs=(), context: ExecutionContext = ExecutionContext()):
-        """
-        execute plugin
-        """
+    def execute(  # noqa: C901 PLR0912
+        self, inputs: Sequence[Entities], context: ExecutionContext = ExecutionContext
+    ) -> Entities | None:
+        """Execute plugin"""
         try:
             setup_cmempy_user_access(context.user)
         except KeyError:
@@ -706,13 +629,9 @@ class ShaclValidation(WorkflowPlugin):
         if self.remove_dataset_graph_type:
             self.remove_graph_type(data_graph, "http://rdfs.org/ns/void#Dataset")
         if self.remove_thesaurus_graph_type:
-            self.remove_graph_type(
-                data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject"
-            )
+            self.remove_graph_type(data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject")
         if self.remove_shape_catalog_graph_type:
-            self.remove_graph_type(
-                data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog"
-            )
+            self.remove_graph_type(data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog")
 
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
@@ -720,9 +639,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
 
         if self.ontology_graph_uri:
-            self.log.info(
-                f"Loading ontology graph <{self.ontology_graph_uri}> into memory..."
-            )
+            self.log.info(f"Loading ontology graph <{self.ontology_graph_uri}> into memory...")
             ontology_graph = self.get_graph(self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
         else:
@@ -740,21 +657,15 @@ class ShaclValidation(WorkflowPlugin):
             inplace=True,
         )
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")
-        utctime = str(datetime.fromtimestamp(int(time()))).replace(" ", "T") + "Z"
+        utctime = str(datetime.fromtimestamp(int(time()), tz=UTC))[:-6].replace(" ", "T") + "Z"
         if self.output_entities:
-            entities = self.make_entities(
-                validation_graph, data_graph, shacl_graph, utctime
-            )
+            entities = self.make_entities(validation_graph, data_graph, shacl_graph, utctime)
         if self.generate_graph:
             if self.skolemize:
                 self.log.info("Skolemizing validation graph")
-                validation_graph = validation_graph.skolemize(
-                    basepath=self.validation_graph_uri
-                )
+                validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             if self.add_labels or self.add_shui_conforms:
-                validation_graph_uris = validation_graph.subjects(
-                    RDF.type, SH.ValidationResult
-                )
+                validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
                 focus_nodes = None
                 if self.add_labels:
                     validation_graph, focus_nodes = self.add_labels_val(
