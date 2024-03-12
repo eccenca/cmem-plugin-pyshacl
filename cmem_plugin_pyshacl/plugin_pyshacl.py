@@ -438,7 +438,7 @@ class ShaclValidation(WorkflowPlugin):
         validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
         self.log.info(
             f"Created temporary file {temp_file} with size "
-            f"{Path.stat(temp_file).st_size()} bytes"
+            f"{temp_file.stat().st_size} bytes"
         )
         res = post_streamed(
             self.validation_graph_uri,
