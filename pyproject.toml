@@ -11,13 +11,20 @@ classifiers = [
 ]
 readme = "README-public.md"
 keywords = [
-    "eccenca Corporate Memory", "plugin"
+    "eccenca Corporate Memory", "plugin", "SHACL"
 ]
 homepage = "https://github.com/eccenca/cmem-plugin-pyshacl"
 
 [tool.poetry.dependencies]
 # if you need to change python version here, change it also in .python-version
 python = "^3.11"
+pyshacl = "^0.22.2"
+validators = "^0.21.1"
+rdflib = "^6.2.0"
+distutils-strtobool = "^0.1.0"
+ruamel-yaml = "^0.17.21"
+PyYAML = "^6.0"
+charset-normalizer = "^3.1.0"
 
 [tool.poetry.dependencies.cmem-plugin-base]
 version = "^4.3.0"
