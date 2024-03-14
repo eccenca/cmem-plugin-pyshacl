@@ -41,6 +41,7 @@ from rdflib import (
     Namespace,
     URIRef,
 )
+from rdflib.term import Node
 from strtobool import strtobool
 from validators import url as validator_url
 
@@ -393,8 +394,8 @@ class ShaclValidation(WorkflowPlugin):
                 subject=validation_result_uri, predicate=SH.resultPath
             )
             result_path_string = f"{result_path}: " if result_path else ""
-            label = f"SHACL: {result_path_string}{message}"
-            validation_graph.add((validation_result_uri, RDFS.label, Literal(label)))
+            label = Literal(f"SHACL: {result_path_string}{message}")
+            validation_graph.add((validation_result_uri, RDFS.label, label))
             if self.include_graphs_labels:
                 focus_node = validation_graph.value(
                     subject=validation_result_uri, predicate=SH.focusNode
@@ -403,18 +404,18 @@ class ShaclValidation(WorkflowPlugin):
                     focus_nodes.append(focus_node)
                 label = get_label(data_graph, focus_node)
                 if label and focus_node:
-                    validation_graph.add((focus_node, RDFS.label, label))
+                    validation_graph.add((focus_node, RDFS.label, label))  # type: ignore[arg-type]
                 value = validation_graph.value(subject=validation_result_uri, predicate=SH.value)
                 if value and isinstance(value, URIRef | BNode):
                     label = get_label(data_graph, value)
                     if label:
-                        validation_graph.add((value, RDFS.label, label))
+                        validation_graph.add((value, RDFS.label, label))  # type: ignore[arg-type]
                 source_shape = validation_graph.value(
                     subject=validation_result_uri, predicate=SH.sourceShape
                 )
                 label = get_label(shacl_graph, source_shape)
                 if label:
-                    validation_graph.add((source_shape, RDFS.label, label))
+                    validation_graph.add((source_shape, RDFS.label, label))  # type: ignore[arg-type]
         return validation_graph, focus_nodes
 
     def add_shui_conforms_val(
@@ -456,7 +457,7 @@ class ShaclValidation(WorkflowPlugin):
             self.log.info("Error posting SHACL validation graph: " f"status code {res.status_code}")
 
     def check_object(  # noqa: C901 PLR0912 PLR0913
-        self, graph: Graph, subj: URIRef, pred: URIRef, data_graph: Graph, shacl_graph: Graph
+        self, graph: Graph, subj: Node, pred: URIRef, data_graph: Graph, shacl_graph: Graph
     ) -> str:
         """Format RDF objects for entities output"""
         if pred in (SH.sourceShape, SH.conforms):
@@ -668,7 +669,7 @@ class ShaclValidation(WorkflowPlugin):
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
             if self.add_labels or self.add_shui_conforms:
                 validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
-                focus_nodes = None
+                focus_nodes = []
                 if self.add_labels:
                     validation_graph, focus_nodes = self.add_labels_val(
                         validation_graph, data_graph, shacl_graph, validation_graph_uris
