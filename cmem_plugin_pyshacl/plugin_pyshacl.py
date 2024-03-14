@@ -351,19 +351,21 @@ class ShaclValidation(WorkflowPlugin):
         validation_report_uri = validation_graph.value(
             predicate=RDF.type, object=SH.ValidationReport
         )
-        validation_graph.add(
-            (validation_report_uri, PROV.wasDerivedFrom, URIRef(self.data_graph_uri))
-        )
-        validation_graph.add(
-            (validation_report_uri, PROV.wasInformedBy, URIRef(self.shacl_graph_uri))
-        )
-        validation_graph.add(
-            (
-                validation_report_uri,
-                PROV.generatedAtTime,
-                Literal(utctime, datatype=XSD.dateTime),
+        if validation_report_uri:
+            validation_graph.add(
+                (validation_report_uri, PROV.wasDerivedFrom, URIRef(self.data_graph_uri))
             )
-        )
+            validation_graph.add(
+                (validation_report_uri, PROV.wasInformedBy, URIRef(self.shacl_graph_uri))
+            )
+            validation_graph.add(
+                (
+                    validation_report_uri,
+                    PROV.generatedAtTime,
+                    Literal(utctime, datatype=XSD.dateTime),
+                )
+            )
+
         return validation_graph
 
     def add_labels_val(
