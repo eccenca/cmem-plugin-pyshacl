@@ -59,7 +59,7 @@ def e_t(start: float) -> float:
     return round(time() - start, 3)
 
 
-def get_label(graph: Graph, subject: URIRef | BNode) -> Literal | None:
+def get_label(graph: Graph, subject: URIRef | BNode):  # noqa: ANN201
     """Get preferred label"""
     labels = preferred_label(graph, subject)
     if labels:
@@ -99,7 +99,7 @@ def preferred_label(
             return True
 
     for label_prop in label_properties:
-        labels = list(filter(langfilter, graph.objects(subject, label_prop)))
+        labels = list(filter(langfilter, graph.objects(subject, label_prop)))  # type:ignore[arg-type]
         if len(labels) == 0:
             continue
         return [(label_prop, lbl) for lbl in labels]
@@ -383,7 +383,8 @@ class ShaclValidation(WorkflowPlugin):
         )
         conforms = validation_graph.value(subject=validation_report_uri, predicate=SH.conforms)
         label = f"SHACL validation report, conforms={conforms!s}"
-        validation_graph.add((validation_report_uri, RDFS.label, Literal(label)))
+        if validation_report_uri:
+            validation_graph.add((validation_report_uri, RDFS.label, Literal(label)))
         for validation_result_uri in validation_result_uris:
             message = str(
                 validation_graph.value(subject=validation_result_uri, predicate=SH.resultMessage)
@@ -401,7 +402,7 @@ class ShaclValidation(WorkflowPlugin):
                 if self.add_shui_conforms:
                     focus_nodes.append(focus_node)
                 label = get_label(data_graph, focus_node)
-                if label:
+                if label and focus_node:
                     validation_graph.add((focus_node, RDFS.label, label))
                 value = validation_graph.value(subject=validation_result_uri, predicate=SH.value)
                 if value and isinstance(value, URIRef | BNode):
