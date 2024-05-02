@@ -100,7 +100,7 @@ def preferred_label(
             return True
 
     for label_prop in label_properties:
-        labels = list(filter(langfilter, graph.objects(subject, label_prop)))  # type:ignore[arg-type]
+        labels = list(filter(langfilter, graph.objects(subject, label_prop)))  # type:ignore[arg-type, var-annotated]
         if len(labels) == 0:
             continue
         return [(label_prop, lbl) for lbl in labels]
