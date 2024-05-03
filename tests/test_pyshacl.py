@@ -1,7 +1,6 @@
 """Plugin tests."""
 
 from pathlib import Path
-from uuid import uuid4
 
 import pyshacl
 import pytest
@@ -12,7 +11,7 @@ from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
 from .utils import TestExecutionContext, needs_cmem
 
-UUID4 = uuid4()
+UUID4 = "b36254a836e04279aecf411d2c8e364a"
 SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 
@@ -30,7 +29,7 @@ def _setup(request: pytest.FixtureRequest) -> None:
             URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"),
         )
     )
-    temp_file = f"{uuid4()}.nt"
+    temp_file = f"{UUID4}.nt"
     g.serialize(temp_file, format="nt", encoding="utf-8")
     res = post(SHACL_GRAPH_URI, temp_file, replace=True)
     Path.unlink(Path(temp_file))
