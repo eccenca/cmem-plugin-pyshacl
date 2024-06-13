@@ -9,7 +9,7 @@ from uuid import uuid4
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
-from cmem_plugin_base.dataintegration.discovery import discover_plugins_in_module
+from cmem_plugin_base.dataintegration.discovery import discover_plugins
 from cmem_plugin_base.dataintegration.entity import (
     Entities,
     Entity,
@@ -336,7 +336,7 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
 
-        discover_plugins_in_module("cmem_plugin_pyshacl")
+        discover_plugins("cmem_plugin_pyshacl")
         this_plugin = Plugin.plugins[0]
 
         self.bool_parameters = [

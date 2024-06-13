@@ -18,7 +18,7 @@ homepage = "https://github.com/eccenca/cmem-plugin-pyshacl"
 [tool.poetry.dependencies]
 # if you need to change python version here, change it also in .python-version
 python = "^3.11"
-pyshacl = "^0.25.0"
+pyshacl = "^0.26.0"
 validators = "^0.28.1"
 rdflib = "^6.3.2"
 distutils-strtobool = "^0.1.0"
