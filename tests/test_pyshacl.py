@@ -1,60 +1,69 @@
 """Plugin tests."""
 
-from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
-from cmem.cmempy.dp.proxy.graph import post, get, delete
-from .utils import TestExecutionContext
+from pathlib import Path
 
-from uuid import uuid4
-from rdflib import Graph, URIRef, RDF
-import os
 import pyshacl
+import pytest
+from cmem.cmempy.dp.proxy.graph import delete, get, post
+from rdflib import RDF, Graph, URIRef
+
+from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
+
+from .utils import TestExecutionContext, needs_cmem
+
+UUID4 = "b36254a836e04279aecf411d2c8e364a"
+SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
+VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 
 
-def post_shacl_shacl(shacl_graph_uri):
-    """upload shacl-shacl graph to cmem"""
-    shacl_file = os.path.join(pyshacl.__path__[0], "assets", "shacl-shacl.ttl")
+@pytest.fixture()
+def _setup(request: pytest.FixtureRequest) -> None:
+    """Set up"""
+    shacl_file = Path(pyshacl.__path__[0]) / "assets" / "shacl-shacl.ttl"
     g = Graph()
     g.parse(shacl_file, format="turtle")
     g.add(
         (
-            URIRef(shacl_graph_uri),
+            URIRef(SHACL_GRAPH_URI),
             RDF.type,
-            URIRef("https://vocab.eccenca.com/shui/ShapeCatalog")
+            URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"),
         )
     )
-    temp_file = f"{uuid4()}.nt"
+    temp_file = f"{UUID4}.nt"
     g.serialize(temp_file, format="nt", encoding="utf-8")
-    res = post(shacl_graph_uri, temp_file, replace=True)
-    os.remove(temp_file)
-    if res.status_code != 204:
-        raise ValueError(f"Response {res.status_code}: {res.url}")
+    res = post(SHACL_GRAPH_URI, temp_file, replace=True)
+    Path.unlink(Path(temp_file))
+    if res.status_code != 204:  # noqa: PLR2004
+        raise ValueError(f"Error uploading SHACL-SHACL {res.status_code}: {res.url}")
+
+    request.addfinalizer(lambda: delete(VALIDATION_GRAPH_URI))
+    request.addfinalizer(lambda: delete(SHACL_GRAPH_URI))  # noqa: PT021
 
 
-def test_workflow_execution():
+@needs_cmem
+def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
     """Test plugin execution"""
-    shacl_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
-    validation_graph_uri = f"https://example.org/pyshacl-plugin-test/{uuid4()}"
-    post_shacl_shacl(shacl_graph_uri)
     plugin = ShaclValidation(
         data_graph_uri="https://vocab.eccenca.com/shacl/",
-        shacl_graph_uri=shacl_graph_uri,
-        validation_graph_uri=validation_graph_uri,
+        shacl_graph_uri=SHACL_GRAPH_URI,
+        validation_graph_uri=VALIDATION_GRAPH_URI,
         ontology_graph_uri="",
         generate_graph=True,
-        output_values=True,
+        output_entities=True,
         clear_validation_graph=True,
-        owl_imports_resolution=True,
-        skolemize_validation_graph=True,
-        add_labels_to_validation_graph=True,
+        owl_imports=True,
+        skolemize=True,
+        add_labels=True,
         include_graphs_labels=True,
-        add_shui_conforms_to_validation_graph=True,
+        add_shui_conforms=True,
         meta_shacl=False,
-        inference="none",
-        advanced=False
+        inference="both",
+        advanced=True,
+        remove_dataset_graph_type=True,
+        remove_thesaurus_graph_type=True,
+        remove_shape_catalog_graph_type=True,
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
-    res = get(validation_graph_uri)
-    if res.status_code != 200:
+    res = get(VALIDATION_GRAPH_URI)
+    if res.status_code != 200:  # noqa: PLR2004
         raise ValueError(f"Response {res.status_code}: {res.url}")
-    delete(shacl_graph_uri)
-    delete(validation_graph_uri)
