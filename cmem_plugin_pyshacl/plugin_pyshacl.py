@@ -1,4 +1,5 @@
 """CMEM plugin for SHACl validation using pySHACL"""
+
 from collections import OrderedDict
 from collections.abc import Sequence
 from datetime import UTC, datetime
