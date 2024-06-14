@@ -6,6 +6,7 @@ from pathlib import Path
 from time import time
 from uuid import uuid4
 
+import validators.url
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
@@ -43,7 +44,6 @@ from rdflib import (
 )
 from rdflib.term import Node
 from strtobool import strtobool
-from validators import url as validator_url
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -562,14 +562,14 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError(
                 "Generate validation graph or Output values parameter " "needs to be set to true"
             )
-        if not validator_url(self.data_graph_uri):
+        if not validators.url(self.data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid")
-        if not validator_url(self.shacl_graph_uri):
+        if not validators.url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
         graphs_dict = {graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()}
 
         if self.ontology_graph_uri:
-            if not validator_url(self.ontology_graph_uri):
+            if not validators.url(self.ontology_graph_uri):
                 raise ValueError("Ontology graph URI parameter is invalid")
             if self.ontology_graph_uri not in graphs_dict:
                 raise ValueError(f"Ontology graph <{self.ontology_graph_uri}> not found")
@@ -593,7 +593,7 @@ class ShaclValidation(WorkflowPlugin):
                 except ValueError as err:
                     raise ValueError(f"Invalid truth value for parameter {param}") from err
         if self.generate_graph:
-            if not validator_url(self.validation_graph_uri):
+            if not validators.url(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
             if self.validation_graph_uri in graphs_dict:
                 self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
