@@ -296,7 +296,7 @@ def preferred_label(
         PluginParameter(
             param_type=IntParameterType(),
             name="max_validation_depth",
-            label="specify a custom max-evaluation-depth",
+            label="Specify a custom max-evaluation-depth",
             description="specify a custom max-evaluation-depth. If you find yourself with a "
             "legitimate use case, and you are certain you need to increase this limit, and you are "
             "cetain you know what you are doing.",
