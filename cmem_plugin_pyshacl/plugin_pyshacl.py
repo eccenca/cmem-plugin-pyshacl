@@ -26,6 +26,7 @@ from cmem_plugin_base.dataintegration.parameter.graph import (
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.types import (
     BoolParameterType,
+    IntParameterType,
     StringParameterType,
 )
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
@@ -170,7 +171,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="clear_validation_graph",
             label="Clear validation graph",
-            description="If enabled, the validation graph is cleared before workflow " "execution.",
+            description="If enabled, the validation graph is cleared before workflow execution.",
             default_value=True,
         ),
         PluginParameter(
@@ -292,6 +293,16 @@ def preferred_label(
             default_value=False,
             advanced=True,
         ),
+        PluginParameter(
+            param_type=IntParameterType(),
+            name="max_validation_depth",
+            label="specify a custom max-evaluation-depth",
+            description="specify a custom max-evaluation-depth. If you find yourself with a "
+            "legitimate use case, and you are certain you need to increase this limit, and you are "
+            "cetain you know what you are doing.",
+            default_value=15,
+            advanced=True,
+        ),
     ],
 )
 class ShaclValidation(WorkflowPlugin):
@@ -299,24 +310,25 @@ class ShaclValidation(WorkflowPlugin):
 
     def __init__(  # noqa: PLR0913
         self,
-        data_graph_uri: str,
-        shacl_graph_uri: str,
-        ontology_graph_uri: str,
-        generate_graph: bool,
-        validation_graph_uri: str,
-        output_entities: bool,
-        clear_validation_graph: bool,
-        owl_imports: bool,
-        skolemize: bool,
-        add_labels: bool,
-        include_graphs_labels: bool,
-        add_shui_conforms: bool,
-        meta_shacl: bool,
-        inference: str,
-        advanced: bool,
-        remove_dataset_graph_type: bool,
-        remove_thesaurus_graph_type: bool,
-        remove_shape_catalog_graph_type: bool,
+        data_graph_uri: str = "",
+        shacl_graph_uri: str = "",
+        ontology_graph_uri: str = "",
+        generate_graph: bool = False,
+        validation_graph_uri: str = "",
+        output_entities: bool = False,
+        clear_validation_graph: bool = True,
+        owl_imports: bool = True,
+        skolemize: bool = True,
+        add_labels: bool = True,
+        include_graphs_labels: bool = False,
+        add_shui_conforms: bool = False,
+        meta_shacl: bool = False,
+        inference: str = "none",
+        advanced: bool = False,
+        remove_dataset_graph_type: bool = False,
+        remove_thesaurus_graph_type: bool = False,
+        remove_shape_catalog_graph_type: bool = False,
+        max_validation_depth: int = 15,
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
@@ -336,6 +348,7 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_dataset_graph_type = remove_dataset_graph_type
         self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
+        self.max_validation_depth = max_validation_depth
 
         discover_plugins("cmem_plugin_pyshacl")
         this_plugin = Plugin.plugins[0]
@@ -604,6 +617,9 @@ class ShaclValidation(WorkflowPlugin):
         if self.inference not in ("none", "rdfs", "owlrl", "both"):
             raise ValueError("Invalid value for inference parameter")
 
+        if not isinstance(self.max_validation_depth, int) and self.max_validation_depth < 1:
+            raise ValueError("Invalid value for maximum evaluation depth")
+
         self.log.info("Parameters OK:")
         for param in self.graph_parameters + self.bool_parameters:
             self.log.info(f"{param}: {self.__dict__[param]}")
@@ -658,6 +674,7 @@ class ShaclValidation(WorkflowPlugin):
             meta_shacl=self.meta_shacl,
             inference=self.inference,
             advanced=self.advanced,
+            max_validation_depth=self.max_validation_depth,
             inplace=True,
         )
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")

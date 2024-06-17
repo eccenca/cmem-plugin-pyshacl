@@ -8,5 +8,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Added
 
-- initial version
+- Added ability to specify a custom max-evaluation-depth introduced with pySHACL 0.26.0
+
 

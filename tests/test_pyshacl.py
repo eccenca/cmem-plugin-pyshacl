@@ -62,6 +62,7 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
         remove_dataset_graph_type=True,
         remove_thesaurus_graph_type=True,
         remove_shape_catalog_graph_type=True,
+        max_validation_depth=15,
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
     res = get(VALIDATION_GRAPH_URI)
