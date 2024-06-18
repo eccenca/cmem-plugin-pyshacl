@@ -81,7 +81,7 @@ Enable SHACL Advanced Features. Default value: *false*.
 
 ### Maximum evaluation depth
 
-The maximum number of SHACL shapes "deep" that the validator can go before reaching an "endpoint" constraint. Default value: 15
+The maximum number of SHACL shapes "deep" that the validator can go before reaching an "endpoint" constraint (1-999). Default value: 15
 
 
 ## Parameter Input

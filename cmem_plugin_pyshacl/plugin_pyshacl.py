@@ -617,7 +617,9 @@ class ShaclValidation(WorkflowPlugin):
         if self.inference not in ("none", "rdfs", "owlrl", "both"):
             raise ValueError("Invalid value for inference parameter")
 
-        if not isinstance(self.max_validation_depth, int) and self.max_validation_depth < 1:
+        if not isinstance(
+            self.max_validation_depth, int
+        ) and self.max_validation_depth not in range(1, 1000):
             raise ValueError("Invalid value for maximum evaluation depth")
 
         self.log.info("Parameters OK:")

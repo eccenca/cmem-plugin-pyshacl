@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Fixed
+
+- Check if max-validation-depth is an integer 1-999
+
 ## [5.0.0] 2024-06-17
 
 ### Added
