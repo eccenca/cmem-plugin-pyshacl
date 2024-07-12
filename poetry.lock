@@ -1292,14 +1292,17 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "validators"
-version = "0.28.3"
+version = "0.32.0"
 description = "Python Data Validation for Humans™"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "validators-0.28.3-py3-none-any.whl", hash = "sha256:53cafa854f13850156259d9cc479b864ee901f6a96e6b109e6fc33f98f37d99f"},
-    {file = "validators-0.28.3.tar.gz", hash = "sha256:c6c79840bcde9ba77b19f6218f7738188115e27830cbaff43264bc4ed24c429d"},
+    {file = "validators-0.32.0-py3-none-any.whl", hash = "sha256:e9ce1703afb0adf7724b0f98e4081d9d10e88fa5d37254d21e41f27774c020cd"},
+    {file = "validators-0.32.0.tar.gz", hash = "sha256:9ee6e6d7ac9292b9b755a3155d7c361d76bb2dce23def4f0627662da1e300676"},
 ]
+
+[package.extras]
+crypto-eth-addresses = ["eth-hash[pycryptodome] (>=0.7.0)"]
 
 [[package]]
 name = "wcwidth"
@@ -1341,4 +1344,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "8aa00db8c00aea4ea7473328c2d4bf3236e6e80bd24f34cf7835f08ef4fc7c7f"
+content-hash = "04a2b3d8039ff36f871dca5089b79d391db0c6a9db725522d98d790b3c3eeb82"
