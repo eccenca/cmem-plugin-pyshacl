@@ -23,7 +23,6 @@ validators = "^0.28.1"
 rdflib = "^6.3.2"
 distutils-strtobool = "^0.1.0"
 ruamel-yaml = "^0.18.6"
-poetry-dynamic-versioning = {extras = ["plugin"], version = "^1.4.0"}
 
 [tool.poetry.dependencies.cmem-plugin-base]
 version = "^4.5.0"
