@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from os import environ
 from pathlib import Path
 from time import time
 from uuid import uuid4
@@ -46,6 +47,8 @@ from rdflib import (
 )
 from rdflib.term import Node
 from strtobool import strtobool
+
+environ["SSL_VERIFY"] = "false"
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [

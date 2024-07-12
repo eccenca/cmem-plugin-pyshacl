@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Fixed
 
 - Check if max-validation-depth is an integer 1-999
+- fixed errors on CMEM instances with self-signed/invalid certificates
 
 ## [5.0.0] 2024-06-17
 
