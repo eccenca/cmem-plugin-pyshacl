@@ -1,7 +1,6 @@
 """CMEM plugin for SHACl validation using pySHACL"""
 
 from collections import OrderedDict
-from collections.abc import Sequence
 from datetime import UTC, datetime
 from os import environ
 from pathlib import Path
@@ -12,7 +11,6 @@ import validators.url
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
-from cmem_plugin_base.dataintegration.discovery import discover_plugins
 from cmem_plugin_base.dataintegration.entity import (
     Entities,
     Entity,
@@ -46,7 +44,6 @@ from rdflib import (
     URIRef,
 )
 from rdflib.term import Node
-from strtobool import strtobool
 
 environ["SSL_VERIFY"] = "false"
 
@@ -353,15 +350,7 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
 
-        discover_plugins("cmem_plugin_pyshacl")
-        this_plugin = Plugin.plugins[0]
-
-        self.bool_parameters = [
-            p.name for p in this_plugin.parameters if isinstance(p.param_type, BoolParameterType)
-        ]
-        self.graph_parameters = [
-            p.name for p in this_plugin.parameters if isinstance(p.param_type, GraphParameterType)
-        ]
+        self.check_parameters()
 
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
@@ -560,16 +549,6 @@ class ShaclValidation(WorkflowPlugin):
         graph.parse(data=get(uri, owl_imports_resolution=self.owl_imports).text, format="turtle")
         return graph
 
-    def process_inputs(self, inputs: Sequence[Entities]) -> None:
-        """Process input parameters"""
-        paths = [e.path for e in inputs[0].schema.paths]
-        values = [e[0] for e in next(iter(inputs[0].entities)).values]
-        for param, val in zip(paths, values, strict=False):
-            if param not in self.graph_parameters + self.bool_parameters:
-                raise ValueError(f"Invalid parameter: {param}")
-            self.__dict__[param] = val
-            self.log.info(f"input parameter {param}: {val}")
-
     def check_parameters(  # noqa: C901 PLR0912
         self,
     ) -> None:
@@ -603,12 +582,6 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError("Invalid graph type for data graph " f"<{self.data_graph_uri}>")
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError("Invalid graph type for SHACL graph " f"<{self.shacl_graph_uri}>")
-        for param in self.bool_parameters:
-            if not isinstance(self.__dict__[param], bool):
-                try:
-                    self.__dict__[param] = bool(strtobool(self.__dict__[param]))
-                except ValueError as err:
-                    raise ValueError(f"Invalid truth value for parameter {param}") from err
         if self.generate_graph:
             if not validators.url(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
@@ -620,32 +593,21 @@ class ShaclValidation(WorkflowPlugin):
         if self.inference not in ("none", "rdfs", "owlrl", "both"):
             raise ValueError("Invalid value for inference parameter")
 
-        if not isinstance(
-            self.max_validation_depth, int
-        ) and self.max_validation_depth not in range(1, 1000):
+        if self.max_validation_depth not in range(1, 1000):
             raise ValueError("Invalid value for maximum evaluation depth")
-
-        self.log.info("Parameters OK:")
-        for param in self.graph_parameters + self.bool_parameters:
-            self.log.info(f"{param}: {self.__dict__[param]}")
 
     def remove_graph_type(self, data_graph: Graph, iri: str) -> None:
         """Remove triple <data_graph_uri> a <iri>"""
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def execute(  # noqa: C901 PLR0912
-        self, inputs: Sequence[Entities], context: ExecutionContext = ExecutionContext
+    def execute(  # noqa: C901
+        self,
+        inputs: tuple,  # noqa: ARG002
+        context: ExecutionContext = ExecutionContext,
     ) -> Entities | None:
         """Execute plugin"""
-        try:
-            setup_cmempy_user_access(context.user)
-        except KeyError:
-            self.log.warning("'ExecutionContext' object has no attribute 'user'")
-        # accepts only one set of input parameters
-        if inputs:
-            self.process_inputs(inputs)
-        self.check_parameters()
+        setup_cmempy_user_access(context.user)
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(self.data_graph_uri)
