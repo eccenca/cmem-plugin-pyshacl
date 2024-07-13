@@ -453,7 +453,7 @@ class ShaclValidation(WorkflowPlugin):
                 content_type="application/n-triples",
             )
             if res.status_code != 204:  # noqa: PLR2004
-                self.log.info(
+                self.log.error(
                     "Error posting SHACL validation graph: " f"status code {res.status_code}"
                 )
 
