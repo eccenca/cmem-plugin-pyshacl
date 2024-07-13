@@ -453,8 +453,8 @@ class ShaclValidation(WorkflowPlugin):
                 content_type="application/n-triples",
             )
             if res.status_code != 204:  # noqa: PLR2004
-                self.log.error(
-                    f"Error posting SHACL validation graph: status code {res.status_code}"
+                raise OSError(
+                    f"Error posting SHACL validation graph (status code {res.status_code})."
                 )
 
     def check_object(  # noqa: C901 PLR0912 PLR0913
