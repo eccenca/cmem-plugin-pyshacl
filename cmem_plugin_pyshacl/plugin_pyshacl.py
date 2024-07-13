@@ -4,8 +4,9 @@ from collections import OrderedDict
 from datetime import UTC, datetime
 from os import environ
 from pathlib import Path
+from secrets import token_hex
+from tempfile import TemporaryDirectory
 from time import time
-from uuid import uuid4
 
 import validators.url
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
@@ -90,12 +91,10 @@ def preferred_label(
 
             def langfilter(lbl: Literal) -> bool:
                 return lbl.language is None
-
         else:
 
             def langfilter(lbl: Literal) -> bool:
                 return lbl.language == lang
-
     else:  # we don't care about language tags
 
         def langfilter(lbl: Literal) -> bool:  # noqa: ARG001
@@ -267,7 +266,7 @@ def preferred_label(
             name="remove_dataset_graph_type",
             label="Remove graph type <http://rdfs.org/ns/void#Dataset> from data graph",
             description="Before validating, remove the triple <data_graph_uri> a "
-            "<http://rdfs.org/ns/void#Dataset> from the loaded data graph.",
+            "<http://rdfs.org/ns/void#Dataset> from the in-memory data graph.",
             default_value=False,
             advanced=True,
         ),
@@ -277,7 +276,7 @@ def preferred_label(
             label="Remove graph type <https://vocab.eccenca.com/dsm/ThesaurusProject> "
             "from data graph",
             description="Before validating, remove the triple <data_graph_uri> a "
-            "<https://vocab.eccenca.com/dsm/ThesaurusProject> from the loaded data "
+            "<https://vocab.eccenca.com/dsm/ThesaurusProject> from the in-memory data "
             "graph.",
             default_value=False,
             advanced=True,
@@ -288,7 +287,7 @@ def preferred_label(
             label="Remove graph type <https://vocab.eccenca.com/shui/ShapeCatalog> "
             "from data graph",
             description="Before validating, remove the triple <data_graph_uri> a "
-            "<https://vocab.eccenca.com/shui/ShapeCatalog> from the loaded data "
+            "<https://vocab.eccenca.com/shui/ShapeCatalog> from the in-memory data "
             "graph.",
             default_value=False,
             advanced=True,
@@ -444,23 +443,19 @@ class ShaclValidation(WorkflowPlugin):
     def post_graph(self, validation_graph: Graph) -> None:
         """Post validation graph to cmem"""
         self.log.info("Posting SHACL validation graph...")
-        temp_file = Path(f"{uuid4()}.nt")
-        validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
-        self.log.info(
-            f"Created temporary file {temp_file} with size " f"{temp_file.stat().st_size} bytes"
-        )
-        res = post_streamed(
-            self.validation_graph_uri,
-            temp_file,
-            replace=self.clear_validation_graph,
-            content_type="application/n-triples",
-        )
-        Path.unlink(temp_file)
-        self.log.info("Deleted temporary file")
-        if res.status_code == 204:  # noqa: PLR2004
-            self.log.info("Successfully posted SHACL validation graph")
-        else:
-            self.log.info("Error posting SHACL validation graph: " f"status code {res.status_code}")
+        with TemporaryDirectory() as temp:
+            temp_file = Path(temp) / f"{token_hex(8)}.nt"
+            validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
+            res = post_streamed(
+                self.validation_graph_uri,
+                temp_file,
+                replace=self.clear_validation_graph,
+                content_type="application/n-triples",
+            )
+            if res.status_code != 204:  # noqa: PLR2004
+                self.log.info(
+                    "Error posting SHACL validation graph: " f"status code {res.status_code}"
+                )
 
     def check_object(  # noqa: C901 PLR0912 PLR0913
         self, graph: Graph, subj: Node, pred: URIRef, data_graph: Graph, shacl_graph: Graph
@@ -556,7 +551,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info("Validating parameters...")
         if not self.output_entities and not self.generate_graph:
             raise ValueError(
-                "Generate validation graph or Output values parameter " "needs to be set to true"
+                "Generate validation graph or Output values parameter needs to be set to true"
             )
         if not validators.url(self.data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid")
@@ -635,7 +630,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info("Starting SHACL validation...")
         start = time()
         _conforms, validation_graph, _results_text = validate(
-            data_graph,
+            data_graph=data_graph,
             shacl_graph=shacl_graph,
             ont_graph=ontology_graph,
             meta_shacl=self.meta_shacl,
@@ -664,7 +659,9 @@ class ShaclValidation(WorkflowPlugin):
                         validation_graph, validation_graph_uris, focus_nodes
                     )
             validation_graph = self.add_prov(validation_graph, utctime)
+
             self.post_graph(validation_graph)
+
         if self.output_entities:
             self.log.info("Outputting entities")
             return entities

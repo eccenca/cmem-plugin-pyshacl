@@ -244,16 +244,6 @@ files = [
 ]
 
 [[package]]
-name = "distutils-strtobool"
-version = "0.1.0"
-description = "distutils.utils.strtobool"
-optional = false
-python-versions = "*"
-files = [
-    {file = "distutils-strtobool-0.1.0.tar.gz", hash = "sha256:92f189acca35ec50ca462acd70904ee8c1a81422ef3658fa2fec2b5c7068d662"},
-]
-
-[[package]]
 name = "dparse"
 version = "0.6.3"
 description = "A parser for Python dependency files"
@@ -1344,4 +1334,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "04a2b3d8039ff36f871dca5089b79d391db0c6a9db725522d98d790b3c3eeb82"
+content-hash = "61520cb20a5128dde9d277bdd8c23089716e7a626d3783b7af58aba7f206733f"
