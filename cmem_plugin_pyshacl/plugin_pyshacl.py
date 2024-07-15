@@ -3,9 +3,7 @@
 from collections import OrderedDict
 from datetime import UTC, datetime
 from os import environ
-from pathlib import Path
-from secrets import token_hex
-from tempfile import TemporaryDirectory
+from tempfile import NamedTemporaryFile
 from time import time
 
 import validators.url
@@ -443,12 +441,11 @@ class ShaclValidation(WorkflowPlugin):
     def post_graph(self, validation_graph: Graph) -> None:
         """Post validation graph to cmem"""
         self.log.info("Posting SHACL validation graph...")
-        with TemporaryDirectory() as temp:
-            temp_file = Path(temp) / f"{token_hex(8)}.nt"
-            validation_graph.serialize(temp_file, format="nt", encoding="utf-8")
+        with NamedTemporaryFile(suffix=".nt") as temp:
+            validation_graph.serialize(temp.name, format="nt", encoding="utf-8")
             res = post_streamed(
                 self.validation_graph_uri,
-                temp_file,
+                temp.name,
                 replace=self.clear_validation_graph,
                 content_type="application/n-triples",
             )
