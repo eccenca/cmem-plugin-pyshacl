@@ -6,9 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [unreleased]
 
+### Fixed
+
+- Temporary file is now removed when an error occurs
+
 ### Changed
 
-- Check parameters at initialisation  
+- Check parameters at initialisation
+- Raise OSError on post result graph error
 
 ## [5.0.1] 2024-07-12
 

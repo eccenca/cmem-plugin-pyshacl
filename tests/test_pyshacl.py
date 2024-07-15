@@ -1,6 +1,8 @@
 """Plugin tests."""
 
 from pathlib import Path
+from secrets import token_hex
+from tempfile import TemporaryDirectory
 
 import pyshacl
 import pytest
@@ -29,12 +31,12 @@ def _setup(request: pytest.FixtureRequest) -> None:
             URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"),
         )
     )
-    temp_file = f"{UUID4}.nt"
-    g.serialize(temp_file, format="nt", encoding="utf-8")
-    res = post(SHACL_GRAPH_URI, temp_file, replace=True)
-    Path.unlink(Path(temp_file))
-    if res.status_code != 204:  # noqa: PLR2004
-        raise ValueError(f"Error uploading SHACL-SHACL {res.status_code}: {res.url}")
+    with TemporaryDirectory() as temp:
+        temp_file = Path(temp) / f"{token_hex(8)}.nt"
+        g.serialize(temp_file, format="nt", encoding="utf-8")
+        res = post(SHACL_GRAPH_URI, temp_file, replace=True)
+        if res.status_code != 204:  # noqa: PLR2004
+            raise OSError(f"Error uploading SHACL-SHACL {res.status_code}: {res.url}")
 
     request.addfinalizer(lambda: delete(VALIDATION_GRAPH_URI))
     request.addfinalizer(lambda: delete(SHACL_GRAPH_URI))  # noqa: PT021
