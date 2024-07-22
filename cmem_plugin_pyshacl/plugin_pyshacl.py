@@ -347,7 +347,6 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
 
-
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
         self.log.info("Adding PROV information validation graph")
