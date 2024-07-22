@@ -347,7 +347,6 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
 
-        self.check_parameters()
 
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
@@ -598,6 +597,7 @@ class ShaclValidation(WorkflowPlugin):
     ) -> Entities | None:
         """Execute plugin"""
         setup_cmempy_user_access(context.user)
+        self.check_parameters()
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(self.data_graph_uri)
