@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from os import environ
 from tempfile import NamedTemporaryFile
 from time import time
+from warnings import simplefilter
 
 import validators.url
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
@@ -43,8 +44,10 @@ from rdflib import (
     URIRef,
 )
 from rdflib.term import Node
+from urllib3.exceptions import InsecureRequestWarning
 
 environ["SSL_VERIFY"] = "false"
+simplefilter("ignore", category=InsecureRequestWarning)
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
