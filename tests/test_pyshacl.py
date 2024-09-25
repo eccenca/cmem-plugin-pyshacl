@@ -7,7 +7,7 @@ import pyshacl
 import pytest
 from cmem.cmempy.dp.proxy.graph import delete, get, post_streamed
 from rdflib import PROV, RDF, Graph, URIRef
-from rdflib.compare import to_isomorphic
+from rdflib.compare import similar
 
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
@@ -72,4 +72,4 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
     result.remove((None, PROV.generatedAtTime, None))
     test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
 
-    assert to_isomorphic(result) == to_isomorphic(test)
+    assert similar(result, test)
