@@ -1,12 +1,11 @@
 """Plugin tests."""
 
 from pathlib import Path
-from secrets import token_hex
-from tempfile import TemporaryDirectory
+from tempfile import NamedTemporaryFile
 
 import pyshacl
 import pytest
-from cmem.cmempy.dp.proxy.graph import delete, get, post
+from cmem.cmempy.dp.proxy.graph import delete, get, post_streamed
 from rdflib import RDF, Graph, URIRef
 
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
@@ -14,8 +13,8 @@ from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 from .utils import TestExecutionContext, needs_cmem
 
 UUID4 = "b36254a836e04279aecf411d2c8e364a"
-SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}/shacl-shacl"
-VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}/validation"
+SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
+VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 
 
 @pytest.fixture()
@@ -31,10 +30,9 @@ def _setup(request: pytest.FixtureRequest) -> None:
             URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"),
         )
     )
-    with TemporaryDirectory() as temp:
-        temp_file = Path(temp) / f"{token_hex(8)}.nt"
-        g.serialize(temp_file, format="nt", encoding="utf-8")
-        res = post(SHACL_GRAPH_URI, temp_file, replace=True)
+    with NamedTemporaryFile(suffix=".nt") as temp:
+        g.serialize(temp.name, format="nt", encoding="utf-8")
+        res = post_streamed(SHACL_GRAPH_URI, temp.name, replace=True)
         if res.status_code != 204:  # noqa: PLR2004
             raise OSError(f"Error uploading SHACL-SHACL {res.status_code}: {res.url}")
 
