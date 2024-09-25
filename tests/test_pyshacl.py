@@ -6,9 +6,11 @@ from tempfile import NamedTemporaryFile
 import pyshacl
 import pytest
 from cmem.cmempy.dp.proxy.graph import delete, get, post_streamed
-from rdflib import RDF, Graph, URIRef, PROV
+from rdflib import PROV, RDF, Graph, URIRef
 from rdflib.compare import isomorphic
+
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
+
 from . import __path__
 from .utils import TestExecutionContext, needs_cmem
 
@@ -71,4 +73,3 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
     test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
 
     assert isomorphic(result, test)
-
