@@ -562,7 +562,7 @@ class ShaclValidation(WorkflowPlugin):
                 raise ValueError(f"Ontology graph <{self.ontology_graph_uri}> not found")
             if "http://www.w3.org/2002/07/owl#Ontology" not in graphs_dict[self.ontology_graph_uri]:
                 raise ValueError(
-                    "Invalid graph type for Ontology graph " f"<{self.ontology_graph_uri}>"
+                    f"Invalid graph type for Ontology graph <{self.ontology_graph_uri}>"
                 )
 
         if self.data_graph_uri not in graphs_dict:

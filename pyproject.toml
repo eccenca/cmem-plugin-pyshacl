@@ -19,7 +19,7 @@ homepage = "https://github.com/eccenca/cmem-plugin-pyshacl"
 # if you need to change python version here, change it also in .python-version
 python = "^3.11"
 pyshacl = "^0.26.0"
-validators = "^0.32.0"
+validators = "^0.34.0"
 rdflib = "^6.3.2"
 ruamel-yaml = "^0.18.6"
 

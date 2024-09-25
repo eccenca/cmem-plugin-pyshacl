@@ -6,15 +6,17 @@ from tempfile import NamedTemporaryFile
 import pyshacl
 import pytest
 from cmem.cmempy.dp.proxy.graph import delete, get, post_streamed
-from rdflib import RDF, Graph, URIRef
+from rdflib import PROV, RDF, Graph, URIRef
+from rdflib.compare import isomorphic
 
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
+from . import __path__
 from .utils import TestExecutionContext, needs_cmem
 
 UUID4 = "b36254a836e04279aecf411d2c8e364a"
-SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
-VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
+SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}/shacl-shacl"
+VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}/validation"
 
 
 @pytest.fixture()
@@ -65,6 +67,9 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
         max_validation_depth=15,
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
-    res = get(VALIDATION_GRAPH_URI)
-    if res.status_code != 200:  # noqa: PLR2004
-        raise ValueError(f"Response {res.status_code}: {res.url}")
+
+    result = Graph().parse(data=get(VALIDATION_GRAPH_URI).text)
+    result.remove((None, PROV.generatedAtTime, None))
+    test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
+
+    assert isomorphic(result, test)
