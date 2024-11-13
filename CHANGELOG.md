@@ -4,15 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
-## [unreleased]
+## [5.0.2] 2024-11-13
 
 ### Fixed
 
-- Temporary file is now removed when an error occurs
+- Temporary file is now created using the Python tempfile module
 
 ### Added
 
 - Raise OSError on post result graph error
+
+### Changed
+
+- Update pySHACL to 0.28.1
 
 ## [5.0.1] 2024-07-12
 
