@@ -1,0 +1,19 @@
+# https://taskfile.dev
+---
+version: '3'
+
+tasks:
+
+  install:
+    desc: Install plugin package in Corporate Memory
+    cmds:
+      - task build
+      - poetry run cmemc admin workspace python install dist/cmem_plugin_pyshacl*.tar.gz
+      - poetry run cmemc admin workspace python list-plugins
+
+  uninstall:
+    desc: Unnstall plugin package in Corporate Memory
+    cmds:
+      - task build
+      - poetry run cmemc admin workspace python uninstall cmem-plugin-pyshacl
+      - poetry run cmemc admin workspace python list-plugins

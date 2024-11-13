@@ -1,1 +1,1 @@
-"""pyshacl - main package"""
+"""cmem-plugin-pyshacl"""

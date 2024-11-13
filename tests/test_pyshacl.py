@@ -19,7 +19,7 @@ SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def _setup(request: pytest.FixtureRequest) -> None:
     """Set up"""
     shacl_file = Path(pyshacl.__path__[0]) / "assets" / "shacl-shacl.ttl"

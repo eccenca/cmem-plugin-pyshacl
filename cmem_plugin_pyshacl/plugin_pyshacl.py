@@ -453,7 +453,7 @@ class ShaclValidation(WorkflowPlugin):
         if res.status_code != 204:  # noqa: PLR2004
             raise OSError(f"Error posting SHACL validation graph (status code {res.status_code}).")
 
-    def check_object(  # noqa: C901 PLR0912 PLR0913
+    def check_object(  # noqa: C901 PLR0912
         self, graph: Graph, subj: Node, pred: URIRef, data_graph: Graph, shacl_graph: Graph
     ) -> str:
         """Format RDF objects for entities output"""

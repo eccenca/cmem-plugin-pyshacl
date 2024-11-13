@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier
-_commit: v6.3.1
+_commit: v7.0.0
 _src_path: gh:eccenca/cmem-plugin-template
 author_mail: cmempy-developer@eccenca.com
 author_name: eccenca GmbH
@@ -7,5 +7,6 @@ github_page: https://github.com/eccenca/cmem-plugin-pyshacl
 project_description: Validate your Knowledge Graphs based on tests generated from
     SHACL shapes.
 project_slug: pyshacl
-pypi: false
+project_type: plugin
+pypi: true
 
