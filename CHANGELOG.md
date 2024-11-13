@@ -10,9 +10,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Temporary file is now removed when an error occurs
 
-### Changed
+### Added
 
-- Check parameters at initialisation
 - Raise OSError on post result graph error
 
 ## [5.0.1] 2024-07-12
