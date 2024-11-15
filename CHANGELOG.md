@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+
+## [unreleased]
+
+### Added
+
+ - Option to enable SHACL-JS Features
+
 ## [5.0.2] 2024-11-13
 
 ### Fixed

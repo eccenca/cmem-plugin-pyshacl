@@ -258,7 +258,15 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="advanced",
             label="SHACL Advanced Features",
-            description="Enable SHACL Advanced Features.",
+            description="Enable SHACL advanced features.",
+            default_value=False,
+            advanced=True,
+        ),
+        PluginParameter(
+            param_type=BoolParameterType(),
+            name="js",
+            label="SHACL-JS Features",
+            description="Enable SHACL-JS features.",
             default_value=False,
             advanced=True,
         ),
@@ -325,6 +333,7 @@ class ShaclValidation(WorkflowPlugin):
         meta_shacl: bool = False,
         inference: str = "none",
         advanced: bool = False,
+        js: bool = False,
         remove_dataset_graph_type: bool = False,
         remove_thesaurus_graph_type: bool = False,
         remove_shape_catalog_graph_type: bool = False,
@@ -345,6 +354,7 @@ class ShaclValidation(WorkflowPlugin):
         self.meta_shacl = meta_shacl
         self.inference = inference
         self.advanced = advanced
+        self.js = js
         self.remove_dataset_graph_type = remove_dataset_graph_type
         self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
@@ -633,6 +643,7 @@ class ShaclValidation(WorkflowPlugin):
             meta_shacl=self.meta_shacl,
             inference=self.inference,
             advanced=self.advanced,
+            js=self.js,
             max_validation_depth=self.max_validation_depth,
             inplace=True,
         )
