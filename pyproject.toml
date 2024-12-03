@@ -18,7 +18,6 @@ python = "^3.11"
 pyshacl = "^0.28.1"
 validators = "^0.34.0"
 rdflib = "^6.3.2"
-ruamel-yaml = "^0.18.6"
 pyduktape2 = "^0.4.6"
 
 [tool.poetry.dependencies.cmem-plugin-base]
