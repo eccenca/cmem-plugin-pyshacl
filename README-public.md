@@ -76,9 +76,25 @@ The URI of a graph containing extra ontological information. RDFS and OWL defini
 
 If enabled, OWL inferencing expansion of the data graph is performed before validation. Options are *RDFS*, *OWLRL*, *Both*, *None*. Default value: *None*
 
-### Advanced
+### SHACL advanced features
 
 Enable SHACL Advanced Features. Default value: *false*.
+
+### SHACL-JS features
+
+Enable SHACL-JS features. Default value: *false*.
+
+### Remove graph type http://rdfs.org/ns/void#Dataset from data graph
+
+Before validating, remove the triple `<data_graph_uri> a <http://rdfs.org/ns/void#Dataset>` from the in-memory data graph.
+
+### Remove graph type https://vocab.eccenca.com/dsm/ThesaurusProject from data graph
+
+Before validating, remove the triple `<data_graph_uri> a <https://vocab.eccenca.com/dsm/ThesaurusProject>` from the in-memory data graph.
+
+### Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog from data graph
+
+Before validating, remove the triple `<data_graph_uri> a <https://vocab.eccenca.com/shui/ShapeCatalog>` from the in-memory data graph.
 
 ### Maximum evaluation depth
 
@@ -89,24 +105,28 @@ The maximum number of SHACL shapes "deep" that the validator can go before reach
 
 In order to set options via the input the following parameter names can be used:
 
-| Option                                         | Name                   |
-|------------------------------------------------|------------------------|
-| Data graph URI                                 | data_graph_uri         |
-| SHACL graph URI                                | shacl_graph_uri        |
-| Generate validation graph                      | generate_graph         |
-| Validation graph URI                           | validation_graph_uri   |
-| Output entities                                | output_entities        |
-| Clear validation graph                         | clear_validation_graph |
-| Resolve owl:imports                            | owl_imports            |
-| Blank node skolemization                       | skolemize              |
-| Add labels                                     | add_labels             |
-| Add labels from data and SHACL graphs          | include_graphs_labels  |
-| Add shui:conforms flag to focus node resources | add_shui_conforms      | 
-| Meta-SHACL                                     | meta_shacl             |
-| Ontology graph URI                             | ontology_graph_uri     |
-| Inference                                      | inference              |
-| Advanced                                       | advanced               |
-| Maximum evaluation depth                       | max_evaluation_depth   |
+| Option                                                                           | Name                            |
+|----------------------------------------------------------------------------------|---------------------------------|
+| Data graph URI                                                                   | data_graph_uri                  |
+| SHACL graph URI                                                                  | shacl_graph_uri                 |
+| Generate validation graph                                                        | generate_graph                  |
+| Validation graph URI                                                             | validation_graph_uri            |
+| Output entities                                                                  | output_entities                 |
+| Clear validation graph                                                           | clear_validation_graph          |
+| Resolve owl:imports                                                              | owl_imports                     |
+| Blank node skolemization                                                         | skolemize                       |
+| Add labels                                                                       | add_labels                      |
+| Add labels from data and SHACL graphs                                            | include_graphs_labels           |
+| Add shui:conforms flag to focus node resources                                   | add_shui_conforms               | 
+| Meta-SHACL                                                                       | meta_shacl                      |
+| Ontology graph URI                                                               | ontology_graph_uri              |
+| Inference                                                                        | inference                       |
+| SHACL advanced features                                                          | advanced                        |
+| SHACl-JS features                                                                | js                              |
+| Remove graph type http://rdfs.org/ns/void#Dataset from data graph                | remove_dataset_graph_type       |
+| Remove graph type https://vocab.eccenca.com/dsm/ThesaurusProject from data graph | remove_thesaurus_graph_type     |
+| Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog from data graph    | remove_shape_catalog_graph_type |
+| Maximum evaluation depth                                                         | max_evaluation_depth            |
 
 
 

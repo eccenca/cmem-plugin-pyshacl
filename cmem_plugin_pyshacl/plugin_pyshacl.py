@@ -257,7 +257,7 @@ def preferred_label(
         PluginParameter(
             param_type=BoolParameterType(),
             name="advanced",
-            label="SHACL Advanced Features",
+            label="SHACL advanced features",
             description="Enable SHACL advanced features.",
             default_value=False,
             advanced=True,
@@ -265,7 +265,7 @@ def preferred_label(
         PluginParameter(
             param_type=BoolParameterType(),
             name="js",
-            label="SHACL-JS Features",
+            label="SHACL-JS features",
             description="Enable SHACL-JS features.",
             default_value=False,
             advanced=True,
@@ -273,19 +273,19 @@ def preferred_label(
         PluginParameter(
             param_type=BoolParameterType(),
             name="remove_dataset_graph_type",
-            label="Remove graph type <http://rdfs.org/ns/void#Dataset> from data graph",
-            description="Before validating, remove the triple <data_graph_uri> a "
-            "<http://rdfs.org/ns/void#Dataset> from the in-memory data graph.",
+            label="Remove graph type http://rdfs.org/ns/void#Dataset from data graph",
+            description="Before validating, remove the triple `<data_graph_uri> a "
+            "<http://rdfs.org/ns/void#Dataset>` from the in-memory data graph.",
             default_value=False,
             advanced=True,
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="remove_thesaurus_graph_type",
-            label="Remove graph type <https://vocab.eccenca.com/dsm/ThesaurusProject> "
+            label="Remove graph type https://vocab.eccenca.com/dsm/ThesaurusProject "
             "from data graph",
-            description="Before validating, remove the triple <data_graph_uri> a "
-            "<https://vocab.eccenca.com/dsm/ThesaurusProject> from the in-memory data "
+            description="Before validating, remove the triple `<data_graph_uri> a "
+            "<https://vocab.eccenca.com/dsm/ThesaurusProject>` from the in-memory data "
             "graph.",
             default_value=False,
             advanced=True,
@@ -293,10 +293,10 @@ def preferred_label(
         PluginParameter(
             param_type=BoolParameterType(),
             name="remove_shape_catalog_graph_type",
-            label="Remove graph type <https://vocab.eccenca.com/shui/ShapeCatalog> "
+            label="Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog "
             "from data graph",
-            description="Before validating, remove the triple <data_graph_uri> a "
-            "<https://vocab.eccenca.com/shui/ShapeCatalog> from the in-memory data "
+            description="Before validating, remove the triple `<data_graph_uri> a "
+            "<https://vocab.eccenca.com/shui/ShapeCatalog>` from the in-memory data "
             "graph.",
             default_value=False,
             advanced=True,
