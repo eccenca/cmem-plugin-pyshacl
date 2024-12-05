@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [unreleased]
 
+### Changed
+
+- Load graphs with get_streamed instead of get
+- Defined output port
+- Update execution report
+
 ## [5.1.0] 2024-12-03
 
 ### Added

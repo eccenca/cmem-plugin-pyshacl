@@ -8,8 +8,8 @@ from time import time
 from warnings import simplefilter
 
 import validators.url
-from cmem.cmempy.dp.proxy.graph import get, post_streamed
-from cmem_plugin_base.dataintegration.context import ExecutionContext
+from cmem.cmempy.dp.proxy.graph import get_streamed, post_streamed
+from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import (
     Entities,
@@ -23,6 +23,7 @@ from cmem_plugin_base.dataintegration.parameter.graph import (
     get_graphs_list,
 )
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
+from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 from cmem_plugin_base.dataintegration.types import (
     BoolParameterType,
     IntParameterType,
@@ -56,6 +57,16 @@ DATA_GRAPH_TYPES = [
     "https://vocab.eccenca.com/shui/ShapeCatalog",
     "http://www.w3.org/2002/07/owl#Ontology",
     "https://vocab.eccenca.com/dsm/ThesaurusProject",
+]
+SH_PROPERTIES = [
+    "focusNode",
+    "resultPath",
+    "value",
+    "sourceShape",
+    "sourceConstraintComponent",
+    # "detail",
+    "resultMessage",
+    "resultSeverity",
 ]
 
 
@@ -360,6 +371,33 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
 
+        self.input_ports = FixedNumberOfInputs([])
+        if self.output_entities:
+            self.schema = self.generate_output_schema()
+            self.output_port = FixedSchemaPort(self.schema)
+        else:
+            self.output_port = None
+
+    def generate_output_schema(self) -> EntitySchema:
+        """Generate output entity schema."""
+        paths = [EntityPath(path=SH[p]) for p in SH_PROPERTIES] + [
+            EntityPath(path=SH.conforms),
+            EntityPath(path=PROV.wasDerivedFrom),
+            EntityPath(path=PROV.wasInformedBy),
+            EntityPath(path=PROV.generatedAtTime),
+        ]
+        return EntitySchema(type_uri=SH.ValidationResult, paths=paths)
+
+    def update_report(self, operation: str, operation_desc: str, entity_count: int) -> None:
+        """Update execution report"""
+        self.context.report.update(
+            ExecutionReport(
+                operation=operation,
+                operation_desc=operation_desc,
+                entity_count=entity_count,
+            )
+        )
+
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
         self.log.info("Adding PROV information validation graph")
@@ -507,16 +545,6 @@ class ShaclValidation(WorkflowPlugin):
     ) -> Entities:
         """Create entities"""
         self.log.info("Creating entities")
-        shp = [
-            "focusNode",
-            "resultPath",
-            "value",
-            "sourceShape",
-            "sourceConstraintComponent",
-            # "detail",
-            "resultMessage",
-            "resultSeverity",
-        ]
         entities = []
         conforms = next(iter(validation_graph.objects(predicate=SH.conforms)))
         for validation_result in list(validation_graph.subjects(RDF.type, SH.ValidationResult)):
@@ -530,24 +558,21 @@ class ShaclValidation(WorkflowPlugin):
                         shacl_graph,
                     )
                 ]
-                for p in shp
+                for p in SH_PROPERTIES
             ] + [[conforms], [self.data_graph_uri], [self.shacl_graph_uri], [utctime]]
             entities.append(Entity(uri=validation_result, values=values))
-        paths = [EntityPath(path=SH[p]) for p in shp] + [
-            EntityPath(path=SH.conforms),
-            EntityPath(path=PROV.wasDerivedFrom),
-            EntityPath(path=PROV.wasInformedBy),
-            EntityPath(path=PROV.generatedAtTime),
-        ]
+
         return Entities(
             entities=entities,
-            schema=EntitySchema(type_uri=SH.ValidationResult, paths=paths),
+            schema=self.generate_output_schema(),
         )
 
     def get_graph(self, uri: str) -> Graph:
         """Get graph from cmem"""
         graph = Graph()
-        graph.parse(data=get(uri, owl_imports_resolution=self.owl_imports).text, format="turtle")
+        graph.parse(
+            data=get_streamed(uri, owl_imports_resolution=self.owl_imports).text, format="turtle"
+        )
         return graph
 
     def check_parameters(  # noqa: C901 PLR0912
@@ -602,14 +627,17 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def execute(  # noqa: C901
+    def execute(  # noqa: C901 PLR0915
         self,
-        inputs: tuple,  # noqa: ARG002
+        inputs: None,  # noqa: ARG002
         context: ExecutionContext = ExecutionContext,
     ) -> Entities | None:
         """Execute plugin"""
+        self.context = context
         setup_cmempy_user_access(context.user)
         self.check_parameters()
+        self.update_report("validate", "graphs validated.", 0)
+
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(self.data_graph_uri)
@@ -621,16 +649,19 @@ class ShaclValidation(WorkflowPlugin):
             self.remove_graph_type(data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject")
         if self.remove_shape_catalog_graph_type:
             self.remove_graph_type(data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog")
+        self.update_report("load", "graphs loaded", 1)
 
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
         shacl_graph = self.get_graph(self.shacl_graph_uri)
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
+        self.update_report("load", "graphs loaded", 2)
 
         if self.ontology_graph_uri:
             self.log.info(f"Loading ontology graph <{self.ontology_graph_uri}> into memory...")
             ontology_graph = self.get_graph(self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
+            self.update_report("load", "graphs loaded", 3)
         else:
             ontology_graph = None
 
@@ -670,7 +701,10 @@ class ShaclValidation(WorkflowPlugin):
 
             self.post_graph(validation_graph)
 
+        self.update_report("validate", "graph validated.", 1)
+
         if self.output_entities:
             self.log.info("Outputting entities")
             return entities
+
         return None
