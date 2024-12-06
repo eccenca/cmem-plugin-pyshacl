@@ -322,22 +322,11 @@ def preferred_label(
         PluginParameter(
             name="focus_nodes_query",
             label="Resource selection query",
-            description="The query to select the resources to validate. Use {{data_graph}} as a "
+            description="Optional query to select resources to validate. Use {{data_graph}} as a "
             "placeholder for the selected data graph for validation, e.g.: "
             "SELECT DISTINCT ?resource "
             "FROM <{{data_graph}}> "
             "WHERE { ?resource a ?class . FILTER isIRI(?resource) }",
-            default_value="",
-            advanced=True,
-        ),
-        PluginParameter(
-            name="shapes_query",
-            label="Shapes selection query",
-            description="The query to select the resources to validate. Use {{shapes_graph}} as a "
-            "placeholder for the selected shapes graph for validation, e.g.: <br>"
-            "SELECT DISTINCT ?shape "
-            "FROM <{{shapes_graph}}> "
-            "WHERE { ?shape a ?class . FILTER isIRI(?shape) }",
             default_value="",
             advanced=True,
         ),
@@ -378,7 +367,6 @@ class ShaclValidation(WorkflowPlugin):
         remove_thesaurus_graph_type: bool = False,
         remove_shape_catalog_graph_type: bool = False,
         focus_nodes_query: SparqlCode = "",
-        shapes_query: SparqlCode = "",
         max_validation_depth: int = 15,
     ) -> None:
         self.data_graph_uri = data_graph_uri
@@ -400,7 +388,6 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.focus_nodes_query = str(focus_nodes_query)
-        self.shapes_query = str(shapes_query)
         self.max_validation_depth = max_validation_depth
         self.allow_infos = None
         self.allow_warnings = None
@@ -665,12 +652,12 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def query_resources(self, sparql_query: str, graph_uri: str, placeholder: str) -> list:
+    def query_resources(self) -> list:
         """Query for resources to include in validation"""
         setup_cmempy_user_access(self.context.user)
         resources = []
-        result = SparqlQuery(text=sparql_query).get_json_results(
-            placeholder={placeholder: graph_uri}
+        result = SparqlQuery(text=self.focus_nodes_query).get_json_results(
+            placeholder={"data_graph": self.data_graph_uri}
         )
         if result["results"]["bindings"]:
             resources = [binding["resource"]["value"] for binding in result["results"]["bindings"]]
@@ -688,19 +675,9 @@ class ShaclValidation(WorkflowPlugin):
 
         focus_nodes_select = None
         if self.focus_nodes_query:
-            focus_nodes_select = self.query_resources(
-                self.focus_nodes_query, self.data_graph_uri, "data_graph"
-            )
+            focus_nodes_select = self.query_resources()
             if not focus_nodes_select:
                 raise ValueError("Focus nodes SPARQL query does not return results.")
-
-        shapes_select = None
-        if self.shapes_query:
-            shapes_select = self.query_resources(
-                self.shapes_query, self.shacl_graph_uri, "shapes_graph"
-            )
-            if not shapes_select:
-                raise ValueError("Shapes SPARQL query does not return results.")
 
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
@@ -743,7 +720,6 @@ class ShaclValidation(WorkflowPlugin):
             max_validation_depth=self.max_validation_depth,
             inplace=True,
             focus_nodes=focus_nodes_select,
-            use_shapes=shapes_select,
             allow_infos=self.allow_infos,
             allow_warnings=self.allow_warnings,
         )

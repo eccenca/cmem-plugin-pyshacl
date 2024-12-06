@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Added
 
 - Option for shapes marked with severity of "warning" or "info" not causing the result to be invalid
-- Optional SPARQL query to select specific IRIs of focus nodes and Node Shapes for the validation
+- Optional SPARQL query to select specific focus nodes for validation
 
 ### Changed
 
