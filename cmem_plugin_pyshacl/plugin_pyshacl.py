@@ -667,6 +667,7 @@ class ShaclValidation(WorkflowPlugin):
 
     def query_resources(self, sparql_query: str, graph_uri: str, placeholder: str) -> list:
         """Query for resources to include in validation"""
+        setup_cmempy_user_access(self.context.user)
         resources = []
         result = SparqlQuery(text=sparql_query).get_json_results(
             placeholder={placeholder: graph_uri}
