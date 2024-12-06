@@ -8,9 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- Load graphs with get_streamed instead of get
 - Defined output port
 - Update execution report
+- Reduce memory usage when parsing graphs from CMEM by creating temporary file 
 
 ## [5.1.0] 2024-12-03
 

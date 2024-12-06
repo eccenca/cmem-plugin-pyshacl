@@ -492,6 +492,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info("Posting SHACL validation graph...")
         with NamedTemporaryFile(suffix=".nt") as temp:
             validation_graph.serialize(temp.name, format="nt", encoding="utf-8")
+            setup_cmempy_user_access(self.context.user)
             res = post_streamed(
                 self.validation_graph_uri,
                 temp.name,
@@ -570,9 +571,12 @@ class ShaclValidation(WorkflowPlugin):
     def get_graph(self, uri: str) -> Graph:
         """Get graph from cmem"""
         graph = Graph()
-        graph.parse(
-            data=get_streamed(uri, owl_imports_resolution=self.owl_imports).text, format="turtle"
-        )
+        setup_cmempy_user_access(self.context.user)
+        with NamedTemporaryFile(suffix=".nt") as temp:
+            temp.write(
+                get_streamed(uri, owl_imports_resolution=self.owl_imports).text.encode("utf-8")
+            )
+            graph.parse(temp.name, format="nt")
         return graph
 
     def check_parameters(  # noqa: C901 PLR0912
@@ -588,6 +592,7 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError("Data graph URI parameter is invalid")
         if not validators.url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
+        setup_cmempy_user_access(self.context.user)
         graphs_dict = {graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()}
 
         if self.ontology_graph_uri:
@@ -634,7 +639,7 @@ class ShaclValidation(WorkflowPlugin):
     ) -> Entities | None:
         """Execute plugin"""
         self.context = context
-        setup_cmempy_user_access(context.user)
+
         self.check_parameters()
         self.update_report("validate", "graphs validated.", 0)
 
@@ -659,6 +664,7 @@ class ShaclValidation(WorkflowPlugin):
 
         if self.ontology_graph_uri:
             self.log.info(f"Loading ontology graph <{self.ontology_graph_uri}> into memory...")
+            start = time()
             ontology_graph = self.get_graph(self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
             self.update_report("load", "graphs loaded", 3)
@@ -698,7 +704,6 @@ class ShaclValidation(WorkflowPlugin):
                         validation_graph, validation_graph_uris, focus_nodes
                     )
             validation_graph = self.add_prov(validation_graph, utctime)
-
             self.post_graph(validation_graph)
 
         self.update_report("validate", "graph validated.", 1)
