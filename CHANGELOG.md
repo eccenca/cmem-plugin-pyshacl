@@ -6,12 +6,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [unreleased]
 
+### Added
+
+- Option for shapes marked with severity of "warning" or "info" not causing the result to be invalid
+- Optional SPARQL query to select specific IRIs of focus nodes and Node Shapes for the validation
+
 ### Changed
 
 - Defined output port
 - Update execution report
 - Reduce memory usage when parsing graphs from CMEM by creating temporary file 
 - Validate parameters at initialisation
+- Removed parameter "generate validation graph". A validation graph is generated if a URI is given.
 
 ## [5.1.0] 2024-12-03
 

@@ -9,6 +9,7 @@ from warnings import simplefilter
 
 import validators.url
 from cmem.cmempy.dp.proxy.graph import get_streamed, post_streamed
+from cmem.cmempy.queries import SparqlQuery
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import (
@@ -18,6 +19,7 @@ from cmem_plugin_base.dataintegration.entity import (
     EntitySchema,
 )
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
+from cmem_plugin_base.dataintegration.parameter.code import SparqlCode
 from cmem_plugin_base.dataintegration.parameter.graph import (
     GraphParameterType,
     get_graphs_list,
@@ -163,15 +165,6 @@ def preferred_label(
         ),
         PluginParameter(
             param_type=BoolParameterType(),
-            name="generate_graph",
-            label="Generate validation graph",
-            description="If enabled, the validation graph is posted to the CMEM "
-            "instance with the graph URI specified with the `Validation "
-            "graph URI` option.",
-            default_value=False,
-        ),
-        PluginParameter(
-            param_type=BoolParameterType(),
             name="output_entities",
             label="Output entities",
             description="If enabled, the plugin outputs the validation results as "
@@ -283,6 +276,19 @@ def preferred_label(
             advanced=True,
         ),
         PluginParameter(
+            param_type=ChoiceParameterType(
+                OrderedDict(
+                    {"none": "None", "info": "allow Info", "warning": "allow Info and Warning"}
+                )
+            ),
+            name="allow_severity",
+            label='Allow severity "Warning" or "Info"',
+            description="If selected, shapes marked with severity of Warning or Info will not "
+            "cause the result to be invalid.",
+            default_value="none",
+            advanced=True,
+        ),
+        PluginParameter(
             param_type=BoolParameterType(),
             name="remove_dataset_graph_type",
             label="Remove graph type http://rdfs.org/ns/void#Dataset from data graph",
@@ -314,6 +320,28 @@ def preferred_label(
             advanced=True,
         ),
         PluginParameter(
+            name="focus_nodes_query",
+            label="Resource selection query",
+            description="The query to select the resources to validate. Use {{data_graph}} as a "
+            "placeholder for the selected data graph for validation, e.g.: "
+            "SELECT DISTINCT ?resource "
+            "FROM <{{data_graph}}> "
+            "WHERE { ?resource a ?class . FILTER isIRI(?resource) }",
+            default_value="",
+            advanced=True,
+        ),
+        PluginParameter(
+            name="shapes_query",
+            label="Shapes selection query",
+            description="The query to select the resources to validate. Use {{shapes_graph}} as a "
+            "placeholder for the selected shapes graph for validation, e.g.: <br>"
+            "SELECT DISTINCT ?shape "
+            "FROM <{{shapes_graph}}> "
+            "WHERE { ?shape a ?class . FILTER isIRI(?shape) }",
+            default_value="",
+            advanced=True,
+        ),
+        PluginParameter(
             param_type=IntParameterType(),
             name="max_validation_depth",
             label="Specify a custom max-evaluation-depth",
@@ -333,10 +361,9 @@ class ShaclValidation(WorkflowPlugin):
         data_graph_uri: str = "",
         shacl_graph_uri: str = "",
         ontology_graph_uri: str = "",
-        generate_graph: bool = False,
         validation_graph_uri: str = "",
-        output_entities: bool = False,
         clear_validation_graph: bool = True,
+        output_entities: bool = False,
         owl_imports: bool = True,
         skolemize: bool = True,
         add_labels: bool = True,
@@ -346,16 +373,18 @@ class ShaclValidation(WorkflowPlugin):
         inference: str = "none",
         advanced: bool = False,
         js: bool = False,
+        allow_severity: str = "none",
         remove_dataset_graph_type: bool = False,
         remove_thesaurus_graph_type: bool = False,
         remove_shape_catalog_graph_type: bool = False,
+        focus_nodes_query: SparqlCode = "",
+        shapes_query: SparqlCode = "",
         max_validation_depth: int = 15,
     ) -> None:
         self.data_graph_uri = data_graph_uri
         self.shacl_graph_uri = shacl_graph_uri
         self.ontology_graph_uri = ontology_graph_uri
         self.validation_graph_uri = validation_graph_uri
-        self.generate_graph = generate_graph
         self.output_entities = output_entities
         self.owl_imports = owl_imports
         self.clear_validation_graph = clear_validation_graph
@@ -370,7 +399,16 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_dataset_graph_type = remove_dataset_graph_type
         self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
+        self.focus_nodes_query = str(focus_nodes_query)
+        self.shapes_query = str(shapes_query)
         self.max_validation_depth = max_validation_depth
+        self.allow_infos = None
+        self.allow_warnings = None
+
+        if allow_severity == "info":
+            self.allow_infos = True
+        elif allow_severity == "warning":
+            self.allow_warnings = True
 
         self.input_ports = FixedNumberOfInputs([])
         if self.output_entities:
@@ -586,17 +624,15 @@ class ShaclValidation(WorkflowPlugin):
         """Validate graph parameters at initialisation"""
         self.log.info("Validating parameters...")
         errors = ""
-        if not self.output_entities and not self.generate_graph:
-            errors += (
-                "Generate validation graph or Output values parameter needs to be set to true. "
-            )
+        if not self.output_entities and not self.validation_graph_uri:
+            errors += "A validation graph URI or the output values parameter needs to be set. "
         if not validators.url(self.data_graph_uri):
             errors += "Data graph URI parameter is invalid. "
         if not validators.url(self.shacl_graph_uri):
             errors += "SHACL graph URI parameter is invalid. "
         if self.ontology_graph_uri and not validators.url(self.ontology_graph_uri):
             errors += "Ontology graph URI parameter is invalid. "
-        if self.generate_graph and not validators.url(self.validation_graph_uri):
+        if self.validation_graph_uri and not validators.url(self.validation_graph_uri):
             errors += "Validation graph URI parameter is invalid. "
         if not self.add_labels:
             self.include_graphs_labels = False
@@ -619,7 +655,7 @@ class ShaclValidation(WorkflowPlugin):
             errors += f"Data graph <{self.data_graph_uri}> not found. "
         if self.shacl_graph_uri not in graphs_dict:
             errors += f"SHACL graph <{self.shacl_graph_uri}> not found. "
-        if self.generate_graph and self.validation_graph_uri in graphs_dict:
+        if self.validation_graph_uri and self.validation_graph_uri in graphs_dict:
             self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
         if errors:
             raise ValueError(errors[:-1])
@@ -629,7 +665,17 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def execute(  # noqa: C901 PLR0915
+    def query_resources(self, sparql_query: str, graph_uri: str, placeholder: str) -> list:
+        """Query for resources to include in validation"""
+        resources = []
+        result = SparqlQuery(text=sparql_query).get_json_results(
+            placeholder={placeholder: graph_uri}
+        )
+        if result["results"]["bindings"]:
+            resources = [binding["resource"]["value"] for binding in result["results"]["bindings"]]
+        return resources
+
+    def execute(  # noqa: C901 PLR0915 PLR0912
         self,
         inputs: None,  # noqa: ARG002
         context: ExecutionContext = ExecutionContext,
@@ -638,6 +684,22 @@ class ShaclValidation(WorkflowPlugin):
         self.context = context
         self.check_parameters_exec()
         self.update_report("validate", "graphs validated.", 0)
+
+        focus_nodes_select = None
+        if self.focus_nodes_query:
+            focus_nodes_select = self.query_resources(
+                self.focus_nodes_query, self.data_graph_uri, "data_graph"
+            )
+            if not focus_nodes_select:
+                raise ValueError("Focus nodes SPARQL query does not return results.")
+
+        shapes_select = None
+        if self.shapes_query:
+            shapes_select = self.query_resources(
+                self.shapes_query, self.shacl_graph_uri, "shapes_graph"
+            )
+            if not shapes_select:
+                raise ValueError("Shapes SPARQL query does not return results.")
 
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
@@ -679,12 +741,16 @@ class ShaclValidation(WorkflowPlugin):
             js=self.js,
             max_validation_depth=self.max_validation_depth,
             inplace=True,
+            focus_nodes=focus_nodes_select,
+            use_shapes=shapes_select,
+            allow_infos=self.allow_infos,
+            allow_warnings=self.allow_warnings,
         )
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()), tz=UTC))[:-6].replace(" ", "T") + "Z"
         if self.output_entities:
             entities = self.make_entities(validation_graph, data_graph, shacl_graph, utctime)
-        if self.generate_graph:
+        if self.validation_graph_uri:
             if self.skolemize:
                 self.log.info("Skolemizing validation graph")
                 validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)

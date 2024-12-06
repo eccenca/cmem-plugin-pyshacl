@@ -50,7 +50,6 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
         shacl_graph_uri=SHACL_GRAPH_URI,
         validation_graph_uri=VALIDATION_GRAPH_URI,
         ontology_graph_uri="",
-        generate_graph=True,
         output_entities=True,
         clear_validation_graph=True,
         owl_imports=True,
