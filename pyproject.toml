@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmem-plugin-pyshacl"
-version = "5.0.2.dev1+7493305.dirty"
+version = "5.1.1.dev4+85267f9.dirty"
 license = "Apache-2.0"
 description = "Validate your Knowledge Graphs based on tests generated from SHACL shapes."
 authors = ["eccenca GmbH <cmempy-developer@eccenca.com>"]
@@ -38,13 +38,17 @@ pytest-html = "^4.1.1"
 pytest-memray = { version = "^1.7.0",  markers = "platform_system != 'Windows'" }
 ruff = "^0.6.1"
 safety = "^1.10.3"
+#sanic = "^24.6.0"
+#sanic-ext = "^23.12.0"
+#sanic-cors = "^2.2.0"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry-dynamic-versioning]
-enable = true
+enable = false
 vcs = "git"
 dirty = true
 bump = true
@@ -95,5 +99,6 @@ ignore = [
     "PD",      # opinionated linting for pandas code
     "S101",    # use of assert detected
     "TRY003",  # Avoid specifying long messages outside the exception class
+    "ERA001"   # Found commented-out code
 ]
 

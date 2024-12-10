@@ -1,10 +1,13 @@
 """CMEM plugin for SHACl validation using pySHACL"""
 
+import json
 from collections import OrderedDict
 from datetime import UTC, datetime
 from os import environ
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from time import time
+from urllib.parse import urljoin
 from warnings import simplefilter
 
 import validators.url
@@ -45,6 +48,7 @@ from rdflib import (
     URIRef,
 )
 from rdflib.term import Node
+from requests import post
 from urllib3.exceptions import InsecureRequestWarning
 
 environ["SSL_VERIFY"] = "false"
@@ -178,6 +182,14 @@ def preferred_label(
             "entities and can be connected to, for instance, a CSV "
             "dataset to produce a results table.",
             default_value=False,
+        ),
+        PluginParameter(
+            param_type=StringParameterType(),
+            name="service",
+            label="HTTP REST service URL",
+            description="Run the validation with the pySHACL service at this URL",
+            default_value="",
+            advanced=False,
         ),
         PluginParameter(
             param_type=BoolParameterType(),
@@ -349,6 +361,7 @@ class ShaclValidation(WorkflowPlugin):
         remove_dataset_graph_type: bool = False,
         remove_thesaurus_graph_type: bool = False,
         remove_shape_catalog_graph_type: bool = False,
+        service: str = "",
         max_validation_depth: int = 15,
     ) -> None:
         self.data_graph_uri = data_graph_uri
@@ -370,6 +383,7 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_dataset_graph_type = remove_dataset_graph_type
         self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
+        self.service = service
         self.max_validation_depth = max_validation_depth
 
         self.input_ports = FixedNumberOfInputs([])
@@ -573,16 +587,19 @@ class ShaclValidation(WorkflowPlugin):
 
     def get_graph(self, uri: str) -> Graph:
         """Get graph from cmem"""
-        graph = Graph()
         setup_cmempy_user_access(self.context.user)
         with NamedTemporaryFile(suffix=".nt") as temp:
             temp.write(
                 get_streamed(uri, owl_imports_resolution=self.owl_imports).text.encode("utf-8")
             )
-            graph.parse(temp.name, format="nt")
+            if self.service:
+                with Path(temp.name).open("r") as f:
+                    graph = f.read()
+            else:
+                graph = Graph().parse(temp.name, format="nt")
         return graph
 
-    def check_parameters_init(self) -> None:
+    def check_parameters_init(self) -> None:  # noqa: C901
         """Validate graph parameters at initialisation"""
         self.log.info("Validating parameters...")
         errors = ""
@@ -598,6 +615,8 @@ class ShaclValidation(WorkflowPlugin):
             errors += "Ontology graph URI parameter is invalid. "
         if self.generate_graph and not validators.url(self.validation_graph_uri):
             errors += "Validation graph URI parameter is invalid. "
+        if self.service and not validators.url(self.service):
+            errors += "REST Service URI parameter is invalid. "
         if not self.add_labels:
             self.include_graphs_labels = False
         if self.inference not in ("none", "rdfs", "owlrl", "both"):
@@ -629,7 +648,44 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def execute(  # noqa: C901 PLR0915
+    def validate_service(
+        self, data_graph: Graph, shacl_graph: Graph, ontology_graph: Graph
+    ) -> Graph:
+        """Run pyshacl validation with REST API"""
+        url = urljoin(self.service, "validate")
+        data = {
+            "data_graph": data_graph,
+            "shapes_graph": shacl_graph,
+            "ontology_graph": ontology_graph,
+            "metashacl": self.meta_shacl,
+            "inference": self.inference,
+            "advanced": self.advanced,
+            "js": self.js,
+        }
+        headers = {"Content-type": "application/json", "Accept": "text/turtle"}
+        response = post(  # noqa: S113
+            headers=headers,
+            url=url,
+            data=json.dumps(data),
+        )
+        return Graph().parse(data=response.text, format="turtle")
+
+    def validate_local(self, data_graph: Graph, shacl_graph: Graph, ontology_graph: Graph) -> Graph:
+        """Run pyshacl validation locally"""
+        _conforms, validation_graph, _results_text = validate(
+            data_graph=data_graph,
+            shacl_graph=shacl_graph,
+            ont_graph=ontology_graph,
+            meta_shacl=self.meta_shacl,
+            inference=self.inference,
+            advanced=self.advanced,
+            js=self.js,
+            max_validation_depth=self.max_validation_depth,
+            inplace=True,
+        )
+        return validation_graph
+
+    def execute(  # noqa: C901 PLR0915 PLR0912
         self,
         inputs: None,  # noqa: ARG002
         context: ExecutionContext = ExecutionContext,
@@ -644,13 +700,14 @@ class ShaclValidation(WorkflowPlugin):
         data_graph = self.get_graph(self.data_graph_uri)
         self.log.info(f"Finished loading data graph in {e_t(start)} seconds")
 
-        if self.remove_dataset_graph_type:
-            self.remove_graph_type(data_graph, "http://rdfs.org/ns/void#Dataset")
-        if self.remove_thesaurus_graph_type:
-            self.remove_graph_type(data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject")
-        if self.remove_shape_catalog_graph_type:
-            self.remove_graph_type(data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog")
-        self.update_report("load", "graphs loaded", 1)
+        if not self.service:
+            if self.remove_dataset_graph_type:
+                self.remove_graph_type(data_graph, "http://rdfs.org/ns/void#Dataset")
+            if self.remove_thesaurus_graph_type:
+                self.remove_graph_type(data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject")
+            if self.remove_shape_catalog_graph_type:
+                self.remove_graph_type(data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog")
+            self.update_report("load", "graphs loaded", 1)
 
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
@@ -669,17 +726,11 @@ class ShaclValidation(WorkflowPlugin):
 
         self.log.info("Starting SHACL validation...")
         start = time()
-        _conforms, validation_graph, _results_text = validate(
-            data_graph=data_graph,
-            shacl_graph=shacl_graph,
-            ont_graph=ontology_graph,
-            meta_shacl=self.meta_shacl,
-            inference=self.inference,
-            advanced=self.advanced,
-            js=self.js,
-            max_validation_depth=self.max_validation_depth,
-            inplace=True,
-        )
+        if self.service:
+            validation_graph = self.validate_service(data_graph, shacl_graph, ontology_graph)
+        else:
+            validation_graph = self.validate_local(data_graph, shacl_graph, ontology_graph)
+
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()), tz=UTC))[:-6].replace(" ", "T") + "Z"
         if self.output_entities:
