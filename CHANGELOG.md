@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [unreleased]
 
+### Added
+
+- Added support for pySHACL REST service
+
 ### Changed
 
 - Defined output port

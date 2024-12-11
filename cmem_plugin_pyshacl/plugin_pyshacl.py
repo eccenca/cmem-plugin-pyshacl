@@ -72,51 +72,6 @@ def e_t(start: float) -> float:
     return round(time() - start, 3)
 
 
-def get_label(graph: Graph, subject: URIRef | BNode):  # noqa: ANN201
-    """Get preferred label"""
-    labels = preferred_label(graph, subject)
-    if labels:
-        return labels[0][1]
-    return None
-
-
-def preferred_label(
-    graph: Graph,
-    subject: URIRef | BNode,
-    lang: str | None = None,
-    default: list | None = None,
-    label_properties: tuple = (
-        RDFS.label,
-        SKOSXL.prefLabel / SKOSXL.literalForm,
-        SKOS.prefLabel,
-    ),
-) -> list:
-    """Adapted from rdflib 6.1.1, function removed in rdflib 6.2.0"""
-    if default is None:
-        default = []
-    # setup the language filtering
-    if lang is not None:
-        if lang == "":  # we only want not language-tagged literals
-
-            def langfilter(lbl: Literal) -> bool:
-                return lbl.language is None
-        else:
-
-            def langfilter(lbl: Literal) -> bool:
-                return lbl.language == lang
-    else:  # we don't care about language tags
-
-        def langfilter(lbl: Literal) -> bool:  # noqa: ARG001
-            return True
-
-    for label_prop in label_properties:
-        labels = list(filter(langfilter, graph.objects(subject, label_prop)))  # type:ignore[arg-type, var-annotated]
-        if len(labels) == 0:
-            continue
-        return [(label_prop, lbl) for lbl in labels]
-    return default
-
-
 @Plugin(
     label="SHACL validation with pySHACL",
     icon=Icon(file_name="shacl.jpg", package=__package__),
@@ -415,6 +370,53 @@ class ShaclValidation(WorkflowPlugin):
             )
         )
 
+    def get_label(self, graph: Graph, subject: URIRef | BNode):  # noqa: ANN201
+        """Get preferred label"""
+        labels = self.preferred_label(graph, subject)
+        if labels:
+            return labels[0][1]
+        return None
+
+    def preferred_label(
+        self,
+        graph: Graph,
+        subject: URIRef | BNode,
+        lang: str | None = None,
+        default: list | None = None,
+        label_properties: tuple = (
+            RDFS.label,
+            SKOSXL.prefLabel / SKOSXL.literalForm,
+            SKOS.prefLabel,
+        ),
+    ) -> list:
+        """Adapted from rdflib 6.1.1, function removed in rdflib 6.2.0"""
+        if default is None:
+            default = []
+        # setup the language filtering
+        if lang is not None:
+            if lang == "":  # we only want not language-tagged literals
+
+                def langfilter(lbl: Literal) -> bool:
+                    return lbl.language is None
+            else:
+
+                def langfilter(lbl: Literal) -> bool:
+                    return lbl.language == lang
+        else:  # we don't care about language tags
+
+            def langfilter(lbl: Literal) -> bool:  # noqa: ARG001
+                return True
+
+        for label_prop in label_properties:
+            if self.service:
+                pass
+            else:
+                labels = list(filter(langfilter, graph.objects(subject, label_prop)))  # type:ignore[arg-type, var-annotated]
+            if len(labels) == 0:
+                continue
+            return [(label_prop, lbl) for lbl in labels]
+        return default
+
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
         self.log.info("Adding PROV information validation graph")
@@ -471,18 +473,18 @@ class ShaclValidation(WorkflowPlugin):
                 )
                 if self.add_shui_conforms:
                     focus_nodes.append(focus_node)
-                label = get_label(data_graph, focus_node)
+                label = self.get_label(data_graph, focus_node)
                 if label and focus_node:
                     validation_graph.add((focus_node, RDFS.label, label))  # type: ignore[arg-type]
                 value = validation_graph.value(subject=validation_result_uri, predicate=SH.value)
                 if value and isinstance(value, URIRef | BNode):
-                    label = get_label(data_graph, value)
+                    label = self.get_label(data_graph, value)
                     if label:
                         validation_graph.add((value, RDFS.label, label))  # type: ignore[arg-type]
                 source_shape = validation_graph.value(
                     subject=validation_result_uri, predicate=SH.sourceShape
                 )
-                label = get_label(shacl_graph, source_shape)
+                label = self.get_label(shacl_graph, source_shape)
                 if label:
                     validation_graph.add((source_shape, RDFS.label, label))  # type: ignore[arg-type]
         return validation_graph, focus_nodes
@@ -536,13 +538,13 @@ class ShaclValidation(WorkflowPlugin):
                     SH.sourceConstraintComponent,
                     SH.resultSeverity,
                 ):
-                    label = get_label(label_g, obj)
+                    label = self.get_label(label_g, obj)
                     res_val = str(label) if label else obj
                 else:
                     res_val = obj
             elif isinstance(obj, BNode):
                 if self.include_graphs_labels:
-                    label = get_label(label_g, obj)
+                    label = self.get_label(label_g, obj)
                     if label:
                         res_val = str(label)
                 if not res_val:
@@ -585,7 +587,7 @@ class ShaclValidation(WorkflowPlugin):
             schema=self.generate_output_schema(),
         )
 
-    def get_graph(self, uri: str) -> Graph:
+    def get_graph(self, uri: str) -> Graph | str:
         """Get graph from cmem"""
         setup_cmempy_user_access(self.context.user)
         with NamedTemporaryFile(suffix=".nt") as temp:
@@ -594,10 +596,9 @@ class ShaclValidation(WorkflowPlugin):
             )
             if self.service:
                 with Path(temp.name).open("r") as f:
-                    graph = f.read()
+                    return f.read()
             else:
-                graph = Graph().parse(temp.name, format="nt")
-        return graph
+                return Graph().parse(temp.name, format="nt")
 
     def check_parameters_init(self) -> None:  # noqa: C901
         """Validate graph parameters at initialisation"""
@@ -626,6 +627,13 @@ class ShaclValidation(WorkflowPlugin):
         if errors:
             raise ValueError(errors[:-1])
 
+        if self.service:
+            self.include_graphs_labels = False
+            self.remove_dataset_graph_type = False
+            self.remove_shape_catalog_graph_type = False
+            self.remove_thesaurus_graph_type = False
+            self.output_entities = False
+
     def check_parameters_exec(self) -> None:
         """Validate graph parameters at execution"""
         self.log.info("Validating parameters...")
@@ -648,9 +656,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def validate_service(
-        self, data_graph: Graph, shacl_graph: Graph, ontology_graph: Graph
-    ) -> Graph:
+    def validate_service(self, data_graph: str, shacl_graph: str, ontology_graph: str) -> Graph:
         """Run pyshacl validation with REST API"""
         url = urljoin(self.service, "validate")
         data = {
@@ -663,11 +669,8 @@ class ShaclValidation(WorkflowPlugin):
             "js": self.js,
         }
         headers = {"Content-type": "application/json", "Accept": "text/turtle"}
-        response = post(  # noqa: S113
-            headers=headers,
-            url=url,
-            data=json.dumps(data),
-        )
+        response = post(headers=headers, url=url, data=json.dumps(data))  # noqa: S113
+
         return Graph().parse(data=response.text, format="turtle")
 
     def validate_local(self, data_graph: Graph, shacl_graph: Graph, ontology_graph: Graph) -> Graph:
@@ -683,9 +686,30 @@ class ShaclValidation(WorkflowPlugin):
             max_validation_depth=self.max_validation_depth,
             inplace=True,
         )
+        assert isinstance(validation_graph, Graph)
         return validation_graph
 
-    def execute(  # noqa: C901 PLR0915 PLR0912
+    def update_validation_graph(
+        self, validation_graph: Graph, data_graph: Graph, shacl_graph: Graph, utctime: str
+    ) -> None:
+        """Generate validation graph"""
+        if self.skolemize:
+            self.log.info("Skolemizing validation graph")
+            validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
+        if self.add_labels or self.add_shui_conforms:
+            validation_graph_uris = list(validation_graph.subjects(RDF.type, SH.ValidationResult))
+            focus_nodes = []
+            if self.add_labels:
+                validation_graph, focus_nodes = self.add_labels_val(
+                    validation_graph, data_graph, shacl_graph, validation_graph_uris
+                )
+            if self.add_shui_conforms:
+                validation_graph = self.add_shui_conforms_val(
+                    validation_graph, validation_graph_uris, focus_nodes
+                )
+        self.add_prov(validation_graph, utctime)
+
+    def execute(  # noqa: C901
         self,
         inputs: None,  # noqa: ARG002
         context: ExecutionContext = ExecutionContext,
@@ -700,7 +724,7 @@ class ShaclValidation(WorkflowPlugin):
         data_graph = self.get_graph(self.data_graph_uri)
         self.log.info(f"Finished loading data graph in {e_t(start)} seconds")
 
-        if not self.service:
+        if isinstance(data_graph, Graph):
             if self.remove_dataset_graph_type:
                 self.remove_graph_type(data_graph, "http://rdfs.org/ns/void#Dataset")
             if self.remove_thesaurus_graph_type:
@@ -727,30 +751,21 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info("Starting SHACL validation...")
         start = time()
         if self.service:
-            validation_graph = self.validate_service(data_graph, shacl_graph, ontology_graph)
+            validation_graph = self.validate_service(data_graph, shacl_graph, ontology_graph)  # type: ignore[arg-type]
         else:
-            validation_graph = self.validate_local(data_graph, shacl_graph, ontology_graph)
+            validation_graph = self.validate_local(data_graph, shacl_graph, ontology_graph)  # type: ignore[arg-type]
+
+        if self.service:
+            # data_graph = Graph().parse(data=str(data_graph))
+            shacl_graph = Graph().parse(data=str(shacl_graph))
 
         self.log.info(f"Finished SHACL validation in {e_t(start)} seconds")
         utctime = str(datetime.fromtimestamp(int(time()), tz=UTC))[:-6].replace(" ", "T") + "Z"
+
         if self.output_entities:
             entities = self.make_entities(validation_graph, data_graph, shacl_graph, utctime)
         if self.generate_graph:
-            if self.skolemize:
-                self.log.info("Skolemizing validation graph")
-                validation_graph = validation_graph.skolemize(basepath=self.validation_graph_uri)
-            if self.add_labels or self.add_shui_conforms:
-                validation_graph_uris = validation_graph.subjects(RDF.type, SH.ValidationResult)
-                focus_nodes = []
-                if self.add_labels:
-                    validation_graph, focus_nodes = self.add_labels_val(
-                        validation_graph, data_graph, shacl_graph, validation_graph_uris
-                    )
-                if self.add_shui_conforms:
-                    validation_graph = self.add_shui_conforms_val(
-                        validation_graph, validation_graph_uris, focus_nodes
-                    )
-            validation_graph = self.add_prov(validation_graph, utctime)
+            self.update_validation_graph(validation_graph, data_graph, shacl_graph, utctime)
             self.post_graph(validation_graph)
 
         self.update_report("validate", "graph validated.", 1)

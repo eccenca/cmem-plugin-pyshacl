@@ -20,7 +20,7 @@ VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 
 
 @pytest.fixture
-def _setup_local(request: pytest.FixtureRequest) -> None:
+def setup(request: pytest.FixtureRequest) -> None:
     """Set up"""
     shacl_file = Path(pyshacl.__path__[0]) / "assets" / "shacl-shacl.ttl"
     g = Graph()
@@ -43,7 +43,8 @@ def _setup_local(request: pytest.FixtureRequest) -> None:
 
 
 @needs_cmem
-def test_workflow_execution(_setup_local: None) -> None:  # noqa: PT019
+@pytest.mark.usefixtures("setup")
+def test_workflow_execution() -> None:
     """Test plugin execution"""
     plugin = ShaclValidation(
         data_graph_uri="https://vocab.eccenca.com/shacl/",
@@ -75,35 +76,36 @@ def test_workflow_execution(_setup_local: None) -> None:  # noqa: PT019
     assert similar(result, test)
 
 
-# @needs_cmem
-# def test_workflow_execution_service(_setup: None) -> None:
-#     """Test plugin execution"""
-#     plugin = ShaclValidation(
-#         data_graph_uri="https://vocab.eccenca.com/shacl/",
-#         shacl_graph_uri=SHACL_GRAPH_URI,
-#         validation_graph_uri=VALIDATION_GRAPH_URI,
-#         ontology_graph_uri="",
-#         generate_graph=True,
-#         output_entities=True,
-#         clear_validation_graph=True,
-#         owl_imports=True,
-#         skolemize=False,
-#         add_labels=True,
-#         include_graphs_labels=True,
-#         add_shui_conforms=True,
-#         meta_shacl=False,
-#         inference="both",
-#         advanced=True,
-#         remove_dataset_graph_type=False,
-#         remove_thesaurus_graph_type=False,
-#         remove_shape_catalog_graph_type=False,
-#         service="http://127.0.0.1:8099",
-#         max_validation_depth=15,
-#     )
-#     plugin.execute(inputs=None, context=TestExecutionContext())
-#
-#     result = Graph().parse(data=get(VALIDATION_GRAPH_URI).text)
-#     result.remove((None, PROV.generatedAtTime, None))
-#     test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
-#
-#     assert similar(result, test)
+@needs_cmem
+@pytest.mark.usefixtures("setup")
+def test_workflow_execution_service() -> None:
+    """Test plugin execution"""
+    plugin = ShaclValidation(
+        data_graph_uri="https://vocab.eccenca.com/shacl/",
+        shacl_graph_uri=SHACL_GRAPH_URI,
+        validation_graph_uri=VALIDATION_GRAPH_URI,
+        ontology_graph_uri="",
+        generate_graph=True,
+        output_entities=False,
+        clear_validation_graph=True,
+        owl_imports=True,
+        skolemize=False,
+        add_labels=True,
+        include_graphs_labels=False,
+        add_shui_conforms=True,
+        meta_shacl=False,
+        inference="both",
+        advanced=True,
+        remove_dataset_graph_type=False,
+        remove_thesaurus_graph_type=False,
+        remove_shape_catalog_graph_type=False,
+        service="http://127.0.0.1:8099",
+        max_validation_depth=15,
+    )
+    plugin.execute(inputs=None, context=TestExecutionContext())
+
+    result = Graph().parse(data=get(VALIDATION_GRAPH_URI).text)
+    result.remove((None, PROV.generatedAtTime, None))
+    test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
+
+    assert similar(result, test)
