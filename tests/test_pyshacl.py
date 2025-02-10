@@ -66,7 +66,7 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
         remove_shape_catalog_graph_type=True,
         max_validation_depth=15,
     )
-    plugin.execute(inputs=None, context=TestExecutionContext())
+    plugin.execute(inputs=(), context=TestExecutionContext())
 
     result = Graph().parse(data=get(VALIDATION_GRAPH_URI).text)
     result.remove((None, PROV.generatedAtTime, None))

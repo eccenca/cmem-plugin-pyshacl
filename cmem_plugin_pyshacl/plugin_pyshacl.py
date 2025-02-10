@@ -2,12 +2,14 @@
 
 from collections import OrderedDict
 from datetime import UTC, datetime
+from os import environ
 from tempfile import NamedTemporaryFile
 from time import time
+from warnings import simplefilter
 
 import validators.url
-from cmem.cmempy.dp.proxy.graph import get_streamed, post_streamed
-from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
+from cmem.cmempy.dp.proxy.graph import get, post_streamed
+from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import (
     Entities,
@@ -21,7 +23,6 @@ from cmem_plugin_base.dataintegration.parameter.graph import (
     get_graphs_list,
 )
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
-from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 from cmem_plugin_base.dataintegration.types import (
     BoolParameterType,
     IntParameterType,
@@ -43,17 +44,18 @@ from rdflib import (
     URIRef,
 )
 from rdflib.term import Node
+from urllib3.exceptions import InsecureRequestWarning
+
+environ["SSL_VERIFY"] = "false"
+simplefilter("ignore", category=InsecureRequestWarning)
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
-SH_PROPERTIES = [
-    "focusNode",
-    "resultPath",
-    "value",
-    "sourceShape",
-    "sourceConstraintComponent",
-    # "detail",
-    "resultMessage",
-    "resultSeverity",
+DATA_GRAPH_TYPES = [
+    "https://vocab.eccenca.com/di/Dataset",
+    "http://rdfs.org/ns/void#Dataset",
+    "https://vocab.eccenca.com/shui/ShapeCatalog",
+    "http://www.w3.org/2002/07/owl#Ontology",
+    "https://vocab.eccenca.com/dsm/ThesaurusProject",
 ]
 
 
@@ -122,15 +124,7 @@ def preferred_label(
     "description for details.",
     parameters=[
         PluginParameter(
-            param_type=GraphParameterType(
-                classes=[
-                    "https://vocab.eccenca.com/di/Dataset",
-                    "http://rdfs.org/ns/void#Dataset",
-                    "https://vocab.eccenca.com/shui/ShapeCatalog",
-                    "http://www.w3.org/2002/07/owl#Ontology",
-                    "https://vocab.eccenca.com/dsm/ThesaurusProject",
-                ]
-            ),
+            param_type=GraphParameterType(classes=DATA_GRAPH_TYPES),
             name="data_graph_uri",
             label="Data graph URI",
             description="The URI of the graph to be validated. The graph URI is "
@@ -366,35 +360,6 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
 
-        self.input_ports = FixedNumberOfInputs([])
-        if self.output_entities:
-            self.schema = self.generate_output_schema()
-            self.output_port = FixedSchemaPort(self.schema)
-        else:
-            self.output_port = None
-
-        self.check_parameters_init()
-
-    def generate_output_schema(self) -> EntitySchema:
-        """Generate output entity schema."""
-        paths = [EntityPath(path=SH[p]) for p in SH_PROPERTIES] + [
-            EntityPath(path=SH.conforms),
-            EntityPath(path=PROV.wasDerivedFrom),
-            EntityPath(path=PROV.wasInformedBy),
-            EntityPath(path=PROV.generatedAtTime),
-        ]
-        return EntitySchema(type_uri=SH.ValidationResult, paths=paths)
-
-    def update_report(self, operation: str, operation_desc: str, entity_count: int) -> None:
-        """Update execution report"""
-        self.context.report.update(
-            ExecutionReport(
-                operation=operation,
-                operation_desc=operation_desc,
-                entity_count=entity_count,
-            )
-        )
-
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
         self.log.info("Adding PROV information validation graph")
@@ -489,7 +454,6 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info("Posting SHACL validation graph...")
         with NamedTemporaryFile(suffix=".nt") as temp:
             validation_graph.serialize(temp.name, format="nt", encoding="utf-8")
-            setup_cmempy_user_access(self.context.user)
             res = post_streamed(
                 self.validation_graph_uri,
                 temp.name,
@@ -543,6 +507,16 @@ class ShaclValidation(WorkflowPlugin):
     ) -> Entities:
         """Create entities"""
         self.log.info("Creating entities")
+        shp = [
+            "focusNode",
+            "resultPath",
+            "value",
+            "sourceShape",
+            "sourceConstraintComponent",
+            # "detail",
+            "resultMessage",
+            "resultSeverity",
+        ]
         entities = []
         conforms = next(iter(validation_graph.objects(predicate=SH.conforms)))
         for validation_result in list(validation_graph.subjects(RDF.type, SH.ValidationResult)):
@@ -556,83 +530,86 @@ class ShaclValidation(WorkflowPlugin):
                         shacl_graph,
                     )
                 ]
-                for p in SH_PROPERTIES
+                for p in shp
             ] + [[conforms], [self.data_graph_uri], [self.shacl_graph_uri], [utctime]]
             entities.append(Entity(uri=validation_result, values=values))
-
+        paths = [EntityPath(path=SH[p]) for p in shp] + [
+            EntityPath(path=SH.conforms),
+            EntityPath(path=PROV.wasDerivedFrom),
+            EntityPath(path=PROV.wasInformedBy),
+            EntityPath(path=PROV.generatedAtTime),
+        ]
         return Entities(
             entities=entities,
-            schema=self.generate_output_schema(),
+            schema=EntitySchema(type_uri=SH.ValidationResult, paths=paths),
         )
 
     def get_graph(self, uri: str) -> Graph:
         """Get graph from cmem"""
         graph = Graph()
-        setup_cmempy_user_access(self.context.user)
-        with NamedTemporaryFile(suffix=".nt") as temp:
-            temp.write(
-                get_streamed(uri, owl_imports_resolution=self.owl_imports).text.encode("utf-8")
-            )
-            graph.parse(temp.name, format="nt")
+        graph.parse(data=get(uri, owl_imports_resolution=self.owl_imports).text, format="turtle")
         return graph
 
-    def check_parameters_init(self) -> None:
-        """Validate graph parameters at initialisation"""
+    def check_parameters(  # noqa: C901 PLR0912
+        self,
+    ) -> None:
+        """Validate plugin parameters"""
         self.log.info("Validating parameters...")
-        errors = ""
         if not self.output_entities and not self.generate_graph:
-            errors += (
-                "Generate validation graph or Output values parameter needs to be set to true. "
+            raise ValueError(
+                "Generate validation graph or Output values parameter needs to be set to true"
             )
         if not validators.url(self.data_graph_uri):
-            errors += "Data graph URI parameter is invalid. "
+            raise ValueError("Data graph URI parameter is invalid")
         if not validators.url(self.shacl_graph_uri):
-            errors += "SHACL graph URI parameter is invalid. "
-        if self.ontology_graph_uri and not validators.url(self.ontology_graph_uri):
-            errors += "Ontology graph URI parameter is invalid. "
-        if self.generate_graph and not validators.url(self.validation_graph_uri):
-            errors += "Validation graph URI parameter is invalid. "
+            raise ValueError("SHACL graph URI parameter is invalid")
+        graphs_dict = {graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()}
+
+        if self.ontology_graph_uri:
+            if not validators.url(self.ontology_graph_uri):
+                raise ValueError("Ontology graph URI parameter is invalid")
+            if self.ontology_graph_uri not in graphs_dict:
+                raise ValueError(f"Ontology graph <{self.ontology_graph_uri}> not found")
+            if "http://www.w3.org/2002/07/owl#Ontology" not in graphs_dict[self.ontology_graph_uri]:
+                raise ValueError(
+                    f"Invalid graph type for Ontology graph <{self.ontology_graph_uri}>"
+                )
+
+        if self.data_graph_uri not in graphs_dict:
+            raise ValueError(f"Data graph <{self.data_graph_uri}> not found")
+        if self.shacl_graph_uri not in graphs_dict:
+            raise ValueError(f"SHACL graph <{self.shacl_graph_uri}> not found")
+        if not any(check in graphs_dict[self.data_graph_uri] for check in DATA_GRAPH_TYPES):
+            raise ValueError("Invalid graph type for data graph " f"<{self.data_graph_uri}>")
+        if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
+            raise ValueError("Invalid graph type for SHACL graph " f"<{self.shacl_graph_uri}>")
+        if self.generate_graph:
+            if not validators.url(self.validation_graph_uri):
+                raise ValueError("Validation graph URI parameter is invalid")
+            if self.validation_graph_uri in graphs_dict:
+                self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
         if not self.add_labels:
             self.include_graphs_labels = False
-        if self.inference not in ("none", "rdfs", "owlrl", "both"):
-            errors += "Invalid value for inference parameter. "
-        if self.max_validation_depth not in range(1, 1000):
-            errors += "Invalid value for maximum evaluation depth. "
-        if errors:
-            raise ValueError(errors[:-1])
 
-    def check_parameters_exec(self) -> None:
-        """Validate graph parameters at execution"""
-        self.log.info("Validating parameters...")
-        setup_cmempy_user_access(self.context.user)
-        graphs_dict = {graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()}
-        errors = ""
-        if self.ontology_graph_uri and self.ontology_graph_uri not in graphs_dict:
-            errors += f"Ontology graph <{self.ontology_graph_uri}> not found. "
-        if self.data_graph_uri not in graphs_dict:
-            errors += f"Data graph <{self.data_graph_uri}> not found. "
-        if self.shacl_graph_uri not in graphs_dict:
-            errors += f"SHACL graph <{self.shacl_graph_uri}> not found. "
-        if self.generate_graph and self.validation_graph_uri in graphs_dict:
-            self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
-        if errors:
-            raise ValueError(errors[:-1])
+        if self.inference not in ("none", "rdfs", "owlrl", "both"):
+            raise ValueError("Invalid value for inference parameter")
+
+        if self.max_validation_depth not in range(1, 1000):
+            raise ValueError("Invalid value for maximum evaluation depth")
 
     def remove_graph_type(self, data_graph: Graph, iri: str) -> None:
         """Remove triple <data_graph_uri> a <iri>"""
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def execute(  # noqa: C901 PLR0915
+    def execute(  # noqa: C901
         self,
-        inputs: None,  # noqa: ARG002
+        inputs: tuple,  # noqa: ARG002
         context: ExecutionContext = ExecutionContext,
     ) -> Entities | None:
         """Execute plugin"""
-        self.context = context
-        self.check_parameters_exec()
-        self.update_report("validate", "graphs validated.", 0)
-
+        setup_cmempy_user_access(context.user)
+        self.check_parameters()
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(self.data_graph_uri)
@@ -644,20 +621,16 @@ class ShaclValidation(WorkflowPlugin):
             self.remove_graph_type(data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject")
         if self.remove_shape_catalog_graph_type:
             self.remove_graph_type(data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog")
-        self.update_report("load", "graphs loaded", 1)
 
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
         shacl_graph = self.get_graph(self.shacl_graph_uri)
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
-        self.update_report("load", "graphs loaded", 2)
 
         if self.ontology_graph_uri:
             self.log.info(f"Loading ontology graph <{self.ontology_graph_uri}> into memory...")
-            start = time()
             ontology_graph = self.get_graph(self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
-            self.update_report("load", "graphs loaded", 3)
         else:
             ontology_graph = None
 
@@ -694,12 +667,10 @@ class ShaclValidation(WorkflowPlugin):
                         validation_graph, validation_graph_uris, focus_nodes
                     )
             validation_graph = self.add_prov(validation_graph, utctime)
-            self.post_graph(validation_graph)
 
-        self.update_report("validate", "graph validated.", 1)
+            self.post_graph(validation_graph)
 
         if self.output_entities:
             self.log.info("Outputting entities")
             return entities
-
         return None
