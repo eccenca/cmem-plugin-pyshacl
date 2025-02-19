@@ -77,7 +77,7 @@ def preferred_label(
         SKOS.prefLabel,
     ),
 ) -> list:
-    """Adapted from rdflib 6.1.1, function removed in rdflib 6.2.0"""
+    """Adapted from rdflib 6.1.1, removed in rdflib 6.2.0"""
     if default is None:
         default = []
     # setup the language filtering
