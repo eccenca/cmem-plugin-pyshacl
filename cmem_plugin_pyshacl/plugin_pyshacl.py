@@ -181,8 +181,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="skolemize",
             label="Blank node skolemization",
-            description="If enabled, blank nodes in the validation graph are "
-            "skolemized into URIs.",
+            description="If enabled, blank nodes in the validation graph are skolemized into URIs.",
             default_value=True,
             advanced=True,
         ),
@@ -287,8 +286,7 @@ def preferred_label(
         PluginParameter(
             param_type=BoolParameterType(),
             name="remove_shape_catalog_graph_type",
-            label="Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog "
-            "from data graph",
+            label="Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog from data graph",
             description="Before validating, remove the triple `<data_graph_uri> a "
             "<https://vocab.eccenca.com/shui/ShapeCatalog>` from the in-memory data "
             "graph.",
@@ -574,9 +572,9 @@ class ShaclValidation(WorkflowPlugin):
         if self.shacl_graph_uri not in graphs_dict:
             raise ValueError(f"SHACL graph <{self.shacl_graph_uri}> not found")
         if not any(check in graphs_dict[self.data_graph_uri] for check in DATA_GRAPH_TYPES):
-            raise ValueError("Invalid graph type for data graph " f"<{self.data_graph_uri}>")
+            raise ValueError(f"Invalid graph type for data graph <{self.data_graph_uri}>")
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
-            raise ValueError("Invalid graph type for SHACL graph " f"<{self.shacl_graph_uri}>")
+            raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         if self.generate_graph:
             if not validators.url(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
