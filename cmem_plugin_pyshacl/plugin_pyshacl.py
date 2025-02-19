@@ -111,7 +111,7 @@ def preferred_label(
 
 @Plugin(
     label="SHACL validation with pySHACL",
-    icon=Icon(file_name="shacl.jpg", package=__package__),
+    icon=Icon(file_name="pyshacl.svg", package=__package__),
     plugin_id="shacl-pyshacl",
     description="Performs SHACL validation with pySHACL.",
     documentation="Performs SHACL validation with "
