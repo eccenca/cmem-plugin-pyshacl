@@ -4,12 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
-## [Unreleased]
+## [5.1.1] 2025-02-19
 
 ### Changed
 
 - Do not disable SSL verification for requests
-- New Icon
+- New icon
 
 ## [5.1.0] 2024-12-03
 
