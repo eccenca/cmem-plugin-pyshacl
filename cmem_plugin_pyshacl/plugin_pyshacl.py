@@ -29,6 +29,7 @@ from cmem_plugin_base.dataintegration.types import (
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from pyshacl import validate
 from rdflib import (
+    DCTERMS,
     PROV,
     RDF,
     RDFS,
@@ -310,8 +311,8 @@ class ShaclValidation(WorkflowPlugin):
 
     def __init__(  # noqa: PLR0913
         self,
-        data_graph_uri: str = "",
-        shacl_graph_uri: str = "",
+        data_graph_uri: str,
+        shacl_graph_uri: str,
         ontology_graph_uri: str = "",
         generate_graph: bool = False,
         validation_graph_uri: str = "",
@@ -368,7 +369,7 @@ class ShaclValidation(WorkflowPlugin):
             validation_graph.add(
                 (
                     validation_report_uri,
-                    PROV.generatedAtTime,
+                    DCTERMS.created,
                     Literal(utctime, datatype=XSD.dateTime),
                 )
             )
@@ -529,7 +530,7 @@ class ShaclValidation(WorkflowPlugin):
             EntityPath(path=SH.conforms),
             EntityPath(path=PROV.wasDerivedFrom),
             EntityPath(path=PROV.wasInformedBy),
-            EntityPath(path=PROV.generatedAtTime),
+            EntityPath(path=DCTERMS.created),
         ]
         return Entities(
             entities=entities,

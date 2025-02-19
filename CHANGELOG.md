@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
+- Use dcterms:created instead of prov:generatedAtTime in validation graph metadata
+- Parameters "Data" graph URI" and "SHACL shapes graph URI" marked as "required"
 - Do not disable SSL verification for requests
 - New icon
 
