@@ -2,10 +2,8 @@
 
 from collections import OrderedDict
 from datetime import UTC, datetime
-from os import environ
 from tempfile import NamedTemporaryFile
 from time import time
-from warnings import simplefilter
 
 import validators.url
 from cmem.cmempy.dp.proxy.graph import get, post_streamed
@@ -31,6 +29,7 @@ from cmem_plugin_base.dataintegration.types import (
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from pyshacl import validate
 from rdflib import (
+    DCTERMS,
     PROV,
     RDF,
     RDFS,
@@ -44,10 +43,6 @@ from rdflib import (
     URIRef,
 )
 from rdflib.term import Node
-from urllib3.exceptions import InsecureRequestWarning
-
-environ["SSL_VERIFY"] = "false"
-simplefilter("ignore", category=InsecureRequestWarning)
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 DATA_GRAPH_TYPES = [
@@ -83,7 +78,7 @@ def preferred_label(
         SKOS.prefLabel,
     ),
 ) -> list:
-    """Adapted from rdflib 6.1.1, function removed in rdflib 6.2.0"""
+    """Adapted from rdflib 6.1.1, removed in rdflib 6.2.0"""
     if default is None:
         default = []
     # setup the language filtering
@@ -111,7 +106,7 @@ def preferred_label(
 
 @Plugin(
     label="SHACL validation with pySHACL",
-    icon=Icon(file_name="shacl.jpg", package=__package__),
+    icon=Icon(file_name="pyshacl.svg", package=__package__),
     plugin_id="shacl-pyshacl",
     description="Performs SHACL validation with pySHACL.",
     documentation="Performs SHACL validation with "
@@ -187,8 +182,7 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="skolemize",
             label="Blank node skolemization",
-            description="If enabled, blank nodes in the validation graph are "
-            "skolemized into URIs.",
+            description="If enabled, blank nodes in the validation graph are skolemized into URIs.",
             default_value=True,
             advanced=True,
         ),
@@ -293,8 +287,7 @@ def preferred_label(
         PluginParameter(
             param_type=BoolParameterType(),
             name="remove_shape_catalog_graph_type",
-            label="Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog "
-            "from data graph",
+            label="Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog from data graph",
             description="Before validating, remove the triple `<data_graph_uri> a "
             "<https://vocab.eccenca.com/shui/ShapeCatalog>` from the in-memory data "
             "graph.",
@@ -318,8 +311,8 @@ class ShaclValidation(WorkflowPlugin):
 
     def __init__(  # noqa: PLR0913
         self,
-        data_graph_uri: str = "",
-        shacl_graph_uri: str = "",
+        data_graph_uri: str,
+        shacl_graph_uri: str,
         ontology_graph_uri: str = "",
         generate_graph: bool = False,
         validation_graph_uri: str = "",
@@ -376,7 +369,7 @@ class ShaclValidation(WorkflowPlugin):
             validation_graph.add(
                 (
                     validation_report_uri,
-                    PROV.generatedAtTime,
+                    DCTERMS.created,
                     Literal(utctime, datatype=XSD.dateTime),
                 )
             )
@@ -537,7 +530,7 @@ class ShaclValidation(WorkflowPlugin):
             EntityPath(path=SH.conforms),
             EntityPath(path=PROV.wasDerivedFrom),
             EntityPath(path=PROV.wasInformedBy),
-            EntityPath(path=PROV.generatedAtTime),
+            EntityPath(path=DCTERMS.created),
         ]
         return Entities(
             entities=entities,
@@ -580,9 +573,9 @@ class ShaclValidation(WorkflowPlugin):
         if self.shacl_graph_uri not in graphs_dict:
             raise ValueError(f"SHACL graph <{self.shacl_graph_uri}> not found")
         if not any(check in graphs_dict[self.data_graph_uri] for check in DATA_GRAPH_TYPES):
-            raise ValueError("Invalid graph type for data graph " f"<{self.data_graph_uri}>")
+            raise ValueError(f"Invalid graph type for data graph <{self.data_graph_uri}>")
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
-            raise ValueError("Invalid graph type for SHACL graph " f"<{self.shacl_graph_uri}>")
+            raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         if self.generate_graph:
             if not validators.url(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
