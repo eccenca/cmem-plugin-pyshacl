@@ -4,11 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
-## [5.1.1] 2025-02-19
+## [5.1.2] 2025-02-21
 
 ### Changed
 
-- Use dcterms:created instead of prov:generatedAtTime in validation graph metadata
 - Parameters "Data" graph URI" and "SHACL shapes graph URI" marked as "required"
 - Do not disable SSL verification for requests
 - New icon
