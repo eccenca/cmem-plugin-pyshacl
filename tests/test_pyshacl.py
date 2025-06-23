@@ -1,22 +1,27 @@
 """Plugin tests."""
 
+from os import environ
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pyshacl
 import pytest
 from cmem.cmempy.dp.proxy.graph import delete, get, post_streamed
+from cmem_plugin_base.testing import TestExecutionContext
 from rdflib import PROV, RDF, Graph, URIRef
 from rdflib.compare import similar
 
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
 from . import __path__
-from .utils import TestExecutionContext, needs_cmem
 
 UUID4 = "b36254a836e04279aecf411d2c8e364a"
 SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
+
+needs_cmem = pytest.mark.skipif(
+    environ.get("CMEM_BASE_URI", "") == "", reason="Needs CMEM configuration"
+)
 
 
 @pytest.fixture
