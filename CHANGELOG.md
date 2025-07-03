@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [5.2.0] 2025-07-03
+
+### Changed
+
+- upgrade cmem-plugin-base to v4.12.1
+
 ## [5.1.2] 2025-02-21
 
 ### Changed
