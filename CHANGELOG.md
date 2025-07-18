@@ -9,8 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- Update template and dependencies (rdflib >=7)
-- Update depedencies
+- Update template and dependencies (rdflib >=7.1.1)
 
 
 ### Changed
