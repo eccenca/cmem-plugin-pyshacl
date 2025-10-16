@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [Unreleased]
+
+### Changed
+
+- update template and dependencies
+- ensure python 3.13 compatability
+- python 3.13 now required
+
 ## [5.2.0] 2025-07-03
 
 ### Changed
