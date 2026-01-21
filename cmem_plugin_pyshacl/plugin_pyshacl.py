@@ -1,8 +1,8 @@
 """CMEM plugin for SHACl validation using pySHACL"""
 
-import re
 from collections import OrderedDict
 from datetime import UTC, datetime
+from re import IGNORECASE, match
 from tempfile import NamedTemporaryFile
 from time import time
 
@@ -359,7 +359,7 @@ class ShaclValidation(WorkflowPlugin):
         if not isinstance(uri, str):
             return False
         urn_pattern = r"^urn:[a-zA-Z][a-zA-Z0-9-]{0,31}:.+$"
-        return validators.url(uri) is True or bool(re.match(urn_pattern, uri, re.IGNORECASE))
+        return validators.url(uri) is True or bool(match(urn_pattern, uri, IGNORECASE))
 
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
