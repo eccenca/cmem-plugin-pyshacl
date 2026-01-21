@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- Update template and dependencies (rdflib >=7.1.1)
+- Update template and dependencies
 
 
 ### Changed
@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Parameters "Data" graph URI" and "SHACL shapes graph URI" marked as "required"
 - Do not disable SSL verification for requests
 - New icon
+- Allow urn URIs for graph parameters
 
 ## [5.1.0] 2024-12-03
 
