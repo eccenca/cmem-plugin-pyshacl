@@ -1,5 +1,6 @@
 """CMEM plugin for SHACl validation using pySHACL"""
 
+import re
 from collections import OrderedDict
 from datetime import UTC, datetime
 from tempfile import NamedTemporaryFile
@@ -352,6 +353,14 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
 
+    @staticmethod
+    def is_valid_uri(uri: str | None) -> bool:
+        """Validate URI"""
+        if not isinstance(uri, str):
+            return False
+        urn_pattern = r"^urn:[a-zA-Z][a-zA-Z0-9-]{0,31}:.+$"
+        return validators.url(uri) is True or bool(re.match(urn_pattern, uri, re.IGNORECASE))
+
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
         self.log.info("Adding PROV information validation graph")
@@ -551,14 +560,14 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError(
                 "Generate validation graph or Output values parameter needs to be set to true"
             )
-        if not validators.url(self.data_graph_uri):
+        if not self.is_valid_uri(self.data_graph_uri):
             raise ValueError("Data graph URI parameter is invalid")
-        if not validators.url(self.shacl_graph_uri):
+        if not self.is_valid_uri(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
         graphs_dict = {graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()}
 
         if self.ontology_graph_uri:
-            if not validators.url(self.ontology_graph_uri):
+            if not self.is_valid_uri(self.ontology_graph_uri):
                 raise ValueError("Ontology graph URI parameter is invalid")
             if self.ontology_graph_uri not in graphs_dict:
                 raise ValueError(f"Ontology graph <{self.ontology_graph_uri}> not found")
@@ -576,7 +585,7 @@ class ShaclValidation(WorkflowPlugin):
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         if self.generate_graph:
-            if not validators.url(self.validation_graph_uri):
+            if not self.is_valid_uri(self.validation_graph_uri):
                 raise ValueError("Validation graph URI parameter is invalid")
             if self.validation_graph_uri in graphs_dict:
                 self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
