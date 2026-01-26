@@ -29,16 +29,32 @@ from cmem_plugin_base.dataintegration.types import (
 )
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from pyshacl import validate
-from rdflib import PROV, RDF, RDFS, SH, SKOS, VOID, XSD, BNode, Graph, Literal, Namespace, URIRef
+from rdflib import (
+    OWL,
+    PROV,
+    RDF,
+    RDFS,
+    SH,
+    SKOS,
+    VOID,
+    XSD,
+    BNode,
+    Graph,
+    Literal,
+    Namespace,
+    URIRef,
+)
 from rdflib.term import Node
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
+SHUI_SHAPE_CATALOG = "https://vocab.eccenca.com/shui/ShapeCatalog"
+THESAURUS_PROJECT = "https://vocab.eccenca.com/dsm/ThesaurusProject"
 DATA_GRAPH_TYPES = [
     "https://vocab.eccenca.com/di/Dataset",
-    "http://rdfs.org/ns/void#Dataset",
-    "https://vocab.eccenca.com/shui/ShapeCatalog",
-    "http://www.w3.org/2002/07/owl#Ontology",
-    "https://vocab.eccenca.com/dsm/ThesaurusProject",
+    str(OWL.Ontology),
+    str(VOID.Dataset),
+    SHUI_SHAPE_CATALOG,
+    THESAURUS_PROJECT,
 ]
 
 
@@ -118,44 +134,39 @@ def is_valid_uri(uri: str | None) -> bool:
             param_type=GraphParameterType(classes=DATA_GRAPH_TYPES),
             name="data_graph_uri",
             label="Data graph URI",
-            description="The URI of the graph to be validated. The graph URI is "
-            "selected from a list of graphs of types `void:Dataset`, "
-            "`shui:ShapeCatalog`, `owl:Ontology` and "
+            description="The URI of the graph to be validated. The graph URI is selected from a "
+            "list of graphs of types `void:Dataset`, `shui:ShapeCatalog`, `owl:Ontology` and "
             "`dsm:ThesaurusProject`.",
         ),
         PluginParameter(
-            param_type=GraphParameterType(classes=["https://vocab.eccenca.com/shui/ShapeCatalog"]),
+            param_type=GraphParameterType(classes=[SHUI_SHAPE_CATALOG]),
             name="shacl_graph_uri",
             label="SHACL shapes graph URI",
-            description="The URI of the graph containing the SHACL shapes to be "
-            "validated against. The graph URI is selected from a list of "
-            "graphs of type `shui:ShapeCatalog`.",
+            description="The URI of the graph containing the SHACL shapes to be validated against. "
+            "The graph URI is selected from a list of graphs of type `shui:ShapeCatalog`.",
         ),
         PluginParameter(
             param_type=StringParameterType(),
             name="validation_graph_uri",
             label="Validation graph URI",
-            description="If the `Generate validation graph` option is enabled the "
-            "validation graph is posted to the CMEM instance with this "
-            "graph URI.",
+            description="If the `Generate validation graph` option is enabled the validation graph "
+            "is posted to the CMEM instance with this graph URI.",
             default_value="",
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="generate_graph",
             label="Generate validation graph",
-            description="If enabled, the validation graph is posted to the CMEM "
-            "instance with the graph URI specified with the `Validation "
-            "graph URI` option.",
+            description="If enabled, the validation graph is posted to the CMEM instance with the "
+            "graph URI specified with the `Validation graph URI` option.",
             default_value=False,
         ),
         PluginParameter(
             param_type=BoolParameterType(),
             name="output_entities",
             label="Output entities",
-            description="If enabled, the plugin outputs the validation results as "
-            "entities and can be connected to, for instance, a CSV "
-            "dataset to produce a results table.",
+            description="If enabled, the plugin outputs the validation results as entities and can "
+            "be connected to, for instance, a CSV dataset to produce a results table.",
             default_value=False,
         ),
         PluginParameter(
@@ -169,8 +180,8 @@ def is_valid_uri(uri: str | None) -> bool:
             param_type=BoolParameterType(),
             name="owl_imports",
             label="Resolve owl:imports",
-            description="If enabled, the graph tree defined with owl:imports in the "
-            "data graph is resolved.",
+            description="If enabled, the graph tree defined with owl:imports in the data graph is "
+            "resolved.",
             default_value=True,
             advanced=True,
         ),
@@ -186,9 +197,8 @@ def is_valid_uri(uri: str | None) -> bool:
             param_type=BoolParameterType(),
             name="add_labels",
             label="Add labels",
-            description="If enabled, `rdfs:label` triples are added to the validation "
-            "graph for instances of `sh:ValidationReport` and "
-            "`sh:ValidationResult`.",
+            description="If enabled, `rdfs:label` triples are added to the validation graph for "
+            "instances of `sh:ValidationReport` and `sh:ValidationResult`.",
             default_value=True,
             advanced=True,
         ),
@@ -196,10 +206,9 @@ def is_valid_uri(uri: str | None) -> bool:
             param_type=BoolParameterType(),
             name="include_graphs_labels",
             label="Add labels to focus nodes and values",
-            description="If enabled along with the `Add labels` option, `rdfs:label` "
-            "triples are added for the focus nodes, values and SHACL "
-            "shapes in the validation graph. The labels are taken from "
-            "the specified data and SHACL graphs.",
+            description="If enabled along with the `Add labels` option, `rdfs:label` triples are "
+            "added for the focus nodes, values and SHACL shapes in the validation graph. The "
+            "labels are taken from the specified data and SHACL graphs.",
             default_value=False,
             advanced=True,
         ),
@@ -207,8 +216,8 @@ def is_valid_uri(uri: str | None) -> bool:
             param_type=BoolParameterType(),
             name="add_shui_conforms",
             label="Add shui:conforms flag to focus node resources.",
-            description="If enabled, `shui:conforms false` triples are added to the "
-            "focus nodes in the validation graph.",
+            description="If enabled, `shui:conforms false` triples are added to the focus nodes in "
+            "the validation graph.",
             default_value=False,
             advanced=True,
         ),
@@ -216,8 +225,8 @@ def is_valid_uri(uri: str | None) -> bool:
             param_type=BoolParameterType(),
             name="meta_shacl",
             label="Meta-SHACL",
-            description="If enabled, the SHACL shapes graph is validated against the "
-            "SHACL-SHACL shapes graph before validating the data graph.",
+            description="If enabled, the SHACL shapes graph is validated against the SHACL-SHACL "
+            "shapes graph before validating the data graph.",
             default_value=False,
             advanced=True,
         ),
@@ -225,10 +234,9 @@ def is_valid_uri(uri: str | None) -> bool:
             param_type=GraphParameterType(classes=["http://www.w3.org/2002/07/owl#Ontology"]),
             name="ontology_graph_uri",
             label="Ontology graph URI",
-            description="The URI of a graph containing extra ontological information. "
-            "RDFS and OWL definitions from this are used to inoculate the "
-            "data graph. The graph URI is selected from a list of graphs "
-            "of type `owl:Ontology`.",
+            description="The URI of a graph containing extra ontological information. RDFS and OWL "
+            "definitions from this are used to inoculate the data graph. The graph URI is selected "
+            "from a list of graphs of type `owl:Ontology`.",
             default_value="",
             advanced=True,
         ),
@@ -238,9 +246,8 @@ def is_valid_uri(uri: str | None) -> bool:
             ),
             name="inference",
             label="Inference",
-            description="If enabled, OWL inferencing expansion of the data graph is "
-            "performed before validation. Options are RDFS, OWLRL, Both, "
-            "None.",
+            description="If enabled, OWL inferencing expansion of the data graph is performed "
+            "before validation. Options are RDFS, OWLRL, Both, None.",
             default_value="none",
             advanced=True,
         ),
@@ -272,10 +279,9 @@ def is_valid_uri(uri: str | None) -> bool:
         PluginParameter(
             param_type=BoolParameterType(),
             name="remove_thesaurus_graph_type",
-            label="Remove graph type https://vocab.eccenca.com/dsm/ThesaurusProject "
-            "from data graph",
+            label=f"Remove graph type {THESAURUS_PROJECT} from data graph",
             description="Before validating, remove the triple `<data_graph_uri> a "
-            "<https://vocab.eccenca.com/dsm/ThesaurusProject>` from the in-memory data "
+            f"<{THESAURUS_PROJECT}>` from the in-memory data "
             "graph.",
             default_value=False,
             advanced=True,
@@ -285,8 +291,7 @@ def is_valid_uri(uri: str | None) -> bool:
             name="remove_shape_catalog_graph_type",
             label="Remove graph type https://vocab.eccenca.com/shui/ShapeCatalog from data graph",
             description="Before validating, remove the triple `<data_graph_uri> a "
-            "<https://vocab.eccenca.com/shui/ShapeCatalog>` from the in-memory data "
-            "graph.",
+            "<https://vocab.eccenca.com/shui/ShapeCatalog>` from the in-memory data graph.",
             default_value=False,
             advanced=True,
         ),
@@ -570,7 +575,7 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError(f"SHACL graph <{self.shacl_graph_uri}> not found")
         if not any(check in graphs_dict[self.data_graph_uri] for check in DATA_GRAPH_TYPES):
             raise ValueError(f"Invalid graph type for data graph <{self.data_graph_uri}>")
-        if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
+        if SHUI_SHAPE_CATALOG not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         if self.generate_graph:
             if not is_valid_uri(self.validation_graph_uri):
@@ -607,9 +612,9 @@ class ShaclValidation(WorkflowPlugin):
         if self.remove_dataset_graph_type:
             self.remove_graph_type(data_graph, str(VOID.Dataset))
         if self.remove_thesaurus_graph_type:
-            self.remove_graph_type(data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject")
+            self.remove_graph_type(data_graph, THESAURUS_PROJECT)
         if self.remove_shape_catalog_graph_type:
-            self.remove_graph_type(data_graph, "https://vocab.eccenca.com/shui/ShapeCatalog")
+            self.remove_graph_type(data_graph, SHUI_SHAPE_CATALOG)
 
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
