@@ -108,7 +108,7 @@ def is_valid_uri(uri: str | None) -> bool:
     """Validate URI"""
     if not isinstance(uri, str):
         return False
-    urn_pattern = r"^urn:[a-zA-Z][a-zA-Z0-9-]{0,31}:.+$"
+    urn_pattern = r"^urn:[a-zA-Z0-9][a-zA-Z0-9-]{1,31}:.+$"
     return validators.url(uri) is True or bool(match(urn_pattern, uri, IGNORECASE))
 
 
