@@ -29,19 +29,7 @@ from cmem_plugin_base.dataintegration.types import (
 )
 from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from pyshacl import validate
-from rdflib import (
-    PROV,
-    RDF,
-    RDFS,
-    SH,
-    SKOS,
-    XSD,
-    BNode,
-    Graph,
-    Literal,
-    Namespace,
-    URIRef,
-)
+from rdflib import PROV, RDF, RDFS, SH, SKOS, VOID, XSD, BNode, Graph, Literal, Namespace, URIRef
 from rdflib.term import Node
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
@@ -617,7 +605,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Finished loading data graph in {e_t(start)} seconds")
 
         if self.remove_dataset_graph_type:
-            self.remove_graph_type(data_graph, "http://rdfs.org/ns/void#Dataset")
+            self.remove_graph_type(data_graph, str(VOID.Dataset))
         if self.remove_thesaurus_graph_type:
             self.remove_graph_type(data_graph, "https://vocab.eccenca.com/dsm/ThesaurusProject")
         if self.remove_shape_catalog_graph_type:
