@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
-## [Unreleased]
+## [5.3.1]
+
+### Fixed
+
+- close input ports since they are not used
+
+## [5.3.0]
 
 ### Changed
 
