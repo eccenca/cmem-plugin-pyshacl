@@ -465,8 +465,7 @@ class ShaclValidation(WorkflowPlugin):
             label_g = shacl_graph
         elif pred in (SH.value, SH.resultPath, SH.focusNode):
             label_g = data_graph
-        val = graph.value(subject=subj, predicate=pred)
-        obj = val or None
+        obj = graph.value(subject=subj, predicate=pred)
         res_val = ""
         if obj:
             if isinstance(obj, URIRef):
