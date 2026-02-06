@@ -22,6 +22,7 @@ from cmem_plugin_base.dataintegration.parameter.graph import (
     get_graphs_list,
 )
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
+from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs
 from cmem_plugin_base.dataintegration.types import (
     BoolParameterType,
     IntParameterType,
@@ -353,6 +354,7 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_thesaurus_graph_type = remove_thesaurus_graph_type
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
+        self.input_ports = FixedNumberOfInputs([])
 
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""

@@ -4,20 +4,39 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
-
 ## Unreleased
 
 ### Changed
 
-- Update template and dependencies
+- update template and dependencies
 
+## [5.3.1]
+
+### Fixed
+
+- close input ports since they are not used
+
+## [5.3.0]
+
+### Changed
+
+- update template and dependencies
+- ensure python 3.13 compatability
+- python 3.13 now required
+
+## [5.2.0] 2025-07-03
+
+### Changed
+
+- upgrade cmem-plugin-base to v4.12.1
+
+## [5.1.2] 2025-02-21
 
 ### Changed
 
 - Parameters "Data" graph URI" and "SHACL shapes graph URI" marked as "required"
 - Do not disable SSL verification for requests
 - New icon
-- Allow urn URIs for graph parameters
 
 ## [5.1.0] 2024-12-03
 
