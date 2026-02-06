@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Changed
 
 - update template and dependencies
+- allow URN URIs for graph parameters
 
 ## [5.3.1]
 
