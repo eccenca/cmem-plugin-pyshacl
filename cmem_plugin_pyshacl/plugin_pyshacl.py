@@ -57,6 +57,7 @@ DATA_GRAPH_TYPES = [
     SHUI_SHAPE_CATALOG,
     THESAURUS_PROJECT,
 ]
+CBD_LINES = 50
 
 
 def e_t(start: float) -> float:
@@ -485,11 +486,11 @@ class ShaclValidation(WorkflowPlugin):
                     if label:
                         res_val = str(label)
                 if not res_val:
-                    # first 50 lines of turtle CBD
+                    # first [CBD_LINES] lines of turtle CBD
                     res_val = graph.cbd(obj).serialize(format="turtle")
                     cbd_lines = res_val.split("\n")
-                    if len(cbd_lines) > 50:  # noqa: PLR2004
-                        res_val = "\n".join(cbd_lines[:50]) + "\n..."
+                    if len(cbd_lines) > CBD_LINES:
+                        res_val = "\n".join(cbd_lines[:CBD_LINES]) + "\n..."
             elif isinstance(obj, Literal):
                 if pred == SH.value:
                     res_val = f'"{obj}"^^<{obj.datatype}>' if obj.datatype else f'"{obj}"'
