@@ -22,6 +22,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
+      - name: Cache Trivy DB
+        id: cache-trivydb
+        uses: actions/cache@v4
+        with:
+          path: .trivycache
+          key: ${{ runner.os }}-trivydb
+
       - name: Install Task
         uses: arduino/setup-task@v2
 
@@ -37,10 +44,6 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
           installer-parallel: true
-
-      - name: Install dynamic versioning plugin
-        run: |
-          poetry self add "poetry-dynamic-versioning[plugin]"
 
       - name: mypy
         run: |
@@ -61,9 +64,13 @@ jobs:
         run: |
           task check:deptry
 
-      - name: safety
+      - name: trivy
+        env:
+          TRIVY_NO_PROGRESS: "true"
+          TRIVY_CACHE_DIR: ".trivycache/"
+          TRIVY_DISABLE_VEX_NOTICE: "true"
         run: |
-          task check:safety
+          task check:trivy
 
       - name: Publish Test Report in Action
         uses: mikepenz/action-junit-report@v4

@@ -431,7 +431,7 @@ class ShaclValidation(WorkflowPlugin):
     ) -> Graph:
         """Add shui conforms flag"""
         self.log.info("Adding shui:conforms flags to validation graph")
-        itr = focus_nodes if focus_nodes else validation_result_uris
+        itr = focus_nodes or validation_result_uris
         for i in itr:
             subj = i if focus_nodes else validation_graph.value(subject=i, predicate=SH.focusNode)
             validation_graph.add(
@@ -466,7 +466,7 @@ class ShaclValidation(WorkflowPlugin):
         elif pred in (SH.value, SH.resultPath, SH.focusNode):
             label_g = data_graph
         val = graph.value(subject=subj, predicate=pred)
-        obj = val if val else None
+        obj = val or None
         res_val = ""
         if obj:
             if isinstance(obj, URIRef):
