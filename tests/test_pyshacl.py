@@ -1,12 +1,15 @@
 """Plugin tests."""
 
+import tempfile
+from collections.abc import Generator
 from os import environ
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pyshacl
 import pytest
-from cmem.cmempy.dp.proxy.graph import delete, get, post_streamed
+from cmem_client.client import Client
+from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
 from cmem_plugin_base.testing import TestExecutionContext
 from rdflib import PROV, RDF, Graph, URIRef
 from rdflib.compare import similar
@@ -25,8 +28,9 @@ needs_cmem = pytest.mark.skipif(
 
 
 @pytest.fixture
-def _setup(request: pytest.FixtureRequest) -> None:
+def _setup() -> Generator[None]:
     """Set up"""
+    client = Client.from_context(TestExecutionContext())
     shacl_file = Path(pyshacl.__path__[0]) / "assets" / "shacl-shacl.ttl"
     g = Graph()
     g.parse(shacl_file, format="turtle")
@@ -37,14 +41,19 @@ def _setup(request: pytest.FixtureRequest) -> None:
             URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"),
         )
     )
-    with NamedTemporaryFile(suffix=".nt") as temp:
+    with NamedTemporaryFile(suffix=".nt", delete=True) as temp:
         g.serialize(temp.name, format="nt", encoding="utf-8")
-        res = post_streamed(SHACL_GRAPH_URI, temp.name, replace=True)
-        if res.status_code != 204:  # noqa: PLR2004
-            raise OSError(f"Error uploading SHACL-SHACL {res.status_code}: {res.url}")
 
-    request.addfinalizer(lambda: delete(VALIDATION_GRAPH_URI))
-    request.addfinalizer(lambda: delete(SHACL_GRAPH_URI))  # noqa: PT021
+        client.graphs.import_item(
+            path=Path(temp.name),
+            key=SHACL_GRAPH_URI,
+            on_conflict=ImportConflictPolicy.REPLACE,
+        )
+
+    yield None
+
+    client.graphs.delete_item(key=VALIDATION_GRAPH_URI, skip_if_missing=True)
+    client.graphs.delete_item(key=SHACL_GRAPH_URI, skip_if_missing=True)
 
 
 @needs_cmem
@@ -73,8 +82,14 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
     )
     plugin.execute(inputs=(), context=TestExecutionContext())
 
-    result = Graph().parse(data=get(VALIDATION_GRAPH_URI).text)
-    result.remove((None, PROV.generatedAtTime, None))
-    test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
+    client = Client.from_context(TestExecutionContext())
+    with tempfile.NamedTemporaryFile(suffix=".ttl", delete=True) as tmp:
+        path = client.graphs.export_item(
+            key=VALIDATION_GRAPH_URI, path=Path(tmp.name), replace=True
+        )
+        data = path.read_text()
+        result = Graph().parse(data=data)
+        result.remove((None, PROV.generatedAtTime, None))
+        test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
 
     assert similar(result, test)

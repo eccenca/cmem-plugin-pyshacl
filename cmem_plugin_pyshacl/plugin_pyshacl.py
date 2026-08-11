@@ -1,12 +1,15 @@
 """CMEM plugin for SHACl validation using pySHACL"""
 
+import tempfile
 from collections import OrderedDict
 from datetime import UTC, datetime
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from time import time
 
 import validators.url
-from cmem.cmempy.dp.proxy.graph import get, post_streamed
+from cmem_client.client import Client
+from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import (
@@ -27,7 +30,6 @@ from cmem_plugin_base.dataintegration.types import (
     IntParameterType,
     StringParameterType,
 )
-from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 from pyshacl import validate
 from rdflib import (
     PROV,
@@ -443,19 +445,21 @@ class ShaclValidation(WorkflowPlugin):
             )
         return validation_graph
 
-    def post_graph(self, validation_graph: Graph) -> None:
+    def post_graph(self, client: Client, validation_graph: Graph) -> None:
         """Post validation graph to cmem"""
         self.log.info("Posting SHACL validation graph...")
-        with NamedTemporaryFile(suffix=".nt") as temp:
+        with NamedTemporaryFile(suffix=".nt", delete=True) as temp:
             validation_graph.serialize(temp.name, format="nt", encoding="utf-8")
-            res = post_streamed(
-                self.validation_graph_uri,
-                temp.name,
-                replace=self.clear_validation_graph,
-                content_type="application/n-triples",
+
+            client.graphs.import_item(
+                path=Path(temp.name),
+                key=self.validation_graph_uri,
+                on_conflict=(
+                    ImportConflictPolicy.REPLACE
+                    if self.clear_validation_graph
+                    else ImportConflictPolicy.FAIL
+                ),
             )
-        if res.status_code != 204:  # noqa: PLR2004
-            raise OSError(f"Error posting SHACL validation graph (status code {res.status_code}).")
 
     def check_object(  # noqa: C901 PLR0912
         self, graph: Graph, subj: Node, pred: URIRef, data_graph: Graph, shacl_graph: Graph
@@ -538,11 +542,14 @@ class ShaclValidation(WorkflowPlugin):
             schema=EntitySchema(type_uri=SH.ValidationResult, paths=paths),
         )
 
-    def get_graph(self, uri: str) -> Graph:
+    def get_graph(self, client: Client, uri: str) -> Graph:
         """Get graph from cmem"""
         graph = Graph()
-        graph.parse(data=get(uri, owl_imports_resolution=self.owl_imports).text, format="turtle")
-        return graph
+        with tempfile.NamedTemporaryFile(suffix=".ttl", delete=True) as tmp:
+            path = client.graphs.export_item(key=uri, path=Path(tmp.name), replace=True)
+            data = path.read_text()
+            graph.parse(data=data, format="turtle")
+            return graph
 
     def check_parameters(  # noqa: C901 PLR0912
         self,
@@ -602,11 +609,11 @@ class ShaclValidation(WorkflowPlugin):
         context: ExecutionContext = ExecutionContext,
     ) -> Entities | None:
         """Execute plugin"""
-        setup_cmempy_user_access(context.user)
+        client = Client.from_context(context=context)
         self.check_parameters()
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
-        data_graph = self.get_graph(self.data_graph_uri)
+        data_graph = self.get_graph(client=client, uri=self.data_graph_uri)
         self.log.info(f"Finished loading data graph in {e_t(start)} seconds")
 
         if self.remove_dataset_graph_type:
@@ -618,12 +625,12 @@ class ShaclValidation(WorkflowPlugin):
 
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
-        shacl_graph = self.get_graph(self.shacl_graph_uri)
+        shacl_graph = self.get_graph(client=client, uri=self.shacl_graph_uri)
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
 
         if self.ontology_graph_uri:
             self.log.info(f"Loading ontology graph <{self.ontology_graph_uri}> into memory...")
-            ontology_graph = self.get_graph(self.ontology_graph_uri)
+            ontology_graph = self.get_graph(client=client, uri=self.ontology_graph_uri)
             self.log.info(f"Finished loading ontology graph in {e_t(start)} seconds")
         else:
             ontology_graph = None
@@ -662,7 +669,7 @@ class ShaclValidation(WorkflowPlugin):
                     )
             validation_graph = self.add_prov(validation_graph, utctime)
 
-            self.post_graph(validation_graph)
+            self.post_graph(client=client, validation_graph=validation_graph)
 
         if self.output_entities:
             self.log.info("Outputting entities")
