@@ -9,6 +9,7 @@ from time import time
 
 import validators.url
 from cmem_client.client import Client
+from cmem_client.repositories.graphs import GraphExportConfig
 from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
@@ -546,7 +547,12 @@ class ShaclValidation(WorkflowPlugin):
         """Get graph from cmem"""
         graph = Graph()
         with tempfile.NamedTemporaryFile(suffix=".ttl", delete=True) as tmp:
-            path = client.graphs.export_item(key=uri, path=Path(tmp.name), replace=True)
+            path = client.graphs.export_item(
+                key=uri,
+                path=Path(tmp.name),
+                replace=True,
+                configuration=GraphExportConfig(resolve_owl_imports=self.owl_imports),
+            )
             data = path.read_text()
             graph.parse(data=data, format="turtle")
             return graph
