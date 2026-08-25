@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [5.4.1]
+
+### Fixed
+
+- 401 error on parameter validation because the graph list was still fetched with
+  `cmem-cmempy` instead of the client created from the execution context (CMEM-8082)
+
+
 ## [5.4.0]
 
 ### Changed
