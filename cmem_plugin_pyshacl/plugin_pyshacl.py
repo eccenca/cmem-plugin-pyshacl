@@ -20,10 +20,7 @@ from cmem_plugin_base.dataintegration.entity import (
     EntitySchema,
 )
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
-from cmem_plugin_base.dataintegration.parameter.graph import (
-    GraphParameterType,
-    get_graphs_list,
-)
+from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs
 from cmem_plugin_base.dataintegration.types import (
@@ -559,6 +556,7 @@ class ShaclValidation(WorkflowPlugin):
 
     def check_parameters(  # noqa: C901 PLR0912
         self,
+        client: Client,
     ) -> None:
         """Validate plugin parameters"""
         self.log.info("Validating parameters...")
@@ -570,7 +568,7 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError("Data graph URI parameter is invalid")
         if not validators.url(self.shacl_graph_uri):
             raise ValueError("SHACL graph URI parameter is invalid")
-        graphs_dict = {graph["iri"]: graph["assignedClasses"] for graph in get_graphs_list()}
+        graphs_dict = {iri: graph.assigned_classes for iri, graph in client.graphs.items()}
 
         if self.ontology_graph_uri:
             if not validators.url(self.ontology_graph_uri):
@@ -616,7 +614,7 @@ class ShaclValidation(WorkflowPlugin):
     ) -> Entities | None:
         """Execute plugin"""
         client = Client.from_context(context=context)
-        self.check_parameters()
+        self.check_parameters(client=client)
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")
         start = time()
         data_graph = self.get_graph(client=client, uri=self.data_graph_uri)
