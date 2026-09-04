@@ -309,7 +309,7 @@ def preferred_label(
 class ShaclValidation(WorkflowPlugin):
     """Plugin class"""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 PLR0917
         self,
         data_graph_uri: str,
         shacl_graph_uri: str,
