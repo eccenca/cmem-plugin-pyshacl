@@ -12,6 +12,15 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# Least privilege, and enough for the two reporting steps at the end of the job:
+# the junit report creates check runs, the coverage report writes a pull request
+# comment. A pull request from a fork gets a read-only token whatever is written
+# here, which is why both of those steps are allowed to fail.
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   check:
 
@@ -20,21 +29,22 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Cache Trivy DB
         id: cache-trivydb
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .trivycache
-          key: ${{ runner.os }}-trivydb
+          key: ${{ runner.os }}-trivydb-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-trivydb-
 
       - name: Install Task
-        uses: arduino/setup-task@v2
+        uses: arduino/setup-task@v3
 
       - name: Set up python
         id: setup-python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.13'
 
@@ -73,14 +83,16 @@ jobs:
           task check:trivy
 
       - name: Publish Test Report in Action
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v6
         if: always()  # always run even if the previous step fails
+        continue-on-error: true  # a fork pull request cannot be given `checks: write`
         with:
           report_paths: dist/junit-*.xml
 
       - name: Publish Test and Coverage Report as PR comment
-        uses: xportation/junit-coverage-report@main
+        uses: xportation/junit-coverage-report@v1.0.3
         if: github.event_name == 'pull_request'
+        continue-on-error: true  # a fork pull request cannot comment on itself
         with:
           junit-path: dist/junit-pytest.xml
           coverage-path: dist/coverage.xml
