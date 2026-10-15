@@ -42,9 +42,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   The data, SHACL shapes and ontology graphs no longer need a URL as their IRI, as long as
   they exist and have the expected graph type, and the validation graph URI may be a URL
   or a URN
-- `SHACL-JS features` had no effect: the JavaScript engine pySHACL needed for it was not
-  installed, so JavaScript constraints were skipped and a graph violating them was reported
-  as conforming. pySHACL is now installed with its JavaScript engine (pyduktape2)
+- `SHACL-JS features` had no effect, because the JavaScript engine that pySHACL requires for
+  SHACL-JS (pyduktape2) was not installed. JavaScript constraints were skipped, and a graph
+  violating them was reported as conforming. The engine is now installed with the plugin
 - `Add shui:conforms flag to focus node resources` added no flags when `Add labels` was
   enabled and `Add labels to focus nodes and values` was not, which are their defaults
 - `Meta-SHACL` rejected valid shapes graphs using property paths such as `sh:inversePath`,
