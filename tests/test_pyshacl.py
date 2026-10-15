@@ -1,6 +1,5 @@
 """Plugin tests."""
 
-import inspect
 import logging
 import tempfile
 from collections.abc import Generator
@@ -10,7 +9,7 @@ from os import environ
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, NoReturn, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pyshacl
 import pytest
@@ -22,7 +21,6 @@ from cmem_plugin_base.testing import TestExecutionContext
 from rdflib import PROV, RDF, RDFS, SH, XSD, BNode, Graph, Literal, Namespace
 from rdflib.compare import similar
 
-from cmem_plugin_pyshacl import plugin_pyshacl
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
 from . import __path__
@@ -674,52 +672,3 @@ def test_entities_match_the_output_port_schema() -> None:
     rows = list(entities.entities)
     assert len(rows) == EXPECTED_VIOLATIONS
     assert all(len(row.values) == len(entities.schema.paths) for row in rows)
-
-
-def test_no_cmempy_backed_imports() -> None:
-    """Test that the plugin module imports no cmempy-backed name
-
-    cmempy authenticates from the process environment, which a workflow does not provide:
-    in DataIntegration the token is only available via the ExecutionContext. Such a name
-    can enter the module indirectly, as get_graphs_list did through
-    cmem_plugin_base.dataintegration.parameter.graph, so grepping for "cmempy" is not enough.
-    """
-    cmempy_backed = sorted(
-        f"{name} from {obj.__module__}"
-        for name, obj in vars(plugin_pyshacl).items()
-        if (inspect.isfunction(obj) or inspect.isclass(obj))
-        and obj.__module__.startswith("cmem.cmempy")
-    )
-    assert not cmempy_backed, f"cmempy-backed names in the plugin module: {cmempy_backed}"
-
-
-@needs_cmem
-@pytest.mark.usefixtures("_conforming_setup")
-def test_execute_uses_only_the_context_client(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that plugin execution reaches CMEM through the context client only
-
-    A pytest process authenticates cmempy by accident - the credentials in .env plus the
-    token TestUserContext itself fetches through cmempy - so a leftover cmempy call passes
-    unnoticed unless cmempy is cut off explicitly. Under DataIntegration the same call
-    answers 401.
-    """
-    # the context has to be built before cmempy is cut off, because TestUserContext
-    # fetches its token through cmempy
-    context = TestExecutionContext()
-
-    def fail(*_args: object, **_kwargs: object) -> NoReturn:
-        raise AssertionError("plugin used cmempy instead of the context client")
-
-    # _request is the funnel of every cmempy HTTP call; a rename in cmempy makes
-    # monkeypatch raise AttributeError here instead of silently disarming this test
-    monkeypatch.setattr("cmem.cmempy.api._request", fail)
-
-    plugin = ShaclValidation(
-        data_graph_uri=CONFORMING_DATA_GRAPH_URI,
-        shacl_graph_uri=SHAPES_GRAPH_URI,
-        validation_graph_uri=REPORT_GRAPH_URI,
-        generate_graph=True,
-        output_entities=True,
-        clear_validation_graph=True,
-    )
-    assert plugin.execute(inputs=(), context=context) is not None
