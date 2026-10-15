@@ -33,6 +33,8 @@ DATA_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/data/{UUID4}"
 SHAPES_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/shapes/{UUID4}"
 ONTOLOGY_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/ontology/{UUID4}"
 REPORT_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/report/{UUID4}"
+URN_DATA_GRAPH_URI = f"urn:pyshacl-plugin-test:data:{UUID4}"
+PORT_DATA_GRAPH_URI = f"http://localhost:8080/pyshacl-plugin-test/data/{UUID4}"
 
 # ex:alice violates the datatype and the class constraint, ex:carol and the blank node the
 # minimum count, the blank node the datatype constraint as well: five results in total, with
@@ -313,6 +315,8 @@ STUB_GRAPHS = {
     SHAPES_GRAPH_URI: StubGraph(["https://vocab.eccenca.com/shui/ShapeCatalog"]),
     ONTOLOGY_GRAPH_URI: StubGraph(["http://www.w3.org/2002/07/owl#Ontology"]),
     REPORT_GRAPH_URI: StubGraph([]),
+    URN_DATA_GRAPH_URI: StubGraph(["http://rdfs.org/ns/void#Dataset"]),
+    PORT_DATA_GRAPH_URI: StubGraph(["http://rdfs.org/ns/void#Dataset"]),
 }
 
 VALID_PARAMETERS: dict[str, Any] = {
@@ -328,16 +332,18 @@ VALID_PARAMETERS: dict[str, Any] = {
     ("overrides", "message"),
     [
         ({"generate_graph": False, "output_entities": False}, "needs to be set to true"),
-        ({"data_graph_uri": "no uri"}, "Data graph URI parameter is invalid"),
-        ({"shacl_graph_uri": "no uri"}, "SHACL graph URI parameter is invalid"),
-        ({"ontology_graph_uri": "no uri"}, "Ontology graph URI parameter is invalid"),
+        # an existing graph needs no syntax check, so a malformed IRI is simply not found
+        ({"data_graph_uri": "no uri"}, "Data graph <no uri> not found"),
+        ({"shacl_graph_uri": "no uri"}, "SHACL graph <no uri> not found"),
+        ({"ontology_graph_uri": "no uri"}, "Ontology graph <no uri> not found"),
         ({"ontology_graph_uri": "https://example.org/missing"}, "Ontology graph .* not found"),
         ({"ontology_graph_uri": DATA_GRAPH_URI}, "Invalid graph type for Ontology graph"),
         ({"data_graph_uri": "https://example.org/missing"}, "Data graph .* not found"),
         ({"shacl_graph_uri": "https://example.org/missing"}, "SHACL graph .* not found"),
         ({"data_graph_uri": REPORT_GRAPH_URI}, "Invalid graph type for data graph"),
         ({"shacl_graph_uri": DATA_GRAPH_URI}, "Invalid graph type for SHACL graph"),
-        ({"validation_graph_uri": "no uri"}, "Validation graph URI parameter is invalid"),
+        ({"validation_graph_uri": "no uri"}, "Validation graph URI .* neither a URL nor a URN"),
+        ({"validation_graph_uri": "urn:example:has space"}, "neither a URL nor a URN"),
         ({"inference": "sometimes"}, "Invalid value for inference parameter"),
         ({"max_validation_depth": 0}, "Invalid value for maximum evaluation depth"),
     ],
@@ -349,6 +355,21 @@ def test_check_parameters_rejects_invalid_parameters(
     plugin = ShaclValidation(**{**VALID_PARAMETERS, **overrides})
     with pytest.raises(ValueError, match=message):
         plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"data_graph_uri": URN_DATA_GRAPH_URI},
+        {"data_graph_uri": PORT_DATA_GRAPH_URI},
+        {"validation_graph_uri": f"urn:pyshacl-plugin-test:report:{UUID4}"},
+        {"validation_graph_uri": "urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66"},
+    ],
+)
+def test_check_parameters_accepts_graph_iris(overrides: dict[str, Any]) -> None:
+    """Test that existing graphs of any IRI form and new URN validation graphs are accepted"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, **overrides})
+    plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
 
 
 @pytest.mark.parametrize(

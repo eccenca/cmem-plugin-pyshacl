@@ -1,5 +1,6 @@
 """CMEM plugin for SHACl validation using pySHACL"""
 
+import re
 import tempfile
 from collections import OrderedDict
 from datetime import UTC, datetime
@@ -52,6 +53,15 @@ DATA_GRAPH_TYPES = [
     "http://www.w3.org/2002/07/owl#Ontology",
     "https://vocab.eccenca.com/dsm/ThesaurusProject",
 ]
+CBD_LINES = 50
+# Any IRI of the urn scheme, such as urn:graph - the store needs a valid IRI, not
+# an RFC 8141 URN - so only the characters an IRI cannot contain are excluded
+URN = re.compile(r'^urn:[^\s<>"{}|\\^`]+$', re.IGNORECASE)
+
+
+def is_valid_uri(uri: str) -> bool:
+    """Check whether a graph IRI typed by the user is a URL or a URN"""
+    return bool(validators.url(uri)) or bool(URN.match(uri))
 
 
 def e_t(start: float) -> float:
@@ -486,11 +496,11 @@ class ShaclValidation(WorkflowPlugin):
                     if label:
                         res_val = str(label)
                 if not res_val:
-                    # first 50 lines of turtle CBD
+                    # first CBD_LINES lines of turtle CBD
                     res_val = graph.cbd(obj).serialize(format="turtle")
                     cbd_lines = res_val.split("\n")
-                    if len(cbd_lines) > 50:  # noqa: PLR2004
-                        res_val = "\n".join(cbd_lines[:50]) + "\n..."
+                    if len(cbd_lines) > CBD_LINES:
+                        res_val = "\n".join(cbd_lines[:CBD_LINES]) + "\n..."
             elif isinstance(obj, Literal):
                 if pred == SH.value:
                     res_val = f'"{obj}"^^<{obj.datatype}>' if obj.datatype else f'"{obj}"'
@@ -564,15 +574,11 @@ class ShaclValidation(WorkflowPlugin):
             raise ValueError(
                 "Generate validation graph or Output values parameter needs to be set to true"
             )
-        if not validators.url(self.data_graph_uri):
-            raise ValueError("Data graph URI parameter is invalid")
-        if not validators.url(self.shacl_graph_uri):
-            raise ValueError("SHACL graph URI parameter is invalid")
+        # The data, SHACL and ontology graphs must exist, which is checked below, so
+        # their IRIs need no syntax check - it could only reject a graph the store holds.
         graphs_dict = {iri: graph.assigned_classes for iri, graph in client.graphs.items()}
 
         if self.ontology_graph_uri:
-            if not validators.url(self.ontology_graph_uri):
-                raise ValueError("Ontology graph URI parameter is invalid")
             if self.ontology_graph_uri not in graphs_dict:
                 raise ValueError(f"Ontology graph <{self.ontology_graph_uri}> not found")
             if "http://www.w3.org/2002/07/owl#Ontology" not in graphs_dict[self.ontology_graph_uri]:
@@ -589,8 +595,8 @@ class ShaclValidation(WorkflowPlugin):
         if "https://vocab.eccenca.com/shui/ShapeCatalog" not in graphs_dict[self.shacl_graph_uri]:
             raise ValueError(f"Invalid graph type for SHACL graph <{self.shacl_graph_uri}>")
         if self.generate_graph:
-            if not validators.url(self.validation_graph_uri):
-                raise ValueError("Validation graph URI parameter is invalid")
+            if not is_valid_uri(self.validation_graph_uri):
+                raise ValueError("Validation graph URI parameter is neither a URL nor a URN")
             if self.validation_graph_uri in graphs_dict:
                 self.log.warning(f"Graph <{self.validation_graph_uri}> already exists")
         if not self.add_labels:

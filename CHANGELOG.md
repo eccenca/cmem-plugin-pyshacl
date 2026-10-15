@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - updated dependencies and template
 
+### Fixed
+
+- graphs named with a URN, such as `urn:graph`, are no longer rejected as invalid.
+  The data, SHACL shapes and ontology graphs no longer need a URL as their IRI, as long as
+  they exist and have the expected graph type, and the validation graph URI may be a URL
+  or a URN
+
 ## [5.4.1]
 
 ### Fixed
