@@ -43,6 +43,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   task fails with an error if the engine is missing instead of skipping the constraints
 - `Add shui:conforms flag to focus node resources` added no flags when `Add labels` was
   enabled and `Add labels to focus nodes and values` was not, which are their defaults
+- `Meta-SHACL` rejected valid shapes graphs using property paths such as `sh:inversePath`,
+  `sh:zeroOrMorePath` or `sh:alternativePath` when combined with `OWLRL` or `Both` inference,
+  because the inference was applied to the shapes graph as well. The shapes are now checked
+  as written, and before the data graph is loaded
 
 ## [5.4.1]
 

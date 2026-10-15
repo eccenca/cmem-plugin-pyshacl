@@ -33,6 +33,7 @@ from cmem_plugin_base.dataintegration.types import (
     StringParameterType,
 )
 from pyshacl import validate
+from pyshacl.entrypoints import meta_validate
 from pyshacl.extras import check_extra_installed
 from rdflib import (
     PROV,
@@ -226,7 +227,8 @@ def preferred_label(
             name="meta_shacl",
             label="Meta-SHACL",
             description="If enabled, the SHACL shapes graph is validated against the "
-            "SHACL-SHACL shapes graph before validating the data graph.",
+            "SHACL-SHACL shapes graph before the data graph is loaded. The shapes are checked as "
+            "written, without the inference configured for the data graph.",
             default_value=False,
             advanced=True,
         ),
@@ -634,6 +636,20 @@ class ShaclValidation(WorkflowPlugin):
             ) from error
         return content
 
+    def meta_validate_shapes(self, shacl_graph: Graph) -> None:
+        """Validate the shapes graph against SHACL-SHACL, if Meta-SHACL is enabled"""
+        if not self.meta_shacl:
+            return
+        self.log.info("Validating SHACL graph against SHACL-SHACL...")
+        # pySHACL's own meta_shacl option applies the inference configured for the data graph
+        # to the shapes graph as well, and OWL-RL inference turns the blank nodes of valid
+        # property paths such as sh:inversePath into ones SHACL-SHACL rejects
+        conforms, _report, text = meta_validate(shacl_graph, inference="none")
+        if not conforms:
+            raise ValueError(
+                f"SHACL graph <{self.shacl_graph_uri}> does not conform to SHACL-SHACL.\n{text}"
+            )
+
     def read_js_libraries(
         self, client: Client, project_id: str, shacl_graph: Graph
     ) -> dict[str, bytes]:
@@ -689,7 +705,6 @@ class ShaclValidation(WorkflowPlugin):
                 data_graph=data_graph,
                 shacl_graph=shacl_graph,
                 ont_graph=ontology_graph,
-                meta_shacl=self.meta_shacl,
                 inference=self.inference,
                 advanced=self.advanced,
                 js=self.js,
@@ -733,12 +748,13 @@ class ShaclValidation(WorkflowPlugin):
         """Execute plugin"""
         client = Client.from_context(context=context)
         self.check_parameters(client=client)
-        # the shapes graph and its JavaScript files first, so that problems with them are
-        # reported before the data graph, usually the largest download, is loaded
+        # the shapes graph first, with its Meta-SHACL check and its JavaScript files, so that
+        # problems with them are reported before the data graph, usually the largest download
         self.log.info(f"Loading SHACL graph <{self.shacl_graph_uri}> into memory...")
         start = time()
         shacl_graph = self.get_graph(client=client, uri=self.shacl_graph_uri)
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
+        self.meta_validate_shapes(shacl_graph)
         js_libraries = self.read_js_libraries(client, context.task.project_id(), shacl_graph)
 
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")

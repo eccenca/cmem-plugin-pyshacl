@@ -619,6 +619,52 @@ def test_complete_validation_graph_flags_every_focus_node(include_graphs_labels:
     assert {EX.alice, EX.carol} <= flagged
 
 
+# valid property paths whose blank nodes OWL-RL inference used to make SHACL-SHACL reject
+BLANK_NODE_PATHS = [
+    "[ sh:inversePath ex:knows ]",
+    "[ sh:zeroOrMorePath ex:knows ]",
+    "[ sh:alternativePath ( ex:name rdfs:label ) ]",
+]
+
+
+@pytest.mark.parametrize("inference", ["none", "rdfs", "owlrl", "both"])
+@pytest.mark.parametrize("path", BLANK_NODE_PATHS)
+def test_meta_shacl_accepts_property_paths_with_any_inference(path: str, inference: str) -> None:
+    """Test that Meta-SHACL accepts valid property paths, whatever the inference"""
+    shapes = Graph().parse(
+        data=f"{SHAPES_TTL}\nex:PathShape a sh:NodeShape ; sh:targetClass ex:Person ;\n"
+        f"    sh:property [ sh:path {path} ; sh:maxCount 5 ] .\n",
+        format="turtle",
+    )
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "meta_shacl": True, "inference": inference})
+
+    plugin.meta_validate_shapes(shapes)
+    report = plugin.validate_graphs(
+        data_graph=Graph().parse(data=DATA_TTL, format="turtle"),
+        shacl_graph=shapes,
+        ontology_graph=None,
+        js_libraries={},
+    )
+
+    assert len(list(report.subjects(RDF.type, SH.ValidationResult))) == EXPECTED_VIOLATIONS
+
+
+@pytest.mark.parametrize("meta_shacl", [False, True])
+def test_meta_shacl_rejects_invalid_shapes(meta_shacl: bool) -> None:
+    """Test that Meta-SHACL, and only Meta-SHACL, rejects a shapes graph SHACL-SHACL rejects"""
+    shapes = Graph().parse(
+        data=f"{SHAPES_TTL}\n"
+        'ex:BrokenShape a sh:PropertyShape ; sh:path ex:x ; sh:minCount "one" .\n',
+        format="turtle",
+    )
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "meta_shacl": meta_shacl})
+    if not meta_shacl:
+        plugin.meta_validate_shapes(shapes)
+        return
+    with pytest.raises(ValueError, match="does not conform to SHACL-SHACL"):
+        plugin.meta_validate_shapes(shapes)
+
+
 def test_check_parameters_accepts_js() -> None:
     """Test that SHACL-JS can be enabled, since its JavaScript engine is installed"""
     plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
