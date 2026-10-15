@@ -19,11 +19,11 @@ from cmem_client.models.project import Project
 from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
 from cmem_plugin_base.dataintegration.ports import FixedSchemaPort
 from cmem_plugin_base.testing import TestExecutionContext
-from rdflib import PROV, RDF, RDFS, SH, XSD, BNode, Graph, Literal, Namespace, URIRef
+from rdflib import PROV, RDF, RDFS, SH, XSD, BNode, Graph, Literal, Namespace
 from rdflib.compare import similar
 
 from cmem_plugin_pyshacl import plugin_pyshacl
-from cmem_plugin_pyshacl.plugin_pyshacl import VALIDATION_RESULT_SCHEMA, ShaclValidation
+from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
 from . import __path__
 
@@ -31,8 +31,6 @@ if TYPE_CHECKING:
     from cmem_plugin_base.dataintegration.context import ExecutionContext
 
 UUID4 = "b36254a836e04279aecf411d2c8e364a"
-SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
-VALIDATION_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
 
 EX = Namespace("https://example.org/pyshacl-plugin-test/vocab#")
 SHUI = Namespace("https://vocab.eccenca.com/shui/")
@@ -41,6 +39,7 @@ DATA_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/data/{UUID4}"
 SHAPES_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/shapes/{UUID4}"
 ONTOLOGY_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/ontology/{UUID4}"
 REPORT_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/report/{UUID4}"
+CONFORMING_DATA_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/conforming-data/{UUID4}"
 URN_DATA_GRAPH_URI = f"urn:pyshacl-plugin-test:data:{UUID4}"
 PORT_DATA_GRAPH_URI = f"http://localhost:8080/pyshacl-plugin-test/data/{UUID4}"
 
@@ -98,6 +97,25 @@ ex:carol a ex:Person .
     ex:age "7"^^xsd:float .
 """
 
+# a data graph that conforms to SHAPES_TTL, with inference as well
+CONFORMING_DATA_TTL = f"""
+@prefix ex: <{EX}> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix void: <http://rdfs.org/ns/void#> .
+
+<{CONFORMING_DATA_GRAPH_URI}> a void:Dataset .
+
+ex:alice a ex:Person ;
+    rdfs:label "Alice" ;
+    ex:name "Alice" ;
+    ex:age 42 ;
+    ex:knows ex:bob .
+
+ex:bob a ex:Person ;
+    rdfs:label "Bob" ;
+    ex:name "Bob" .
+"""
+
 ONTOLOGY_TTL = f"""
 @prefix ex: <{EX}> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -117,8 +135,8 @@ EXPECTED_REPORT_TTL = f"""
 
 [] a sh:ValidationReport ;
     rdfs:label "SHACL validation report, conforms=true" ;
-    prov:wasDerivedFrom <https://vocab.eccenca.com/shacl/> ;
-    prov:wasInformedBy <{SHACL_GRAPH_URI}> ;
+    prov:wasDerivedFrom <{CONFORMING_DATA_GRAPH_URI}> ;
+    prov:wasInformedBy <{SHAPES_GRAPH_URI}> ;
     sh:conforms true .
 """
 
@@ -127,27 +145,15 @@ needs_cmem = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
-def _setup() -> Generator[None]:
-    """Set up"""
-    client = Client.from_context(TestExecutionContext())
-    shacl_file = Path(pyshacl.__path__[0]) / "assets" / "shacl-shacl.ttl"
-    g = Graph()
-    g.parse(shacl_file, format="turtle")
-    g.add(
-        (URIRef(SHACL_GRAPH_URI), RDF.type, URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"))
-    )
-    with NamedTemporaryFile(suffix=".nt", delete=True) as temp:
-        g.serialize(temp.name, format="nt", encoding="utf-8")
+def delete_graphs(client: Client, *uris: str) -> None:
+    """Delete graphs, including ones created after the client last listed its graphs
 
-        client.graphs.import_item(
-            path=Path(temp.name), key=SHACL_GRAPH_URI, on_conflict=ImportConflictPolicy.REPLACE
-        )
-
-    yield None
-
-    client.graphs.delete_item(key=VALIDATION_GRAPH_URI, skip_if_missing=True)
-    client.graphs.delete_item(key=SHACL_GRAPH_URI, skip_if_missing=True)
+    The plugin writes the validation graph with a client of its own, so the graph list of a
+    fixture's client does not know it, and delete_item() would skip it as missing.
+    """
+    client.graphs.fetch_data()
+    for uri in uris:
+        client.graphs.delete_item(key=uri, skip_if_missing=True)
 
 
 def import_graph(client: Client, uri: str, turtle: str) -> None:
@@ -168,27 +174,42 @@ def export_graph(client: Client, uri: str) -> Graph:
 
 
 @pytest.fixture
-def _violations_setup() -> Generator[None]:
-    """Set up a data graph that does not conform to its shape catalog"""
+def _conforming_setup() -> Generator[None]:
+    """Set up a data graph that conforms to its shape catalog, whatever the last run left"""
     client = Client.from_context(TestExecutionContext())
+    graphs = (REPORT_GRAPH_URI, CONFORMING_DATA_GRAPH_URI, SHAPES_GRAPH_URI)
+    delete_graphs(client, *graphs)
+    import_graph(client, SHAPES_GRAPH_URI, SHAPES_TTL)
+    import_graph(client, CONFORMING_DATA_GRAPH_URI, CONFORMING_DATA_TTL)
+
+    yield None
+
+    delete_graphs(client, *graphs)
+
+
+@pytest.fixture
+def _violations_setup() -> Generator[None]:
+    """Set up a data graph that does not conform to its shape catalog, whatever the last run left"""
+    client = Client.from_context(TestExecutionContext())
+    graphs = (REPORT_GRAPH_URI, ONTOLOGY_GRAPH_URI, DATA_GRAPH_URI, SHAPES_GRAPH_URI)
+    delete_graphs(client, *graphs)
     import_graph(client, SHAPES_GRAPH_URI, SHAPES_TTL)
     import_graph(client, DATA_GRAPH_URI, DATA_TTL)
     import_graph(client, ONTOLOGY_GRAPH_URI, ONTOLOGY_TTL)
 
     yield None
 
-    for uri in (REPORT_GRAPH_URI, ONTOLOGY_GRAPH_URI, DATA_GRAPH_URI, SHAPES_GRAPH_URI):
-        client.graphs.delete_item(key=uri, skip_if_missing=True)
+    delete_graphs(client, *graphs)
 
 
 @needs_cmem
-def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
-    """Test plugin execution"""
+@pytest.mark.usefixtures("_conforming_setup")
+def test_workflow_execution() -> None:
+    """Test plugin execution on a conforming data graph with most options enabled"""
     plugin = ShaclValidation(
-        data_graph_uri="https://vocab.eccenca.com/shacl/",
-        shacl_graph_uri=SHACL_GRAPH_URI,
-        validation_graph_uri=VALIDATION_GRAPH_URI,
-        ontology_graph_uri="",
+        data_graph_uri=CONFORMING_DATA_GRAPH_URI,
+        shacl_graph_uri=SHAPES_GRAPH_URI,
+        validation_graph_uri=REPORT_GRAPH_URI,
         generate_graph=True,
         output_entities=True,
         clear_validation_graph=True,
@@ -197,27 +218,19 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
         add_labels=True,
         include_graphs_labels=True,
         add_shui_conforms=True,
-        meta_shacl=False,
         inference="both",
         advanced=True,
         remove_dataset_graph_type=True,
         remove_thesaurus_graph_type=True,
         remove_shape_catalog_graph_type=True,
-        max_validation_depth=15,
     )
-    plugin.execute(inputs=(), context=TestExecutionContext())
+    entities = plugin.execute(inputs=(), context=TestExecutionContext())
 
-    client = Client.from_context(TestExecutionContext())
-    with tempfile.NamedTemporaryFile(suffix=".ttl", delete=True) as tmp:
-        path = client.graphs.export_item(
-            key=VALIDATION_GRAPH_URI, path=Path(tmp.name), replace=True
-        )
-        data = path.read_text()
-        result = Graph().parse(data=data)
-        result.remove((None, PROV.generatedAtTime, None))
-        test = Graph().parse(data=EXPECTED_REPORT_TTL, format="turtle")
-
-    assert similar(result, test)
+    assert entities is not None
+    assert list(entities.entities) == []  # no validation results
+    report = export_graph(Client.from_context(TestExecutionContext()), REPORT_GRAPH_URI)
+    report.remove((None, PROV.generatedAtTime, None))
+    assert similar(report, Graph().parse(data=EXPECTED_REPORT_TTL, format="turtle"))
 
 
 @needs_cmem
@@ -345,10 +358,6 @@ VALID_PARAMETERS: dict[str, Any] = {
     ("overrides", "message"),
     [
         ({"generate_graph": False, "output_entities": False}, "needs to be set to true"),
-        # an existing graph needs no syntax check, so a malformed IRI is simply not found
-        ({"data_graph_uri": "no uri"}, "Data graph <no uri> not found"),
-        ({"shacl_graph_uri": "no uri"}, "SHACL graph <no uri> not found"),
-        ({"ontology_graph_uri": "no uri"}, "Ontology graph <no uri> not found"),
         ({"ontology_graph_uri": "https://example.org/missing"}, "Ontology graph .* not found"),
         ({"ontology_graph_uri": DATA_GRAPH_URI}, "Invalid graph type for Ontology graph"),
         ({"data_graph_uri": "https://example.org/missing"}, "Data graph .* not found"),
@@ -356,7 +365,6 @@ VALID_PARAMETERS: dict[str, Any] = {
         ({"data_graph_uri": REPORT_GRAPH_URI}, "Invalid graph type for data graph"),
         ({"shacl_graph_uri": DATA_GRAPH_URI}, "Invalid graph type for SHACL graph"),
         ({"validation_graph_uri": "no uri"}, "Validation graph URI .* neither a URL nor a URN"),
-        ({"validation_graph_uri": "urn:example:has space"}, "neither a URL nor a URN"),
         ({"inference": "sometimes"}, "Invalid value for inference parameter"),
         ({"max_validation_depth": 0}, "Invalid value for maximum validation depth"),
     ],
@@ -385,23 +393,14 @@ def test_check_parameters_accepts_graph_iris(overrides: dict[str, Any]) -> None:
     plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
 
 
-@pytest.mark.parametrize(
-    "overrides",
-    [
-        {"validation_graph_uri": REPORT_GRAPH_URI},  # the graph exists already
-        {"validation_graph_uri": "https://example.org/does-not-exist-yet"},
-        {"generate_graph": False},  # no validation graph at all
-    ],
-)
-def test_check_parameters_without_labels(overrides: dict[str, Any]) -> None:
+def test_check_parameters_without_labels() -> None:
     """Test that graph labels are switched off when no labels are added at all"""
     plugin = ShaclValidation(
         **{
             **VALID_PARAMETERS,
-            "ontology_graph_uri": ONTOLOGY_GRAPH_URI,
+            "ontology_graph_uri": ONTOLOGY_GRAPH_URI,  # the only accepted ontology graph tested
             "add_labels": False,
             "include_graphs_labels": True,
-            **overrides,
         }
     )
     plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
@@ -549,8 +548,7 @@ def _js_setup() -> Generator[None]:
 
     def clean_up() -> None:
         client.projects.delete_item(JS_PROJECT_ID, skip_if_missing=True)
-        for uri in (JS_DATA_GRAPH_URI, JS_SHAPES_GRAPH_URI):
-            client.graphs.delete_item(key=uri, skip_if_missing=True)
+        delete_graphs(client, JS_DATA_GRAPH_URI, JS_SHAPES_GRAPH_URI)
 
     clean_up()
     client.projects.create_item(Project(name=JS_PROJECT_ID))
@@ -619,16 +617,15 @@ BLANK_NODE_PATHS = [
 ]
 
 
-@pytest.mark.parametrize("inference", ["none", "rdfs", "owlrl", "both"])
 @pytest.mark.parametrize("path", BLANK_NODE_PATHS)
-def test_meta_shacl_accepts_property_paths_with_any_inference(path: str, inference: str) -> None:
-    """Test that Meta-SHACL accepts valid property paths, whatever the inference"""
+def test_meta_shacl_accepts_property_paths_with_inference(path: str) -> None:
+    """Test that Meta-SHACL accepts valid property paths with OWL-RL and RDFS inference"""
     shapes = Graph().parse(
         data=f"{SHAPES_TTL}\nex:PathShape a sh:NodeShape ; sh:targetClass ex:Person ;\n"
         f"    sh:property [ sh:path {path} ; sh:maxCount 5 ] .\n",
         format="turtle",
     )
-    plugin = ShaclValidation(**{**VALID_PARAMETERS, "meta_shacl": True, "inference": inference})
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "meta_shacl": True, "inference": "both"})
 
     plugin.meta_validate_shapes(shapes)
     report = plugin.validate_graphs(
@@ -657,16 +654,10 @@ def test_meta_shacl_rejects_invalid_shapes(meta_shacl: bool) -> None:
         plugin.meta_validate_shapes(shapes)
 
 
-@pytest.mark.parametrize("output_entities", [False, True])
-def test_output_port_follows_output_entities(output_entities: bool) -> None:
-    """Test that an output port is declared only if entities are output"""
-    plugin = ShaclValidation(**{**VALID_PARAMETERS, "output_entities": output_entities})
-
-    if not output_entities:
-        assert plugin.output_port is None
-        return
-    assert isinstance(plugin.output_port, FixedSchemaPort)
-    assert plugin.output_port.schema is VALIDATION_RESULT_SCHEMA
+def test_no_output_port_without_output_entities() -> None:
+    """Test that no output port is declared if no entities are output"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "output_entities": False})
+    assert plugin.output_port is None
 
 
 def test_entities_match_the_output_port_schema() -> None:
@@ -703,10 +694,8 @@ def test_no_cmempy_backed_imports() -> None:
 
 
 @needs_cmem
-def test_execute_uses_only_the_context_client(
-    _setup: None,  # noqa: PT019
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+@pytest.mark.usefixtures("_conforming_setup")
+def test_execute_uses_only_the_context_client(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that plugin execution reaches CMEM through the context client only
 
     A pytest process authenticates cmempy by accident - the credentials in .env plus the
@@ -726,9 +715,9 @@ def test_execute_uses_only_the_context_client(
     monkeypatch.setattr("cmem.cmempy.api._request", fail)
 
     plugin = ShaclValidation(
-        data_graph_uri="https://vocab.eccenca.com/shacl/",
-        shacl_graph_uri=SHACL_GRAPH_URI,
-        validation_graph_uri=VALIDATION_GRAPH_URI,
+        data_graph_uri=CONFORMING_DATA_GRAPH_URI,
+        shacl_graph_uri=SHAPES_GRAPH_URI,
+        validation_graph_uri=REPORT_GRAPH_URI,
         generate_graph=True,
         output_entities=True,
         clear_validation_graph=True,

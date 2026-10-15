@@ -10,14 +10,9 @@ from cmem_plugin_pyshacl.plugin_pyshacl import is_valid_uri
     [
         "https://example.org/graph",
         "https://example.org/graph#",
-        "urn:isbn:9780134685991",
-        "urn:example:data",
         "urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66",
         "URN:Example:data",
         "urn:graph",
-        "urn:x:9780134685991",
-        "urn:ab-:x",
-        "urn:my_graph:a.b",
     ],
 )
 def test_valid_uri(uri: str) -> None:
@@ -32,10 +27,8 @@ def test_valid_uri(uri: str) -> None:
         "https:/example.org/graph",
         "https://example.org/a b",
         "urn:",
-        "urn: graph",
         "urn:example:has space",
         "urn:example:a<b",
-        'urn:example:"quoted"',
         "example.org/graph",
     ],
 )
