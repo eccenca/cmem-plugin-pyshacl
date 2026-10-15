@@ -48,7 +48,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   because the inference was applied to the shapes graph as well. The shapes are now checked
   as written, and before the data graph is loaded
 
-## [5.4.1]
+## [5.4.1] 2026-08-25
 
 ### Fixed
 
@@ -56,20 +56,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   `cmem-cmempy` instead of the client created from the execution context (CMEM-8082)
 
 
-## [5.4.0]
+## [5.4.0] 2026-08-14
 
 ### Changed
 
 - update template and dependencies
 - remove `cmem-cmempy` dependency
 
-## [5.3.1]
+## [5.3.1] 2026-01-27
 
 ### Fixed
 
 - close input ports since they are not used
 
-## [5.3.0]
+## [5.3.0] 2025-10-20
 
 ### Changed
 
@@ -87,6 +87,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
+- Parameters "Data" graph URI" and "SHACL shapes graph URI" marked as "required"
+- Do not disable SSL verification for requests
+- New icon
+
+## [5.1.1] 2025-02-19
+
+### Changed
+
+- Use dcterms:created instead of prov:generatedAtTime in validation graph metadata
 - Parameters "Data" graph URI" and "SHACL shapes graph URI" marked as "required"
 - Do not disable SSL verification for requests
 - New icon
