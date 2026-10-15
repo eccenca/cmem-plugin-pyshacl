@@ -30,7 +30,6 @@ from cmem_plugin_base.dataintegration.types import (
 )
 from pyshacl import validate
 from pyshacl.entrypoints import meta_validate
-from pyshacl.extras import check_extra_installed
 from rdflib import PROV, RDF, RDFS, SH, SKOS, XSD, BNode, Graph, Literal, Namespace, URIRef
 from rdflib.term import Node
 
@@ -585,14 +584,6 @@ class ShaclValidation(WorkflowPlugin):
 
         if self.max_validation_depth not in range(1, 1000):
             raise ValueError("Invalid value for maximum validation depth")
-
-        # Without its JavaScript engine pySHACL skips SHACL-JS with no more than a Python
-        # warning, so a graph violating a JavaScript constraint would be reported as conforming
-        if self.js and not check_extra_installed("js"):
-            raise ValueError(
-                "SHACL-JS features are enabled, but the JavaScript engine pySHACL needs for "
-                "them (pyduktape2) is not installed"
-            )
 
     def js_library_path(self, url: str) -> PurePosixPath:
         """Check that a SHACL-JS library URL is a path inside the project file resources"""

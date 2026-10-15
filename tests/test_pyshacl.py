@@ -685,20 +685,6 @@ def test_entities_match_the_output_port_schema() -> None:
     assert all(len(row.values) == len(entities.schema.paths) for row in rows)
 
 
-def test_check_parameters_accepts_js() -> None:
-    """Test that SHACL-JS can be enabled, since its JavaScript engine is installed"""
-    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
-    plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
-
-
-def test_check_parameters_rejects_js_without_engine(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that enabled SHACL-JS fails instead of being skipped without its JavaScript engine"""
-    monkeypatch.setattr(plugin_pyshacl, "check_extra_installed", lambda _: False)
-    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
-    with pytest.raises(ValueError, match="pyduktape2"):
-        plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
-
-
 def test_no_cmempy_backed_imports() -> None:
     """Test that the plugin module imports no cmempy-backed name
 

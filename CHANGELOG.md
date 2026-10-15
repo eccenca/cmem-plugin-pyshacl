@@ -44,8 +44,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   or a URN
 - `SHACL-JS features` had no effect: the JavaScript engine pySHACL needs for it was not
   installed, so JavaScript constraints were skipped and a graph violating them was reported
-  as conforming. pySHACL is now installed with its JavaScript engine (pyduktape2), and the
-  task fails with an error if the engine is missing instead of skipping the constraints
+  as conforming. pySHACL is now installed with its JavaScript engine (pyduktape2)
 - `Add shui:conforms flag to focus node resources` added no flags when `Add labels` was
   enabled and `Add labels to focus nodes and values` was not, which are their defaults
 - `Meta-SHACL` rejected valid shapes graphs using property paths such as `sh:inversePath`,
