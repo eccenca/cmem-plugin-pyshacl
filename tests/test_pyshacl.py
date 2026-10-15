@@ -1,26 +1,33 @@
 """Plugin tests."""
 
 import inspect
+import logging
 import tempfile
 from collections.abc import Generator
 from dataclasses import dataclass
 from os import environ
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
-from typing import Any, NoReturn, cast
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 import pyshacl
 import pytest
 from cmem_client.client import Client
+from cmem_client.exceptions import FilesNotFoundError
+from cmem_client.models.project import Project
 from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
 from cmem_plugin_base.testing import TestExecutionContext
-from rdflib import PROV, RDF, RDFS, SH, XSD, Graph, Literal, Namespace, URIRef
+from rdflib import PROV, RDF, RDFS, SH, XSD, BNode, Graph, Literal, Namespace, URIRef
 from rdflib.compare import similar
 
 from cmem_plugin_pyshacl import plugin_pyshacl
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
 from . import __path__
+
+if TYPE_CHECKING:
+    from cmem_plugin_base.dataintegration.context import ExecutionContext
 
 UUID4 = "b36254a836e04279aecf411d2c8e364a"
 SHACL_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/{UUID4}"
@@ -358,7 +365,7 @@ VALID_PARAMETERS: dict[str, Any] = {
         ({"validation_graph_uri": "no uri"}, "Validation graph URI .* neither a URL nor a URN"),
         ({"validation_graph_uri": "urn:example:has space"}, "neither a URL nor a URN"),
         ({"inference": "sometimes"}, "Invalid value for inference parameter"),
-        ({"max_validation_depth": 0}, "Invalid value for maximum evaluation depth"),
+        ({"max_validation_depth": 0}, "Invalid value for maximum validation depth"),
     ],
 )
 def test_check_parameters_rejects_invalid_parameters(
@@ -411,6 +418,10 @@ def test_check_parameters_without_labels(overrides: dict[str, Any]) -> None:
 
 JS_SHAPES_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/js-shapes/{UUID4}"
 JS_DATA_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/js-data/{UUID4}"
+JS_PROJECT_ID = f"pyshacl-plugin-test-{UUID4}"
+# the library as the shapes reference it, a file resource of the project
+JS_LIBRARY = "js/names.js"
+JS_LIBRARY_FILE = Path(__path__[0]) / "shacl_js" / "names.js"
 
 # ex:bob violates the JavaScript constraint in shacl_js/names.js, ex:alice does not
 JS_SHAPES_TTL = f"""
@@ -425,7 +436,7 @@ ex:CapitalisedNameShape a sh:NodeShape ;
     sh:js [
         a sh:JSConstraint ;
         sh:jsFunctionName "hasCapitalisedName" ;
-        sh:jsLibrary [ sh:jsLibraryURL "{(Path(__path__[0]) / "shacl_js" / "names.js").as_uri()}" ]
+        sh:jsLibrary [ sh:jsLibraryURL "{JS_LIBRARY}" ]
     ] .
 """
 
@@ -441,44 +452,130 @@ ex:bob a ex:Person ; ex:name "bob" .
 
 
 @pytest.mark.parametrize("js", [False, True])
-def test_js_constraints_are_evaluated(js: bool) -> None:
-    """Test that SHACL-JS constraints are evaluated if, and only if, SHACL-JS is enabled"""
-    conforms, report, _ = pyshacl.validate(
+def test_js_constraints_are_evaluated(js: bool, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that SHACL-JS constraints are evaluated from project files if SHACL-JS is enabled"""
+    read: list[tuple[str, str]] = []
+
+    def read_project_file(_self: object, _client: object, project_id: str, path: object) -> bytes:
+        read.append((project_id, str(path)))
+        return JS_LIBRARY_FILE.read_bytes()
+
+    monkeypatch.setattr(ShaclValidation, "read_project_file", read_project_file)
+    plugin = ShaclValidation(
+        data_graph_uri=JS_DATA_GRAPH_URI, shacl_graph_uri=JS_SHAPES_GRAPH_URI, js=js
+    )
+    shapes = Graph().parse(data=JS_SHAPES_TTL, format="turtle")
+    js_libraries = plugin.read_js_libraries(cast("Client", None), JS_PROJECT_ID, shapes)
+    report = plugin.validate_graphs(
         data_graph=Graph().parse(data=JS_DATA_TTL, format="turtle"),
-        shacl_graph=Graph().parse(data=JS_SHAPES_TTL, format="turtle"),
-        js=js,
-        inplace=True,
+        shacl_graph=shapes,
+        ontology_graph=None,
+        js_libraries=js_libraries,
     )
 
+    results = list(report.subjects(RDF.type, SH.ValidationResult))
     if not js:
-        assert conforms
+        assert results == []  # the JavaScript constraint is skipped
+        assert read == []  # and its JavaScript file never read
         return
-    assert not conforms
-    (result,) = report.subjects(RDF.type, SH.ValidationResult)
+    assert read == [(JS_PROJECT_ID, JS_LIBRARY)]
+    (result,) = results
     assert report.value(result, SH.focusNode) == EX.bob
     assert "does not start with a capital letter" in str(report.value(result, SH.resultMessage))
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.org/js/names.js",
+        "http://example.org/js/names.js",
+        "file:///tmp/js/names.js",
+        "/js/names.js",
+        "../names.js",
+        "js/../../names.js",
+        "",
+    ],
+)
+def test_js_library_outside_project_files_rejected(url: str) -> None:
+    """Test that a JavaScript file must be a path relative to the project file resources"""
+    shapes = Graph()
+    shapes.add((BNode(), SH.jsLibraryURL, Literal(url)))
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match="not a path relative to the project file resources"):
+        plugin.read_js_libraries(cast("Client", None), JS_PROJECT_ID, shapes)
+
+
+def test_js_without_libraries_warns(caplog: pytest.LogCaptureFixture) -> None:
+    """Test that enabled SHACL-JS warns if the shapes graph references no JavaScript file"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    shapes = Graph().parse(data=SHAPES_TTL, format="turtle")
+    with caplog.at_level(logging.WARNING):
+        assert plugin.read_js_libraries(cast("Client", None), JS_PROJECT_ID, shapes) == {}
+    assert "references no JavaScript files" in caplog.text
+
+
+def test_missing_js_library_fails_before_data_graph(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that a missing JavaScript file fails execution before the data graph is loaded"""
+    loaded: list[str] = []
+
+    def get_graph(_self: object, client: object, uri: str) -> Graph:
+        loaded.append(uri)
+        return Graph().parse(data=JS_SHAPES_TTL, format="turtle")
+
+    def read_project_file(_self: object, _client: object, project_id: str, path: object) -> bytes:
+        raise ValueError(f"JavaScript file {path} not found in project {project_id}")
+
+    monkeypatch.setattr(ShaclValidation, "get_graph", get_graph)
+    monkeypatch.setattr(ShaclValidation, "read_project_file", read_project_file)
+    monkeypatch.setattr(Client, "from_context", lambda **_: StubClient(STUB_GRAPHS))
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    context = SimpleNamespace(task=SimpleNamespace(project_id=lambda: JS_PROJECT_ID))
+
+    with pytest.raises(ValueError, match="not found"):
+        plugin.execute(inputs=(), context=cast("ExecutionContext", context))
+    assert loaded == [SHAPES_GRAPH_URI]
+
+
+def test_missing_js_library_reported() -> None:
+    """Test that a JavaScript file missing from the project files is reported with its project"""
+
+    def read(key: str) -> NoReturn:
+        raise FilesNotFoundError(f"File not found: {key}")
+
+    client = SimpleNamespace(files=SimpleNamespace(read=read))
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match=f"js/missing.js not found .* project {JS_PROJECT_ID}"):
+        plugin.read_project_file(
+            cast("Client", client), JS_PROJECT_ID, PurePosixPath("js/missing.js")
+        )
+
+
 @pytest.fixture
 def _js_setup() -> Generator[None]:
-    """Set up a data graph that violates a JavaScript constraint, whatever the last run left"""
+    """Set up a project with a JavaScript library and graphs using it, whatever the last run left"""
     client = Client.from_context(TestExecutionContext())
-    for uri in (JS_DATA_GRAPH_URI, JS_SHAPES_GRAPH_URI):
-        client.graphs.delete_item(key=uri, skip_if_missing=True)
+
+    def clean_up() -> None:
+        client.projects.delete_item(JS_PROJECT_ID, skip_if_missing=True)
+        for uri in (JS_DATA_GRAPH_URI, JS_SHAPES_GRAPH_URI):
+            client.graphs.delete_item(key=uri, skip_if_missing=True)
+
+    clean_up()
+    client.projects.create_item(Project(name=JS_PROJECT_ID))
+    client.files.import_item(path=JS_LIBRARY_FILE, key=f"{JS_PROJECT_ID}:{JS_LIBRARY}")
     import_graph(client, JS_SHAPES_GRAPH_URI, JS_SHAPES_TTL)
     import_graph(client, JS_DATA_GRAPH_URI, JS_DATA_TTL)
 
     yield None
 
-    for uri in (JS_DATA_GRAPH_URI, JS_SHAPES_GRAPH_URI):
-        client.graphs.delete_item(key=uri, skip_if_missing=True)
+    clean_up()
 
 
 @needs_cmem
 @pytest.mark.usefixtures("_js_setup")
 @pytest.mark.parametrize("js", [False, True])
 def test_execution_with_js(js: bool) -> None:
-    """Test that plugin execution evaluates SHACL-JS constraints if SHACL-JS is enabled"""
+    """Test that plugin execution evaluates SHACL-JS from the project files if enabled"""
     plugin = ShaclValidation(
         data_graph_uri=JS_DATA_GRAPH_URI,
         shacl_graph_uri=JS_SHAPES_GRAPH_URI,
@@ -486,7 +583,7 @@ def test_execution_with_js(js: bool) -> None:
         output_entities=True,
         js=js,
     )
-    entities = plugin.execute(inputs=(), context=TestExecutionContext())
+    entities = plugin.execute(inputs=(), context=TestExecutionContext(project_id=JS_PROJECT_ID))
 
     assert entities is not None
     rows = [[value[0] for value in entity.values] for entity in entities.entities]
@@ -496,6 +593,30 @@ def test_execution_with_js(js: bool) -> None:
     assert len(rows) == 1
     assert rows[0][0] == EX.bob
     assert "does not start with a capital letter" in rows[0][5]
+
+
+@pytest.mark.parametrize("include_graphs_labels", [False, True])
+def test_complete_validation_graph_flags_every_focus_node(include_graphs_labels: bool) -> None:
+    """Test that shui:conforms flags are added along with labels, with or without graph labels"""
+    data = Graph().parse(data=DATA_TTL, format="turtle")
+    shapes = Graph().parse(data=SHAPES_TTL, format="turtle")
+    _, report, _ = pyshacl.validate(data_graph=data, shacl_graph=shapes, inplace=True)
+    plugin = ShaclValidation(
+        **{
+            **VALID_PARAMETERS,
+            "skolemize": False,
+            "add_labels": True,
+            "include_graphs_labels": include_graphs_labels,
+            "add_shui_conforms": True,
+        }
+    )
+
+    report = plugin.complete_validation_graph(report, data, shapes, "2026-10-15T00:00:00Z")
+
+    flagged = set(report.subjects(SHUI.conforms, Literal(False, datatype=XSD.boolean)))
+    # ex:alice, ex:carol and the blank node are the focus nodes of the five results
+    assert len(flagged) == 3
+    assert {EX.alice, EX.carol} <= flagged
 
 
 def test_check_parameters_accepts_js() -> None:

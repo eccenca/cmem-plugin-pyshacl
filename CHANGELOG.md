@@ -6,12 +6,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Added
+
+- the JavaScript files of SHACL-JS are read from the file resources of the project the task
+  belongs to: every `sh:jsLibraryURL` must be a path relative to them, such as
+  `js/constraints.js`, so no web server is needed to host them. Absolute URLs are rejected.
+  The files are checked and read before the data graph is loaded, so a malformed path or a
+  missing file stops the task early, and a warning is logged if the shapes graph references
+  no JavaScript files at all
+
 ### Changed
 
 - updated template to v9.9.0
 - updated dependencies: pySHACL 0.40.1, rdflib 7.6.0, validators 0.36.0 and cmem-client 1.3.0
-- the `SHACL-JS features` parameter description now says what is evaluated and that
-  JavaScript libraries must be reachable from DataIntegration
+- the `SHACL-JS features` parameter description now says what is evaluated and where the
+  JavaScript code is read from
+- the `Validation graph URI` and `Generate validation graph` parameter descriptions no
+  longer refer to the product as CMEM
+- the `Specify a custom max-evaluation-depth` parameter is now labeled `Maximum validation
+  depth`, with a description saying what it limits, and the `Add shui:conforms flag to focus
+  node resources` label lost its trailing period
+- the task documentation is rewritten: what the task produces, where it fits in a workflow,
+  and its caveats, including how SHACL-JS finds its JavaScript files
+- the readme only covers the installation, as in other eccenca plugins, since the parameters
+  are documented in Corporate Memory itself
 
 ### Fixed
 
@@ -23,6 +41,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   installed, so JavaScript constraints were skipped and a graph violating them was reported
   as conforming. pySHACL is now installed with its JavaScript engine (pyduktape2), and the
   task fails with an error if the engine is missing instead of skipping the constraints
+- `Add shui:conforms flag to focus node resources` added no flags when `Add labels` was
+  enabled and `Add labels to focus nodes and values` was not, which are their defaults
 
 ## [5.4.1]
 
