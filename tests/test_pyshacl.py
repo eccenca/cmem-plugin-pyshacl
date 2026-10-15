@@ -135,19 +135,13 @@ def _setup() -> Generator[None]:
     g = Graph()
     g.parse(shacl_file, format="turtle")
     g.add(
-        (
-            URIRef(SHACL_GRAPH_URI),
-            RDF.type,
-            URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"),
-        )
+        (URIRef(SHACL_GRAPH_URI), RDF.type, URIRef("https://vocab.eccenca.com/shui/ShapeCatalog"))
     )
     with NamedTemporaryFile(suffix=".nt", delete=True) as temp:
         g.serialize(temp.name, format="nt", encoding="utf-8")
 
         client.graphs.import_item(
-            path=Path(temp.name),
-            key=SHACL_GRAPH_URI,
-            on_conflict=ImportConflictPolicy.REPLACE,
+            path=Path(temp.name), key=SHACL_GRAPH_URI, on_conflict=ImportConflictPolicy.REPLACE
         )
 
     yield None
@@ -162,9 +156,7 @@ def import_graph(client: Client, uri: str, turtle: str) -> None:
     with NamedTemporaryFile(suffix=".nt", delete=True) as temp:
         graph.serialize(temp.name, format="nt", encoding="utf-8")
         client.graphs.import_item(
-            path=Path(temp.name),
-            key=uri,
-            on_conflict=ImportConflictPolicy.REPLACE,
+            path=Path(temp.name), key=uri, on_conflict=ImportConflictPolicy.REPLACE
         )
 
 

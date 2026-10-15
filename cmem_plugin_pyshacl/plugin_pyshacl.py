@@ -3,12 +3,14 @@
 import re
 import tempfile
 from collections import OrderedDict
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from http import HTTPStatus
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
 from time import time
+from typing import override
 from urllib.parse import urlparse
 
 import validators.url
@@ -17,12 +19,7 @@ from cmem_client.repositories.graphs import GraphExportConfig
 from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
-from cmem_plugin_base.dataintegration.entity import (
-    Entities,
-    Entity,
-    EntityPath,
-    EntitySchema,
-)
+from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
@@ -35,19 +32,7 @@ from cmem_plugin_base.dataintegration.types import (
 from pyshacl import validate
 from pyshacl.entrypoints import meta_validate
 from pyshacl.extras import check_extra_installed
-from rdflib import (
-    PROV,
-    RDF,
-    RDFS,
-    SH,
-    SKOS,
-    XSD,
-    BNode,
-    Graph,
-    Literal,
-    Namespace,
-    URIRef,
-)
+from rdflib import PROV, RDF, RDFS, SH, SKOS, XSD, BNode, Graph, Literal, Namespace, URIRef
 from rdflib.term import Node
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
@@ -94,11 +79,12 @@ def e_t(start: float) -> float:
     return round(time() - start, 3)
 
 
-def get_label(graph: Graph, subject: URIRef | BNode):  # noqa: ANN201
+def get_label(graph: Graph, subject: URIRef | BNode) -> Node | None:
     """Get preferred label"""
     labels = preferred_label(graph, subject)
     if labels:
-        return labels[0][1]
+        label: Node = labels[0][1]
+        return label
     return None
 
 
@@ -107,11 +93,7 @@ def preferred_label(
     subject: URIRef | BNode,
     lang: str | None = None,
     default: list | None = None,
-    label_properties: tuple = (
-        RDFS.label,
-        SKOSXL.prefLabel / SKOSXL.literalForm,
-        SKOS.prefLabel,
-    ),
+    label_properties: tuple = (RDFS.label, SKOSXL.prefLabel / SKOSXL.literalForm, SKOS.prefLabel),
 ) -> list:
     """Adapted from rdflib 6.1.1, removed in rdflib 6.2.0"""
     if default is None:
@@ -424,9 +406,9 @@ class ShaclValidation(WorkflowPlugin):
             predicate=RDF.type, object=SH.ValidationReport
         )
         conforms = validation_graph.value(subject=validation_report_uri, predicate=SH.conforms)
-        label = f"SHACL validation report, conforms={conforms!s}"
+        report_label = f"SHACL validation report, conforms={conforms!s}"
         if validation_report_uri:
-            validation_graph.add((validation_report_uri, RDFS.label, Literal(label)))
+            validation_graph.add((validation_report_uri, RDFS.label, Literal(report_label)))
         for validation_result_uri in validation_result_uris:
             message = str(
                 validation_graph.value(subject=validation_result_uri, predicate=SH.resultMessage)
@@ -435,8 +417,8 @@ class ShaclValidation(WorkflowPlugin):
                 subject=validation_result_uri, predicate=SH.resultPath
             )
             result_path_string = f"{result_path}: " if result_path else ""
-            label = Literal(f"SHACL: {result_path_string}{message}")
-            validation_graph.add((validation_result_uri, RDFS.label, label))
+            result_label = Literal(f"SHACL: {result_path_string}{message}")
+            validation_graph.add((validation_result_uri, RDFS.label, result_label))
             if self.include_graphs_labels:
                 focus_node = validation_graph.value(
                     subject=validation_result_uri, predicate=SH.focusNode
@@ -445,18 +427,18 @@ class ShaclValidation(WorkflowPlugin):
                     focus_nodes.append(focus_node)
                 label = get_label(data_graph, focus_node)
                 if label and focus_node:
-                    validation_graph.add((focus_node, RDFS.label, label))  # type: ignore[arg-type]
+                    validation_graph.add((focus_node, RDFS.label, label))
                 value = validation_graph.value(subject=validation_result_uri, predicate=SH.value)
                 if value and isinstance(value, URIRef | BNode):
                     label = get_label(data_graph, value)
                     if label:
-                        validation_graph.add((value, RDFS.label, label))  # type: ignore[arg-type]
+                        validation_graph.add((value, RDFS.label, label))
                 source_shape = validation_graph.value(
                     subject=validation_result_uri, predicate=SH.sourceShape
                 )
                 label = get_label(shacl_graph, source_shape)
                 if label:
-                    validation_graph.add((source_shape, RDFS.label, label))  # type: ignore[arg-type]
+                    validation_graph.add((source_shape, RDFS.label, label))
         return validation_graph, focus_nodes
 
     def add_shui_conforms_val(
@@ -542,11 +524,7 @@ class ShaclValidation(WorkflowPlugin):
             values = [
                 [
                     self.check_object(
-                        validation_graph,
-                        validation_result,
-                        SH[p],
-                        data_graph,
-                        shacl_graph,
+                        validation_graph, validation_result, SH[p], data_graph, shacl_graph
                     )
                 ]
                 for p in RESULT_PROPERTIES
@@ -568,10 +546,7 @@ class ShaclValidation(WorkflowPlugin):
             graph.parse(data=data, format="turtle")
             return graph
 
-    def check_parameters(  # noqa: C901 PLR0912
-        self,
-        client: Client,
-    ) -> None:
+    def check_parameters(self, client: Client) -> None:  # noqa: C901 PLR0912
         """Validate plugin parameters"""
         self.log.info("Validating parameters...")
         if not self.output_entities and not self.generate_graph:
@@ -748,11 +723,8 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    def execute(
-        self,
-        inputs: tuple,  # noqa: ARG002
-        context: ExecutionContext = ExecutionContext,
-    ) -> Entities | None:
+    @override
+    def execute(self, inputs: Sequence, context: ExecutionContext) -> Entities | None:
         """Execute plugin"""
         client = Client.from_context(context=context)
         self.check_parameters(client=client)
