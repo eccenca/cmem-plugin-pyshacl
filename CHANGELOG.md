@@ -8,7 +8,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- updated dependencies and template
+- updated template to v9.9.0
+- updated dependencies: pySHACL 0.40.1, rdflib 7.6.0, validators 0.36.0 and cmem-client 1.3.0
+- the `SHACL-JS features` parameter description now says what is evaluated and that
+  JavaScript libraries must be reachable from DataIntegration
 
 ### Fixed
 
@@ -16,6 +19,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   The data, SHACL shapes and ontology graphs no longer need a URL as their IRI, as long as
   they exist and have the expected graph type, and the validation graph URI may be a URL
   or a URN
+- `SHACL-JS features` had no effect: the JavaScript engine pySHACL needs for it was not
+  installed, so JavaScript constraints were skipped and a graph violating them was reported
+  as conforming. pySHACL is now installed with its JavaScript engine (pyduktape2), and the
+  task fails with an error if the engine is missing instead of skipping the constraints
 
 ## [5.4.1]
 

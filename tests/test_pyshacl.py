@@ -101,6 +101,19 @@ ex:Person a owl:Class ;
     rdfs:label "Person" .
 """
 
+# the validation graph test_workflow_execution expects, without its prov:generatedAtTime
+EXPECTED_REPORT_TTL = f"""
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+[] a sh:ValidationReport ;
+    rdfs:label "SHACL validation report, conforms=true" ;
+    prov:wasDerivedFrom <https://vocab.eccenca.com/shacl/> ;
+    prov:wasInformedBy <{SHACL_GRAPH_URI}> ;
+    sh:conforms true .
+"""
+
 needs_cmem = pytest.mark.skipif(
     environ.get("CMEM_BASE_URI", "") == "", reason="Needs CMEM configuration"
 )
@@ -202,7 +215,7 @@ def test_workflow_execution(_setup: None) -> None:  # noqa: PT019
         data = path.read_text()
         result = Graph().parse(data=data)
         result.remove((None, PROV.generatedAtTime, None))
-        test = Graph().parse(Path(__path__[0]) / "test_pyshacl.ttl", format="turtle")
+        test = Graph().parse(data=EXPECTED_REPORT_TTL, format="turtle")
 
     assert similar(result, test)
 
@@ -394,6 +407,109 @@ def test_check_parameters_without_labels(overrides: dict[str, Any]) -> None:
     plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
 
     assert plugin.include_graphs_labels is False
+
+
+JS_SHAPES_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/js-shapes/{UUID4}"
+JS_DATA_GRAPH_URI = f"https://example.org/pyshacl-plugin-test/js-data/{UUID4}"
+
+# ex:bob violates the JavaScript constraint in shacl_js/names.js, ex:alice does not
+JS_SHAPES_TTL = f"""
+@prefix ex: <{EX}> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix shui: <{SHUI}> .
+
+<{JS_SHAPES_GRAPH_URI}> a shui:ShapeCatalog .
+
+ex:CapitalisedNameShape a sh:NodeShape ;
+    sh:targetClass ex:Person ;
+    sh:js [
+        a sh:JSConstraint ;
+        sh:jsFunctionName "hasCapitalisedName" ;
+        sh:jsLibrary [ sh:jsLibraryURL "{(Path(__path__[0]) / "shacl_js" / "names.js").as_uri()}" ]
+    ] .
+"""
+
+JS_DATA_TTL = f"""
+@prefix ex: <{EX}> .
+@prefix void: <http://rdfs.org/ns/void#> .
+
+<{JS_DATA_GRAPH_URI}> a void:Dataset .
+
+ex:alice a ex:Person ; ex:name "Alice" .
+ex:bob a ex:Person ; ex:name "bob" .
+"""
+
+
+@pytest.mark.parametrize("js", [False, True])
+def test_js_constraints_are_evaluated(js: bool) -> None:
+    """Test that SHACL-JS constraints are evaluated if, and only if, SHACL-JS is enabled"""
+    conforms, report, _ = pyshacl.validate(
+        data_graph=Graph().parse(data=JS_DATA_TTL, format="turtle"),
+        shacl_graph=Graph().parse(data=JS_SHAPES_TTL, format="turtle"),
+        js=js,
+        inplace=True,
+    )
+
+    if not js:
+        assert conforms
+        return
+    assert not conforms
+    (result,) = report.subjects(RDF.type, SH.ValidationResult)
+    assert report.value(result, SH.focusNode) == EX.bob
+    assert "does not start with a capital letter" in str(report.value(result, SH.resultMessage))
+
+
+@pytest.fixture
+def _js_setup() -> Generator[None]:
+    """Set up a data graph that violates a JavaScript constraint, whatever the last run left"""
+    client = Client.from_context(TestExecutionContext())
+    for uri in (JS_DATA_GRAPH_URI, JS_SHAPES_GRAPH_URI):
+        client.graphs.delete_item(key=uri, skip_if_missing=True)
+    import_graph(client, JS_SHAPES_GRAPH_URI, JS_SHAPES_TTL)
+    import_graph(client, JS_DATA_GRAPH_URI, JS_DATA_TTL)
+
+    yield None
+
+    for uri in (JS_DATA_GRAPH_URI, JS_SHAPES_GRAPH_URI):
+        client.graphs.delete_item(key=uri, skip_if_missing=True)
+
+
+@needs_cmem
+@pytest.mark.usefixtures("_js_setup")
+@pytest.mark.parametrize("js", [False, True])
+def test_execution_with_js(js: bool) -> None:
+    """Test that plugin execution evaluates SHACL-JS constraints if SHACL-JS is enabled"""
+    plugin = ShaclValidation(
+        data_graph_uri=JS_DATA_GRAPH_URI,
+        shacl_graph_uri=JS_SHAPES_GRAPH_URI,
+        generate_graph=False,
+        output_entities=True,
+        js=js,
+    )
+    entities = plugin.execute(inputs=(), context=TestExecutionContext())
+
+    assert entities is not None
+    rows = [[value[0] for value in entity.values] for entity in entities.entities]
+    if not js:
+        assert rows == []  # the JavaScript constraint is skipped
+        return
+    assert len(rows) == 1
+    assert rows[0][0] == EX.bob
+    assert "does not start with a capital letter" in rows[0][5]
+
+
+def test_check_parameters_accepts_js() -> None:
+    """Test that SHACL-JS can be enabled, since its JavaScript engine is installed"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
+
+
+def test_check_parameters_rejects_js_without_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that enabled SHACL-JS fails instead of being skipped without its JavaScript engine"""
+    monkeypatch.setattr(plugin_pyshacl, "check_extra_installed", lambda _: False)
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match="pyduktape2"):
+        plugin.check_parameters(client=cast("Client", StubClient(STUB_GRAPHS)))
 
 
 def test_no_cmempy_backed_imports() -> None:

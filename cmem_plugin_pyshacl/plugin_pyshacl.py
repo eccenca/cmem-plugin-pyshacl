@@ -30,6 +30,7 @@ from cmem_plugin_base.dataintegration.types import (
     StringParameterType,
 )
 from pyshacl import validate
+from pyshacl.extras import check_extra_installed
 from rdflib import (
     PROV,
     RDF,
@@ -270,7 +271,11 @@ def preferred_label(
             param_type=BoolParameterType(),
             name="js",
             label="SHACL-JS features",
-            description="Enable SHACL-JS features.",
+            description="If enabled, SHACL-JS constraints in the SHACL shapes graph are "
+            "evaluated. JavaScript targets, functions and rules are only evaluated if `SHACL "
+            "advanced features` is enabled as well. JavaScript libraries referenced with "
+            "`sh:jsLibraryURL` are fetched during validation, so they must be reachable from "
+            "DataIntegration.",
             default_value=False,
             advanced=True,
         ),
@@ -607,6 +612,14 @@ class ShaclValidation(WorkflowPlugin):
 
         if self.max_validation_depth not in range(1, 1000):
             raise ValueError("Invalid value for maximum evaluation depth")
+
+        # Without its JavaScript engine pySHACL skips SHACL-JS with no more than a Python
+        # warning, so a graph violating a JavaScript constraint would be reported as conforming
+        if self.js and not check_extra_installed("js"):
+            raise ValueError(
+                "SHACL-JS features are enabled, but the JavaScript engine pySHACL needs for "
+                "them (pyduktape2) is not installed"
+            )
 
     def remove_graph_type(self, data_graph: Graph, iri: str) -> None:
         """Remove triple <data_graph_uri> a <iri>"""
