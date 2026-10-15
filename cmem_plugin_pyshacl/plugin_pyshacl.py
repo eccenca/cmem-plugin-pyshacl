@@ -10,7 +10,6 @@ from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
 from time import time
-from typing import override
 from urllib.parse import urlparse
 
 import validators.url
@@ -723,8 +722,7 @@ class ShaclValidation(WorkflowPlugin):
         self.log.info(f"Removing graph type <{iri}> from data graph")
         data_graph.remove((URIRef(self.data_graph_uri), RDF.type, URIRef(iri)))
 
-    @override
-    def execute(self, inputs: Sequence, context: ExecutionContext) -> Entities | None:
+    def execute(self, inputs: Sequence, context: ExecutionContext) -> Entities | None:  # noqa: ARG002
         """Execute plugin"""
         client = Client.from_context(context=context)
         self.check_parameters(client=client)
