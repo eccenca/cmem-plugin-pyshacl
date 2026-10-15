@@ -4,6 +4,7 @@ import re
 import tempfile
 from collections import OrderedDict
 from datetime import UTC, datetime
+from http import HTTPStatus
 from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
@@ -12,7 +13,6 @@ from urllib.parse import urlparse
 
 import validators.url
 from cmem_client.client import Client
-from cmem_client.exceptions import FilesNotFoundError
 from cmem_client.repositories.graphs import GraphExportConfig
 from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
 from cmem_plugin_base.dataintegration.context import ExecutionContext
@@ -26,7 +26,7 @@ from cmem_plugin_base.dataintegration.entity import (
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.graph import GraphParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
-from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs
+from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 from cmem_plugin_base.dataintegration.types import (
     BoolParameterType,
     IntParameterType,
@@ -59,6 +59,26 @@ DATA_GRAPH_TYPES = [
     "https://vocab.eccenca.com/dsm/ThesaurusProject",
 ]
 CBD_LINES = 50
+# the properties of a validation result output as entities, in the order of their paths
+RESULT_PROPERTIES = [
+    "focusNode",
+    "resultPath",
+    "value",
+    "sourceShape",
+    "sourceConstraintComponent",
+    "resultMessage",
+    "resultSeverity",
+]
+VALIDATION_RESULT_SCHEMA = EntitySchema(
+    type_uri=SH.ValidationResult,
+    paths=[EntityPath(path=SH[p]) for p in RESULT_PROPERTIES]
+    + [
+        EntityPath(path=SH.conforms),
+        EntityPath(path=PROV.wasDerivedFrom),
+        EntityPath(path=PROV.wasInformedBy),
+        EntityPath(path=PROV.generatedAtTime),
+    ],
+)
 # Any IRI of the urn scheme, such as urn:graph - the store needs a valid IRI, not
 # an RFC 8141 URN - so only the characters an IRI cannot contain are excluded
 URN = re.compile(r'^urn:[^\s<>"{}|\\^`]+$', re.IGNORECASE)
@@ -363,6 +383,9 @@ class ShaclValidation(WorkflowPlugin):
         self.remove_shape_catalog_graph_type = remove_shape_catalog_graph_type
         self.max_validation_depth = max_validation_depth
         self.input_ports = FixedNumberOfInputs([])
+        self.output_port = (
+            FixedSchemaPort(schema=VALIDATION_RESULT_SCHEMA) if output_entities else None
+        )
 
     def add_prov(self, validation_graph: Graph, utctime: str) -> Graph:
         """Add provenance data"""
@@ -513,16 +536,6 @@ class ShaclValidation(WorkflowPlugin):
     ) -> Entities:
         """Create entities"""
         self.log.info("Creating entities")
-        shp = [
-            "focusNode",
-            "resultPath",
-            "value",
-            "sourceShape",
-            "sourceConstraintComponent",
-            # "detail",
-            "resultMessage",
-            "resultSeverity",
-        ]
         entities = []
         conforms = next(iter(validation_graph.objects(predicate=SH.conforms)))
         for validation_result in list(validation_graph.subjects(RDF.type, SH.ValidationResult)):
@@ -536,19 +549,10 @@ class ShaclValidation(WorkflowPlugin):
                         shacl_graph,
                     )
                 ]
-                for p in shp
+                for p in RESULT_PROPERTIES
             ] + [[conforms], [self.data_graph_uri], [self.shacl_graph_uri], [utctime]]
             entities.append(Entity(uri=validation_result, values=values))
-        paths = [EntityPath(path=SH[p]) for p in shp] + [
-            EntityPath(path=SH.conforms),
-            EntityPath(path=PROV.wasDerivedFrom),
-            EntityPath(path=PROV.wasInformedBy),
-            EntityPath(path=PROV.generatedAtTime),
-        ]
-        return Entities(
-            entities=entities,
-            schema=EntitySchema(type_uri=SH.ValidationResult, paths=paths),
-        )
+        return Entities(entities=entities, schema=VALIDATION_RESULT_SCHEMA)
 
     def get_graph(self, client: Client, uri: str) -> Graph:
         """Get graph from cmem"""
@@ -628,12 +632,16 @@ class ShaclValidation(WorkflowPlugin):
 
     def read_project_file(self, client: Client, project_id: str, path: PurePosixPath) -> bytes:
         """Read a file from the file resources of a project"""
-        try:
-            content: bytes = client.files.read(f"{project_id}:{path}")
-        except FilesNotFoundError as error:
+        # the files endpoint itself, since client.files first lists the file resources of every
+        # project in the workspace, two plus one request per project, before reading one file
+        url = client.config.url_build_api / "workspace/projects" / project_id / "files"
+        response = client.http.get(url=url, params={"path": str(path)})
+        if response.status_code == HTTPStatus.NOT_FOUND:
             raise ValueError(
                 f"JavaScript file {path} not found in the file resources of project {project_id}"
-            ) from error
+            )
+        response.raise_for_status()
+        content: bytes = response.content
         return content
 
     def meta_validate_shapes(self, shacl_graph: Graph) -> None:

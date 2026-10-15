@@ -5,6 +5,7 @@ import logging
 import tempfile
 from collections.abc import Generator
 from dataclasses import dataclass
+from http import HTTPStatus
 from os import environ
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
@@ -14,15 +15,15 @@ from typing import TYPE_CHECKING, Any, NoReturn, cast
 import pyshacl
 import pytest
 from cmem_client.client import Client
-from cmem_client.exceptions import FilesNotFoundError
 from cmem_client.models.project import Project
 from cmem_client.repositories.protocols.import_item import ImportConflictPolicy
+from cmem_plugin_base.dataintegration.ports import FixedSchemaPort
 from cmem_plugin_base.testing import TestExecutionContext
 from rdflib import PROV, RDF, RDFS, SH, XSD, BNode, Graph, Literal, Namespace, URIRef
 from rdflib.compare import similar
 
 from cmem_plugin_pyshacl import plugin_pyshacl
-from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
+from cmem_plugin_pyshacl.plugin_pyshacl import VALIDATION_RESULT_SCHEMA, ShaclValidation
 
 from . import __path__
 
@@ -538,11 +539,10 @@ def test_missing_js_library_fails_before_data_graph(monkeypatch: pytest.MonkeyPa
 
 def test_missing_js_library_reported() -> None:
     """Test that a JavaScript file missing from the project files is reported with its project"""
-
-    def read(key: str) -> NoReturn:
-        raise FilesNotFoundError(f"File not found: {key}")
-
-    client = SimpleNamespace(files=SimpleNamespace(read=read))
+    client = SimpleNamespace(
+        config=SimpleNamespace(url_build_api=PurePosixPath("/dataintegration")),
+        http=SimpleNamespace(get=lambda **_: SimpleNamespace(status_code=HTTPStatus.NOT_FOUND)),
+    )
     plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
     with pytest.raises(ValueError, match=f"js/missing.js not found .* project {JS_PROJECT_ID}"):
         plugin.read_project_file(
@@ -663,6 +663,34 @@ def test_meta_shacl_rejects_invalid_shapes(meta_shacl: bool) -> None:
         return
     with pytest.raises(ValueError, match="does not conform to SHACL-SHACL"):
         plugin.meta_validate_shapes(shapes)
+
+
+@pytest.mark.parametrize("output_entities", [False, True])
+def test_output_port_follows_output_entities(output_entities: bool) -> None:
+    """Test that an output port is declared only if entities are output"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "output_entities": output_entities})
+
+    if not output_entities:
+        assert plugin.output_port is None
+        return
+    assert isinstance(plugin.output_port, FixedSchemaPort)
+    assert plugin.output_port.schema is VALIDATION_RESULT_SCHEMA
+
+
+def test_entities_match_the_output_port_schema() -> None:
+    """Test that the entities carry the schema of the output port and one value per path"""
+    data = Graph().parse(data=DATA_TTL, format="turtle")
+    shapes = Graph().parse(data=SHAPES_TTL, format="turtle")
+    _, report, _ = pyshacl.validate(data_graph=data, shacl_graph=shapes, inplace=True)
+    plugin = ShaclValidation(**VALID_PARAMETERS)
+
+    entities = plugin.make_entities(report, data, shapes, "2026-10-15T00:00:00Z")
+
+    assert isinstance(plugin.output_port, FixedSchemaPort)
+    assert entities.schema is plugin.output_port.schema
+    rows = list(entities.entities)
+    assert len(rows) == EXPECTED_VIOLATIONS
+    assert all(len(row.values) == len(entities.schema.paths) for row in rows)
 
 
 def test_check_parameters_accepts_js() -> None:

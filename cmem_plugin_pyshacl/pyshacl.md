@@ -7,6 +7,8 @@ The task has no input port. It reports the validation results in two forms, at l
 - **Entities** on the output port, one per validation result, with its focus node, result path, value, source shape, constraint component, message and severity, plus whether the data graph conforms, the IRIs of the data and shapes graphs and the time of the validation.
 - **A validation graph** written to Corporate Memory: the SHACL validation report, with labels, `shui:conforms` flags and provenance added as configured.
 
+The output port only exists while entities are output. Its schema is fixed, so a connection to it is checked while the workflow is being drawn.
+
 ## In a workflow
 
 The task usually ends a workflow. Its entities can be written to a CSV dataset to get a table of the validation results, while the validation graph keeps the complete report in Corporate Memory.

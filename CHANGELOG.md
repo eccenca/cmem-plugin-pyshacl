@@ -28,6 +28,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   node resources` label lost its trailing period
 - the task documentation is rewritten: what the task produces, where it fits in a workflow,
   and its caveats, including how SHACL-JS finds its JavaScript files
+- the task declares its output port: with `Output entities` enabled it has the fixed schema of
+  the validation results, so connections to it are checked while the workflow is drawn, and
+  without it the task has no output port. If an existing workflow connects the task's output
+  to a dataset or another task while `Output entities` is disabled, that connection never
+  passed on any entities, and it may now be shown as invalid
 - the readme only covers the installation, as in other eccenca plugins, since the parameters
   are documented in Corporate Memory itself
 
