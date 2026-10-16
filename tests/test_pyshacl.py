@@ -1,15 +1,20 @@
 """Plugin tests."""
 
+import base64
 import logging
 import tempfile
 from collections.abc import Generator
 from dataclasses import dataclass
+from functools import partial
 from http import HTTPStatus
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from os import environ
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
+from threading import Thread
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import quote
 
 import pyshacl
 import pytest
@@ -21,6 +26,7 @@ from cmem_plugin_base.testing import TestExecutionContext
 from rdflib import PROV, RDF, RDFS, SH, XSD, BNode, Graph, Literal, Namespace
 from rdflib.compare import similar
 
+from cmem_plugin_pyshacl import plugin_pyshacl
 from cmem_plugin_pyshacl.plugin_pyshacl import ShaclValidation
 
 from . import __path__
@@ -474,25 +480,108 @@ def test_js_constraints_are_evaluated(js: bool, monkeypatch: pytest.MonkeyPatch)
     assert "does not start with a capital letter" in str(report.value(result, SH.resultMessage))
 
 
-@pytest.mark.parametrize(
-    "url",
-    [
-        "https://example.org/js/names.js",
-        "http://example.org/js/names.js",
-        "file:///tmp/js/names.js",
-        "/js/names.js",
-        "../names.js",
-        "js/../../names.js",
-        "",
-    ],
-)
+@pytest.mark.parametrize("url", ["../names.js", "js/../../names.js", ""])
 def test_js_library_outside_project_files_rejected(url: str) -> None:
-    """Test that a JavaScript file must be a path relative to the project file resources"""
+    """Test that a relative JavaScript path must stay inside the project file resources"""
     shapes = Graph()
     shapes.add((BNode(), SH.jsLibraryURL, Literal(url)))
     plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
     with pytest.raises(ValueError, match="not a path relative to the project file resources"):
         plugin.read_js_libraries(cast("Client", None), JS_PROJECT_ID, shapes)
+
+
+@pytest.mark.parametrize(
+    "url", ["ftp://example.org/names.js", "urn:example:names", "C:\\libs\\names.js"]
+)
+def test_js_library_with_unsupported_scheme_rejected(url: str) -> None:
+    """Test that a JavaScript file with a scheme other than http, https, file or data is rejected"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match="unsupported scheme"):
+        plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, url)
+
+
+@pytest.fixture(scope="module")
+def js_server() -> Generator[str]:
+    """Serve the test JavaScript files over HTTP on a free local port"""
+    handler = partial(SimpleHTTPRequestHandler, directory=str(JS_LIBRARY_FILE.parent))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_address[1]}"
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.mark.parametrize(
+    "source", ["absolute path", "file URL", "data URL", "base64 data URL", "http URL"]
+)
+def test_js_library_sources(source: str, js_server: str) -> None:
+    """Test that a JavaScript file is read from each kind of sh:jsLibraryURL"""
+    content = JS_LIBRARY_FILE.read_bytes()
+    url = {
+        "absolute path": str(JS_LIBRARY_FILE),
+        "file URL": JS_LIBRARY_FILE.as_uri(),
+        "data URL": f"data:text/javascript,{quote(content)}",
+        "base64 data URL": f"data:text/javascript;base64,{base64.b64encode(content).decode()}",
+        "http URL": f"{js_server}/{JS_LIBRARY_FILE.name}",
+    }[source]
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    assert plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, url) == content
+
+
+def test_js_from_data_url_is_evaluated() -> None:
+    """Test that SHACL-JS code given in a data URL is evaluated"""
+    content = base64.b64encode(JS_LIBRARY_FILE.read_bytes()).decode()
+    shapes_ttl = JS_SHAPES_TTL.replace(JS_LIBRARY, f"data:text/javascript;base64,{content}")
+    shapes = Graph().parse(data=shapes_ttl, format="turtle")
+    plugin = ShaclValidation(
+        data_graph_uri=JS_DATA_GRAPH_URI, shacl_graph_uri=JS_SHAPES_GRAPH_URI, js=True
+    )
+    report = plugin.validate_graphs(
+        data_graph=Graph().parse(data=JS_DATA_TTL, format="turtle"),
+        shacl_graph=shapes,
+        ontology_graph=None,
+        js_libraries=plugin.read_js_libraries(cast("Client", None), JS_PROJECT_ID, shapes),
+    )
+
+    (result,) = report.subjects(RDF.type, SH.ValidationResult)
+    assert report.value(result, SH.focusNode) == EX.bob
+
+
+@pytest.mark.parametrize("url", ["/nonexistent/js/names.js", "file:///nonexistent/js/names.js"])
+def test_js_library_missing_on_server(url: str) -> None:
+    """Test that a JavaScript file missing on the server is reported with its path"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match=r"/nonexistent/js/names\.js could not be read"):
+        plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, url)
+
+
+def test_js_library_download_fails(js_server: str) -> None:
+    """Test that a failed download of a JavaScript file is reported with its URL"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match=r"missing\.js could not be downloaded"):
+        plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, f"{js_server}/missing.js")
+
+
+def test_js_library_too_large(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that a JavaScript file over the size limit is rejected"""
+    monkeypatch.setattr(plugin_pyshacl, "JS_FILE_MAX_BYTES", 10)
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match="is larger than"):
+        plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, str(JS_LIBRARY_FILE))
+
+
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [
+        ("data:text/javascript", "has no comma"),
+        ("data:text/javascript;base64,abc", "not valid base64"),
+    ],
+)
+def test_malformed_data_url_rejected(url: str, message: str) -> None:
+    """Test that a malformed data URL is rejected with the reason"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
+    with pytest.raises(ValueError, match=message):
+        plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, url)
 
 
 def test_js_without_libraries_warns(caplog: pytest.LogCaptureFixture) -> None:

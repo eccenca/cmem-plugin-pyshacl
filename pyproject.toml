@@ -24,6 +24,7 @@ pyshacl = {version = "^0.40.1", extras = ["js"]}
 validators = "^0.36.0"
 rdflib = "^7.6.0"
 cmem-client = "^1.3.0"
+httpx = "^0.27.0"
 
 [tool.poetry.dependencies.cmem-plugin-base]
 version = "^4.20.0"

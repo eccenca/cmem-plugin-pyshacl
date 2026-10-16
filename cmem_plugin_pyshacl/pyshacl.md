@@ -17,7 +17,7 @@ The task usually ends a workflow. Its entities can be written to a CSV dataset t
 
 - **The graphs are held in memory.** The data graph is loaded completely, together with the graphs it imports when `owl:imports` are resolved, so memory use and run time grow with its size.
 - **The validated graphs are not changed.** Removing graph types and inference only affect the copy in memory.
-- **SHACL-JS reads its JavaScript from the project.** A shape only names a function and the file that defines it, and these files are read from the file resources of the project the task belongs to:
+- **SHACL-JS needs its JavaScript from somewhere.** A shape only names a function and the file that defines it, with `sh:jsLibraryURL`:
 
   ```turtle
   ex:PersonShape sh:js [
@@ -27,5 +27,12 @@ The task usually ends a workflow. Its entities can be written to a CSV dataset t
   ] .
   ```
 
-  The paths are checked and the files read before the data graph is loaded, so a malformed path or a missing file stops the task early. Shapes written this way are meant for this task, since other SHACL-JS engines resolve such paths differently.
+  The value decides where the file comes from:
+
+  - a relative path, such as `js/constraints.js`, names a file resource of the project the task belongs to;
+  - an absolute path or a `file:` URL is read from the file system of the DataIntegration server, for example from a folder mounted into it;
+  - an `http:` or `https:` URL is downloaded by the DataIntegration server, without authentication, so it has to be reachable from there;
+  - a `data:` URL contains the code itself, such as `data:text/javascript,function hasCapitalisedName($this) { … }`.
+
+  Other schemes are rejected, and each file may be at most 10 MB. All files are read before the data graph is loaded, so a malformed path or a missing file stops the task early. Relative paths and `data:` URLs are meant for this task, since other SHACL-JS engines resolve them differently.
 - **Blank nodes in the entities are shown as Turtle**, at most 50 lines of their description, unless a label replaces them.

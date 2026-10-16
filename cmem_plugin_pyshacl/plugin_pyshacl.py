@@ -1,5 +1,7 @@
 """CMEM plugin for SHACl validation using pySHACL"""
 
+import base64
+import binascii
 import re
 import tempfile
 from collections import OrderedDict
@@ -10,8 +12,10 @@ from importlib.resources import files
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
 from time import time
-from urllib.parse import urlparse
+from urllib.parse import unquote_to_bytes, urlparse
+from urllib.request import url2pathname
 
+import httpx
 import validators.url
 from cmem_client.client import Client
 from cmem_client.repositories.graphs import GraphExportConfig
@@ -42,6 +46,9 @@ DATA_GRAPH_TYPES = [
     "https://vocab.eccenca.com/dsm/ThesaurusProject",
 ]
 CBD_LINES = 50
+# limits for reading a SHACL-JS library, so a path like /dev/zero cannot exhaust the memory
+JS_FILE_MAX_BYTES = 10 * 1024 * 1024
+JS_DOWNLOAD_TIMEOUT = 30  # seconds
 # the properties of a validation result output as entities, in the order of their paths
 RESULT_PROPERTIES = [
     "focusNode",
@@ -269,9 +276,10 @@ def preferred_label(
             label="SHACL-JS features",
             description="If enabled, SHACL-JS constraints in the SHACL shapes graph are "
             "evaluated. JavaScript targets, functions and rules are only evaluated if `SHACL "
-            "advanced features` is enabled as well. The JavaScript code is read from the file "
-            "resources of the project, so every `sh:jsLibraryURL` must be a path relative to "
-            "them, such as `js/constraints.js`.",
+            "advanced features` is enabled as well. A relative `sh:jsLibraryURL`, such as "
+            "`js/constraints.js`, names a file resource of the project, an absolute path or "
+            "`file:` URL is read on the DataIntegration server, an `http:` or `https:` URL is "
+            "downloaded by it, and a `data:` URL contains the code itself.",
             default_value=False,
             advanced=True,
         ),
@@ -609,6 +617,78 @@ class ShaclValidation(WorkflowPlugin):
         content: bytes = response.content
         return content
 
+    def read_server_file(self, url: str) -> bytes:
+        """Read a file from the file system of the DataIntegration server"""
+        parsed = urlparse(url)
+        path = Path(url2pathname(parsed.path) if parsed.scheme else url)
+        if not path.is_absolute():
+            raise ValueError(f"JavaScript file {url!r} is not an absolute path")
+        self.log.info(f"Loading JavaScript file {path} from the DataIntegration server")
+        try:
+            with path.open("rb") as file:
+                return file.read(JS_FILE_MAX_BYTES + 1)
+        except OSError as error:
+            raise ValueError(
+                f"JavaScript file {path} could not be read on the DataIntegration server: "
+                f"{error.strerror}"
+            ) from error
+
+    def download_file(self, url: str) -> bytes:
+        """Download a file, with a client of its own: client.http would send the access token"""
+        self.log.info(f"Downloading JavaScript file {url}")
+        content = bytearray()
+        try:
+            with httpx.stream(
+                "GET", url, timeout=JS_DOWNLOAD_TIMEOUT, follow_redirects=True
+            ) as response:
+                response.raise_for_status()
+                for chunk in response.iter_bytes():
+                    content += chunk
+                    if len(content) > JS_FILE_MAX_BYTES:
+                        break
+        except httpx.HTTPError as error:
+            raise ValueError(f"JavaScript file {url} could not be downloaded: {error}") from error
+        return bytes(content)
+
+    def decode_data_url(self, url: str) -> bytes:
+        """Decode the content of a data URL, data:[<media type>][;base64],<data>"""
+        header, separator, payload = url[len("data:") :].partition(",")
+        if not separator:
+            raise ValueError("JavaScript data URL has no comma before its content")
+        if not header.lower().endswith(";base64"):
+            return unquote_to_bytes(payload)
+        try:
+            return base64.b64decode(payload)
+        except binascii.Error as error:
+            raise ValueError(f"JavaScript data URL is not valid base64: {error}") from error
+
+    def read_js_library(self, client: Client, project_id: str, url: str) -> bytes:
+        """Read a SHACL-JS library from wherever its sh:jsLibraryURL points"""
+        scheme = urlparse(url).scheme.lower()
+        if scheme in ("http", "https"):
+            content = self.download_file(url)
+        elif scheme == "data":
+            self.log.info("Loading JavaScript from a data URL")
+            content = self.decode_data_url(url)
+        elif scheme == "file" or url.startswith("/"):
+            content = self.read_server_file(url)
+        elif not scheme:
+            path = self.js_library_path(url)
+            self.log.info(f"Loading JavaScript file {path} from project {project_id}")
+            content = self.read_project_file(client, project_id, path)
+        else:
+            raise ValueError(
+                f"JavaScript file {url!r} has the unsupported scheme {scheme}: use a path "
+                "relative to the project file resources, an absolute path, or an http, https, "
+                "file or data URL"
+            )
+        if len(content) > JS_FILE_MAX_BYTES:
+            name = "data URL" if scheme == "data" else url
+            raise ValueError(
+                f"JavaScript file {name} is larger than {JS_FILE_MAX_BYTES // 1024 // 1024} MB"
+            )
+        return content
+
     def meta_validate_shapes(self, shacl_graph: Graph) -> None:
         """Validate the shapes graph against SHACL-SHACL, if Meta-SHACL is enabled"""
         if not self.meta_shacl:
@@ -626,7 +706,7 @@ class ShaclValidation(WorkflowPlugin):
     def read_js_libraries(
         self, client: Client, project_id: str, shacl_graph: Graph
     ) -> dict[str, bytes]:
-        """Read the SHACL-JS libraries of the shapes graph from the project files, if enabled
+        """Read the SHACL-JS libraries of the shapes graph, if enabled
 
         Called before the data graph is loaded, so a malformed path or a missing file fails the
         task before the largest download.
@@ -636,9 +716,7 @@ class ShaclValidation(WorkflowPlugin):
         libraries: dict[str, bytes] = {}
         for url in map(str, shacl_graph.objects(None, SH.jsLibraryURL)):
             if url not in libraries:
-                path = self.js_library_path(url)
-                self.log.info(f"Loading JavaScript file {path} from project {project_id}")
-                libraries[url] = self.read_project_file(client, project_id, path)
+                libraries[url] = self.read_js_library(client, project_id, url)
         if not libraries:
             self.log.warning(
                 "SHACL-JS features are enabled, but the SHACL shapes graph references no "
@@ -651,9 +729,8 @@ class ShaclValidation(WorkflowPlugin):
     ) -> None:
         """Point the SHACL-JS libraries of the shapes graph to local copies in the directory"""
         copies: dict[str, str] = {}
-        for url, content in libraries.items():
-            copy = directory.joinpath(*self.js_library_path(url).parts)
-            copy.parent.mkdir(parents=True, exist_ok=True)
+        for index, (url, content) in enumerate(libraries.items()):
+            copy = directory / f"library-{index}.js"
             copy.write_bytes(content)
             copies[url] = copy.as_uri()
         for node, value in list(shacl_graph.subject_objects(SH.jsLibraryURL)):
