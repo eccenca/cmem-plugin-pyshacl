@@ -31,8 +31,7 @@ The task usually ends a workflow. Its entities can be written to a CSV dataset t
 
   - a relative path, such as `js/constraints.js`, names a file resource of the project the task belongs to;
   - an absolute path or a `file:` URL is read from the file system of the DataIntegration server, for example from a folder mounted into it;
-  - an `http:` or `https:` URL is downloaded by the DataIntegration server, without authentication, so it has to be reachable from there;
   - a `data:` URL contains the code itself, such as `data:text/javascript,function hasCapitalisedName($this) { … }`.
 
-  Other schemes are rejected, and each file may be at most 10 MB. All files are read before the data graph is loaded, so a malformed path or a missing file stops the task early. Relative paths and `data:` URLs are meant for this task, since other SHACL-JS engines resolve them differently.
+  Other schemes are rejected, `http:` and `https:` included, since the server would then run code from outside Corporate Memory. Each file may be at most 10 MB. All files are read before the data graph is loaded, so a malformed path or a missing file stops the task early. Relative paths and `data:` URLs are meant for this task, since other SHACL-JS engines resolve them differently.
 - **Blank nodes in the entities are shown as Turtle**, at most 50 lines of their description, unless a label replaces them.

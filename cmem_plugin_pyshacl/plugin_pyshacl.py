@@ -15,7 +15,6 @@ from time import time
 from urllib.parse import unquote_to_bytes, urlparse
 from urllib.request import url2pathname
 
-import httpx
 import validators.url
 from cmem_client.client import Client
 from cmem_client.repositories.graphs import GraphExportConfig
@@ -48,9 +47,8 @@ DATA_GRAPH_TYPES = [
     "https://vocab.eccenca.com/dsm/ThesaurusProject",
 ]
 CBD_LINES = 50
-# limits for reading a SHACL-JS library, so a path like /dev/zero cannot exhaust the memory
+# the size limit of a SHACL-JS library, so a path like /dev/zero cannot exhaust the memory
 JS_FILE_MAX_BYTES = 10 * 1024 * 1024
-JS_DOWNLOAD_TIMEOUT = 30  # seconds
 # the properties of a validation result output as entities, in the order of their paths
 RESULT_PROPERTIES = [
     "focusNode",
@@ -249,8 +247,8 @@ def get_label(graph: Graph, subject: Node | None) -> Node | None:
             "evaluated. JavaScript targets, functions and rules are only evaluated if `SHACL "
             "advanced features` is enabled as well. A relative `sh:jsLibraryURL`, such as "
             "`js/constraints.js`, names a file resource of the project, an absolute path or "
-            "`file:` URL is read on the DataIntegration server, an `http:` or `https:` URL is "
-            "downloaded by it, and a `data:` URL contains the code itself.",
+            "`file:` URL is read on the DataIntegration server, and a `data:` URL contains the "
+            "code itself.",
             default_value=False,
             advanced=True,
         ),
@@ -604,23 +602,6 @@ class ShaclValidation(WorkflowPlugin):
                 f"{error.strerror}"
             ) from error
 
-    def download_file(self, url: str) -> bytes:
-        """Download a file, with a client of its own: client.http would send the access token"""
-        self.log.info(f"Downloading JavaScript file {url}")
-        content = bytearray()
-        try:
-            with httpx.stream(
-                "GET", url, timeout=JS_DOWNLOAD_TIMEOUT, follow_redirects=True
-            ) as response:
-                response.raise_for_status()
-                for chunk in response.iter_bytes():
-                    content += chunk
-                    if len(content) > JS_FILE_MAX_BYTES:
-                        break
-        except httpx.HTTPError as error:
-            raise ValueError(f"JavaScript file {url} could not be downloaded: {error}") from error
-        return bytes(content)
-
     def decode_data_url(self, url: str) -> bytes:
         """Decode the content of a data URL, data:[<media type>][;base64],<data>"""
         header, separator, payload = url[len("data:") :].partition(",")
@@ -636,9 +617,7 @@ class ShaclValidation(WorkflowPlugin):
     def read_js_library(self, client: Client, project_id: str, url: str) -> bytes:
         """Read a SHACL-JS library from wherever its sh:jsLibraryURL points"""
         scheme = urlparse(url).scheme.lower()
-        if scheme in ("http", "https"):
-            content = self.download_file(url)
-        elif scheme == "data":
+        if scheme == "data":
             self.log.info("Loading JavaScript from a data URL")
             content = self.decode_data_url(url)
         elif scheme == "file" or url.startswith("/"):
@@ -648,10 +627,11 @@ class ShaclValidation(WorkflowPlugin):
             self.log.info(f"Loading JavaScript file {path} from project {project_id}")
             content = self.read_project_file(client, project_id, path)
         else:
+            # http(s) is not supported on purpose: the server would run code from outside
+            # Corporate Memory and send requests to any address a shape names
             raise ValueError(
                 f"JavaScript file {url!r} has the unsupported scheme {scheme}: use a path "
-                "relative to the project file resources, an absolute path, or an http, https, "
-                "file or data URL"
+                "relative to the project file resources, an absolute path, or a file or data URL"
             )
         if len(content) > JS_FILE_MAX_BYTES:
             name = "data URL" if scheme == "data" else url

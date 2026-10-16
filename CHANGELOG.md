@@ -11,8 +11,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - the JavaScript files of SHACL-JS can come from the file resources of the project the task
   belongs to, given as a relative `sh:jsLibraryURL` such as `js/constraints.js`, so no web
   server is needed to host them. An absolute path or `file:` URL is read on the
-  DataIntegration server, an `http:` or `https:` URL is downloaded, and a `data:` URL carries
-  the code itself. Other schemes are rejected, and each file may be at most 10 MB. All files
+  DataIntegration server, and a `data:` URL carries the code itself. Other schemes, `http:`
+  and `https:` included, are rejected, and each file may be at most 10 MB. All files
   are read before the data graph is loaded, so a malformed path or a missing file stops the
   task early, and a warning is logged if the shapes graph references no JavaScript files
 

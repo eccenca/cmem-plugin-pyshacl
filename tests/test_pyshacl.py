@@ -5,13 +5,10 @@ import logging
 import tempfile
 from collections.abc import Generator
 from dataclasses import dataclass
-from functools import partial
 from http import HTTPStatus
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from os import environ
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
-from threading import Thread
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import quote
@@ -491,30 +488,24 @@ def test_js_library_outside_project_files_rejected(url: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "url", ["ftp://example.org/names.js", "urn:example:names", "C:\\libs\\names.js"]
+    "url",
+    [
+        "https://example.org/names.js",
+        "http://example.org/names.js",
+        "ftp://example.org/names.js",
+        "urn:example:names",
+        "C:\\libs\\names.js",
+    ],
 )
 def test_js_library_with_unsupported_scheme_rejected(url: str) -> None:
-    """Test that a JavaScript file with a scheme other than http, https, file or data is rejected"""
+    """Test that a JavaScript file with a scheme other than file or data is rejected"""
     plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
     with pytest.raises(ValueError, match="unsupported scheme"):
         plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, url)
 
 
-@pytest.fixture(scope="module")
-def js_server() -> Generator[str]:
-    """Serve the test JavaScript files over HTTP on a free local port"""
-    handler = partial(SimpleHTTPRequestHandler, directory=str(JS_LIBRARY_FILE.parent))
-    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    Thread(target=server.serve_forever, daemon=True).start()
-    yield f"http://127.0.0.1:{server.server_address[1]}"
-    server.shutdown()
-    server.server_close()
-
-
-@pytest.mark.parametrize(
-    "source", ["absolute path", "file URL", "data URL", "base64 data URL", "http URL"]
-)
-def test_js_library_sources(source: str, js_server: str) -> None:
+@pytest.mark.parametrize("source", ["absolute path", "file URL", "data URL", "base64 data URL"])
+def test_js_library_sources(source: str) -> None:
     """Test that a JavaScript file is read from each kind of sh:jsLibraryURL"""
     content = JS_LIBRARY_FILE.read_bytes()
     url = {
@@ -522,7 +513,6 @@ def test_js_library_sources(source: str, js_server: str) -> None:
         "file URL": JS_LIBRARY_FILE.as_uri(),
         "data URL": f"data:text/javascript,{quote(content)}",
         "base64 data URL": f"data:text/javascript;base64,{base64.b64encode(content).decode()}",
-        "http URL": f"{js_server}/{JS_LIBRARY_FILE.name}",
     }[source]
     plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
     assert plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, url) == content
@@ -553,13 +543,6 @@ def test_js_library_missing_on_server(url: str) -> None:
     plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
     with pytest.raises(ValueError, match=r"/nonexistent/js/names\.js could not be read"):
         plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, url)
-
-
-def test_js_library_download_fails(js_server: str) -> None:
-    """Test that a failed download of a JavaScript file is reported with its URL"""
-    plugin = ShaclValidation(**{**VALID_PARAMETERS, "js": True})
-    with pytest.raises(ValueError, match=r"missing\.js could not be downloaded"):
-        plugin.read_js_library(cast("Client", None), JS_PROJECT_ID, f"{js_server}/missing.js")
 
 
 def test_js_library_too_large(monkeypatch: pytest.MonkeyPatch) -> None:
