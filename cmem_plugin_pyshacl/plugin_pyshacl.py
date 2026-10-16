@@ -38,6 +38,8 @@ from rdflib import PROV, RDF, RDFS, SH, SKOS, XSD, BNode, Graph, Literal, Namesp
 from rdflib.term import Node
 
 SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
+# the properties a label is taken from, in order of preference
+LABEL_PROPERTIES = (RDFS.label, SKOSXL.prefLabel / SKOSXL.literalForm, SKOS.prefLabel)
 DATA_GRAPH_TYPES = [
     "https://vocab.eccenca.com/di/Dataset",
     "http://rdfs.org/ns/void#Dataset",
@@ -84,46 +86,15 @@ def e_t(start: float) -> float:
     return round(time() - start, 3)
 
 
-def get_label(graph: Graph, subject: URIRef | BNode) -> Node | None:
-    """Get preferred label"""
-    labels = preferred_label(graph, subject)
-    if labels:
-        label: Node = labels[0][1]
-        return label
+def get_label(graph: Graph, subject: Node | None) -> Node | None:
+    """Get the preferred label of a subject, or None if it has none"""
+    if subject is None:
+        return None
+    for label_property in LABEL_PROPERTIES:
+        label = next(graph.objects(subject, label_property), None)
+        if label is not None:
+            return label
     return None
-
-
-def preferred_label(
-    graph: Graph,
-    subject: URIRef | BNode,
-    lang: str | None = None,
-    default: list | None = None,
-    label_properties: tuple = (RDFS.label, SKOSXL.prefLabel / SKOSXL.literalForm, SKOS.prefLabel),
-) -> list:
-    """Adapted from rdflib 6.1.1, removed in rdflib 6.2.0"""
-    if default is None:
-        default = []
-    # setup the language filtering
-    if lang is not None:
-        if lang == "":  # we only want not language-tagged literals
-
-            def langfilter(lbl: Literal) -> bool:
-                return lbl.language is None
-        else:
-
-            def langfilter(lbl: Literal) -> bool:
-                return lbl.language == lang
-    else:  # we don't care about language tags
-
-        def langfilter(lbl: Literal) -> bool:  # noqa: ARG001
-            return True
-
-    for label_prop in label_properties:
-        labels = list(filter(langfilter, graph.objects(subject, label_prop)))  # type:ignore[arg-type, var-annotated]
-        if len(labels) == 0:
-            continue
-        return [(label_prop, lbl) for lbl in labels]
-    return default
 
 
 @Plugin(
