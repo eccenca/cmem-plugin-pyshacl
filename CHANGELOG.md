@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- updated template to v9.9.0
+- updated template to v9.10.0
 - updated dependencies: pySHACL 0.40.1, rdflib 7.6.0, validators 0.36.0 and cmem-client 1.3.0
 - the `SHACL-JS features` parameter description now says what is evaluated and where the
   JavaScript code is read from
