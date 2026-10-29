@@ -84,6 +84,16 @@ def e_t(start: float) -> float:
     return round(time() - start, 3)
 
 
+def count_features(features: dict[str, set[Node]]) -> str:
+    """Describe how often each feature is used, such as "2 SHACL rules and 1 custom target"""
+    counts = [
+        f"{len(nodes)} {name}{'' if len(nodes) == 1 else 's'}"
+        for name, nodes in features.items()
+        if nodes
+    ]
+    return " and ".join([", ".join(counts[:-1]), counts[-1]] if len(counts) > 1 else counts)
+
+
 def get_label(graph: Graph, subject: Node | None) -> Node | None:
     """Get the preferred label of a subject, or None if it has none"""
     if subject is None:
@@ -235,7 +245,13 @@ def get_label(graph: Graph, subject: Node | None) -> Node | None:
             param_type=BoolParameterType(),
             name="advanced",
             label="SHACL advanced features",
-            description="Enable SHACL advanced features.",
+            description="If enabled, the "
+            "[SHACL Advanced Features](https://www.w3.org/TR/shacl-af/) "
+            "in the SHACL shapes graph are evaluated: rules (`sh:rule`), custom targets "
+            "(`sh:target`), node expression constraints (`sh:expression`) and SHACL functions. "
+            "Rules add their triples to the in-memory copy of the data graph before it is "
+            "validated, the data graph itself is not changed. Targets, functions and rules "
+            "written in JavaScript need `SHACL-JS features` as well.",
             default_value=False,
             advanced=True,
         ),
@@ -654,6 +670,48 @@ class ShaclValidation(WorkflowPlugin):
                 f"SHACL graph <{self.shacl_graph_uri}> does not conform to SHACL-SHACL.\n{text}"
             )
 
+    def warn_disabled_features(self, shacl_graph: Graph) -> None:
+        """Warn about the parts of the shapes graph that are skipped with a feature disabled
+
+        pySHACL skips them without a word, so a shapes graph that relies on them would
+        otherwise seem to conform.
+        """
+        # every piece of SHACL-JS code names the JavaScript function implementing it
+        js_code = set(shacl_graph.subjects(SH.jsFunctionName, None))
+        rules = set(shacl_graph.objects(None, SH.rule))
+        targets = set(shacl_graph.objects(None, SH.target))
+        js_functions = set(shacl_graph.subjects(RDF.type, SH.JSFunction))
+        if not self.advanced:
+            features = {
+                "SHACL rule": rules,
+                "custom target": targets,
+                "expression constraint": set(shacl_graph.objects(None, SH.expression)),
+                "JavaScript function": js_functions,
+            }
+            if any(features.values()):
+                self.log.warning(
+                    f"The SHACL shapes graph uses {count_features(features)}, which are not "
+                    "evaluated because SHACL advanced features are disabled"
+                )
+        if not self.js:
+            validators = {
+                validator
+                for predicate in (SH.validator, SH.nodeValidator, SH.propertyValidator)
+                for validator in shacl_graph.objects(None, predicate)
+            }
+            features = {
+                "SHACL-JS constraint": set(shacl_graph.objects(None, SH.js)),
+                "JavaScript constraint component": validators & js_code,
+                "JavaScript rule": rules & js_code,
+                "JavaScript target": targets & js_code,
+                "JavaScript function": js_functions,
+            }
+            if any(features.values()):
+                self.log.warning(
+                    f"The SHACL shapes graph uses {count_features(features)}, which are not "
+                    "evaluated because SHACL-JS features are disabled"
+                )
+
     def read_js_libraries(
         self, client: Client, project_id: str, shacl_graph: Graph
     ) -> dict[str, bytes]:
@@ -752,6 +810,7 @@ class ShaclValidation(WorkflowPlugin):
         shacl_graph = self.get_graph(client=client, uri=self.shacl_graph_uri)
         self.log.info(f"Finished loading SHACL graph in {e_t(start)} seconds")
         self.meta_validate_shapes(shacl_graph)
+        self.warn_disabled_features(shacl_graph)
         js_libraries = self.read_js_libraries(client, context.task.project_id(), shacl_graph)
 
         self.log.info(f"Loading data graph <{self.data_graph_uri}> into memory...")

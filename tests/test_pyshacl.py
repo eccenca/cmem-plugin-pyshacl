@@ -576,6 +576,71 @@ def test_js_without_libraries_warns(caplog: pytest.LogCaptureFixture) -> None:
     assert "references no JavaScript files" in caplog.text
 
 
+FEATURES_SHAPES_TTL = f"""
+@prefix ex: <{EX}> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+ex:FeatureShape a sh:NodeShape ;
+    sh:targetClass ex:Person ;
+    sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:checked ; sh:object true ] ;
+    sh:rule [ a sh:JSRule ; sh:jsFunctionName "infer" ; sh:jsLibrary ex:Library ] ;
+    sh:target [ a sh:SPARQLTarget ; sh:select "SELECT ?this WHERE {{ ?this a ex:Person }}" ] ;
+    sh:js [ a sh:JSConstraint ; sh:jsFunctionName "check" ; sh:jsLibrary ex:Library ] .
+"""
+
+
+ADVANCED_DISABLED_WARNING = (
+    "uses 2 SHACL rules and 1 custom target, which are not evaluated because SHACL advanced "
+    "features are disabled"
+)
+JS_DISABLED_WARNING = (
+    "uses 1 SHACL-JS constraint and 1 JavaScript rule, which are not evaluated because "
+    "SHACL-JS features are disabled"
+)
+
+
+@pytest.mark.parametrize(
+    ("advanced", "js", "expected"),
+    [
+        (False, False, [ADVANCED_DISABLED_WARNING, JS_DISABLED_WARNING]),
+        (False, True, [ADVANCED_DISABLED_WARNING]),
+        (True, False, [JS_DISABLED_WARNING]),
+        (True, True, []),
+    ],
+)
+def test_disabled_features_warn(
+    advanced: bool, js: bool, expected: list[str], caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test that shapes skipped because of a disabled feature are named in a warning"""
+    plugin = ShaclValidation(**{**VALID_PARAMETERS, "advanced": advanced, "js": js})
+    shapes = Graph().parse(data=FEATURES_SHAPES_TTL, format="turtle")
+    with caplog.at_level(logging.WARNING):
+        plugin.warn_disabled_features(shapes)
+    assert [record.getMessage().split("graph ", 1)[1] for record in caplog.records] == expected
+
+
+def test_disabled_features_without_features_do_not_warn(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that a shapes graph using neither feature gives no warning with both disabled"""
+    plugin = ShaclValidation(**VALID_PARAMETERS)
+    shapes = Graph().parse(data=SHAPES_TTL, format="turtle")
+    with caplog.at_level(logging.WARNING):
+        plugin.warn_disabled_features(shapes)
+    assert caplog.records == []
+
+
+def test_count_features() -> None:
+    """Test that feature counts read as a list"""
+    one, two, three = BNode(), BNode(), BNode()
+    assert plugin_pyshacl.count_features({"rule": {one}}) == "1 rule"
+    assert plugin_pyshacl.count_features({"rule": {one, two}, "target": set()}) == "2 rules"
+    assert (
+        plugin_pyshacl.count_features({"rule": {one}, "target": {two}, "function": {three}})
+        == "1 rule, 1 target and 1 function"
+    )
+
+
 def test_missing_js_library_fails_before_data_graph(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that a missing JavaScript file fails execution before the data graph is loaded"""
     loaded: list[str] = []

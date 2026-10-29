@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   and `https:` included, are rejected, and each file may be at most 10 MB. All files
   are read before the data graph is loaded, so a malformed path or a missing file stops the
   task early, and a warning is logged if the shapes graph references no JavaScript files
+- a warning names the parts of the SHACL shapes graph that are skipped because `SHACL
+  advanced features` or `SHACL-JS features` is disabled, such as SHACL rules, custom targets
+  and SHACL-JS constraints, so a shapes graph relying on them no longer seems to conform
+  without a hint
 
 ### Changed
 
@@ -22,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - updated dependencies: pySHACL 0.40.1, rdflib 7.6.0, validators 0.36.0 and cmem-client 1.3.0
 - the `SHACL-JS features` parameter description now says what is evaluated and where the
   JavaScript code is read from
+- the `SHACL advanced features` parameter description now lists the features it enables and
+  says that rules only change the in-memory copy of the data graph
 - the `Validation graph URI` and `Generate validation graph` parameter descriptions no
   longer refer to the product as CMEM
 - the `Specify a custom max-evaluation-depth` parameter is now labeled `Maximum validation
