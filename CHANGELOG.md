@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
   JavaScript code is read from
 - the `SHACL advanced features` parameter description now lists the features it enables and
   says that rules only change the in-memory copy of the data graph
+- graphs are downloaded as N-Triples and parsed straight from the downloaded file, which
+  lowers peak memory use and loading time for large graphs
 - the `Validation graph URI` and `Generate validation graph` parameter descriptions no
   longer refer to the product as CMEM
 - the `Specify a custom max-evaluation-depth` parameter is now labeled `Maximum validation

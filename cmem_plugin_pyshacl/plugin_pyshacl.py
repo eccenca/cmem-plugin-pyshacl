@@ -524,17 +524,23 @@ class ShaclValidation(WorkflowPlugin):
         return Entities(entities=entities, schema=VALIDATION_RESULT_SCHEMA)
 
     def get_graph(self, client: Client, uri: str) -> Graph:
-        """Get graph from cmem"""
+        """Get graph from cmem
+
+        The graph is exported as N-Triples and parsed from the file, so the serialization is
+        never held in memory as a whole next to the parsed graph.
+        """
         graph = Graph()
-        with tempfile.NamedTemporaryFile(suffix=".ttl", delete=True) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".nt", delete=True) as tmp:
             path = client.graphs.export_item(
                 key=uri,
                 path=Path(tmp.name),
                 replace=True,
-                configuration=GraphExportConfig(resolve_owl_imports=self.owl_imports),
+                configuration=GraphExportConfig(
+                    serialization=client.graphs.formats["n-triples"],
+                    resolve_owl_imports=self.owl_imports,
+                ),
             )
-            data = path.read_text()
-            graph.parse(data=data, format="turtle")
+            graph.parse(source=path, format="nt")
             return graph
 
     def check_parameters(self, client: Client) -> None:  # noqa: C901 PLR0912
