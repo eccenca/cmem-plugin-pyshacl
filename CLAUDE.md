@@ -12,9 +12,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`cmem_plugin_pyshacl/__init__.py`** — Package init.
 - **`main.py`** — Placeholder; not used.
 - **`tests/test_pyshacl.py`** — Unit/integration tests using pytest + pytest-dotenv.
-- **`pyproject.toml`** — Poetry config, dependencies (pyshacl, rdflib, cmem-cmempy, cmem-client, cmem-plugin-base), dev deps (ruff, mypy, pytest, deptry, trivy).
-- **`Taskfile.yaml`** — Generated task runner file; customize in `TaskfileCustom.yml`.
-- **`.pre-commit-config.yaml`** — Local hooks for ruff, mypy, deptry, trivy, poetry-check.
+- **`pyproject.toml`** — PEP 621 project metadata managed with uv (build backend hatchling with uv-dynamic-versioning); dependencies (pyshacl, rdflib, validators, cmem-client, cmem-plugin-base), dev dependency group (ruff, mypy, pytest, deptry, trivy).
+- **`uv.lock`** — Lock file, committed.
+- **`Taskfile.yaml`** — Generated task runner file; customize in `TaskfileCustom.yaml`.
+- **`.pre-commit-config.yaml`** — Local hooks for ruff, uv-lock, uv-sync, trivy.
 
 ## Architecture
 
@@ -34,11 +35,11 @@ Key helper functions: `get_label()`, `preferred_label()`, `e_t()` (elapsed time)
 
 ## Development Commands
 
-All commands require `task` (Taskfile) and Poetry installed.
+All commands require `task` (Taskfile) and uv (0.11.7 or newer) installed.
 
 ```bash
 # Install dependencies
-poetry install
+uv sync
 
 # Run all checks (linters + tests)
 task check
@@ -59,16 +60,16 @@ task format:fix-unsafe
 task build
 
 # Run a single test
-poetry run pytest tests/test_pyshacl.py -v
+uv run pytest tests/test_pyshacl.py -v
 ```
 
-Pre-commit runs ruff, mypy, deptry, trivy, and poetry-check on `git commit`.
+Pre-commit runs ruff, uv-lock, uv-sync and trivy on `git commit`.
 
 ## Dependencies Summary
 
 | Category | Key packages |
 |----------|-------------|
-| Core | pyshacl, rdflib, cmem-cmempy, cmem-client |
+| Core | pyshacl, rdflib, validators, cmem-client |
 | Plugin framework | cmem-plugin-base |
 | Dev | ruff, mypy, pytest, deptry, trivy-py-ecc |
 

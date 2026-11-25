@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- updated template to v9.10.0
+- updated template to v10.0.0: the project is built and managed with uv instead of poetry
 - updated dependencies: pySHACL 0.40.2, rdflib 7.6.0, validators 0.36.0 and cmem-client 1.4.2
 - the `SHACL-JS features` parameter description now says what is evaluated and where the
   JavaScript code is read from
